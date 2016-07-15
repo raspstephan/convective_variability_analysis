@@ -15,6 +15,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.ndimage import measurements
 import copy
+from scipy.optimize import leastsq
+np.seterr(divide='ignore', invalid='ignore')   # Suppress invalide divide warnings
+
+def origin_residual(p, x, y):
+    slope = p
+    err = y - (slope * x)
+    return err
+
 
 # Plot settings
 mpl.rcParams['font.size'] = 10
@@ -22,7 +30,7 @@ mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['lines.linewidth'] = 1.5
 mpl.rcParams['legend.fontsize'] = 8
 
-cmW = ("#7C0607","#903334","#A45657","#BA7B7C","#F1F1F1",
+cmW = ("#7C0607","#903334","#A45657","#BA7B7C","#FFFFFF",
        "#8688BA","#6567AA","#46499F","#1F28A2")
 levelsW = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
 
@@ -39,8 +47,8 @@ cmNVAR = ("#0030C4","#3F5BB6","#7380C0","#A0A7CE","#CCCEDC","#DDCACD",
 
 levelsNVAR = [1, 1.14, 1.33, 1.6, 1.78, 2, 2.25, 2.5, 3, 3.5, 4]
 
-cmMP = ("#F1FFF4","#E2FBE6","#D1F0D7","#C0E5C7","#ACD9B5","#96CCA1",
-          "#7BBC8A","#59A96D","#138F42","#004100")
+cmMP = ("#DBA9B4","#DDA6A0","#D8A786","#CAAA68","#B1AF4C","#8DB340",
+          "#50B750","#00B76E","#00B28C","#007678")
 levelsMP = np.linspace(0,1+1/11,11)
 
 
@@ -50,8 +58,9 @@ ana = sys.argv[1]  # 'm' or 'p'
 date = sys.argv[2]
 ensdir = '/home/scratch/users/stephan.rasp/' + date + '/deout_onlypsp/'
 nens = 2
-nens = [1,2, 4, 5, 6, 8]
-tstart = timedelta(hours=14)
+nens = [1,2, 4, 5, 6, 8, 9, 10, 12, 13, 16, 20]
+#nens = [1,2]
+tstart = timedelta(hours=1)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
@@ -97,8 +106,7 @@ if ana == 'p':
     plotdir += '/p/'
     
 # Create plotdir if not exist
-if not os.path.exists(plotdir):
-    os.makedirs(plotdir)
+if not os.path.exists(plotdir): os.makedirs(plotdir)
 
 
 # Make the timelist
@@ -164,7 +172,6 @@ for t in timelist:
                 
         # 3. Calculate RDF
         g, r = rdf(labels, field, normalize = True)
-
         glist.append(g)
         
         
@@ -173,6 +180,8 @@ for t in timelist:
         num = np.unique(labels).shape[0]   # Number of clouds
         # Get center of mass for each cluster
         com = np.array(measurements.center_of_mass(field, labels, range(1,num)))
+        if com.shape[0] == 0:   # Accout for empty arrays
+            com = np.empty((0,2))
         comlist.append(com)
         sx, sy = field.shape
         
@@ -193,6 +202,7 @@ for t in timelist:
     
     
     # cont 3. Get means after member loop
+    #print glist
     g = np.mean(glist, axis = 0)
     # Get clustering radius
     gthresh = 1.1
@@ -206,6 +216,9 @@ for t in timelist:
     
     # cont 4. Variance
     # Loop over n
+    varres1list = []
+    varres2list = []
+    
     for n in nlist:
         # Determine size of coarse arrays
         nx = int(np.floor(sx/n))
@@ -251,8 +264,7 @@ for t in timelist:
         var = np.var(MPlist, axis = 0, ddof = 1)
         MPmean = np.mean(MPlist, axis = 0)
         mpmean = np.nanmean(mplist, axis = 0)
-        Nmean = np.mean(mplist, axis = 0)
-        
+        Nmean = np.mean(Nlist, axis = 0)
         
         # Plot these fields now
         # First, have to upscale them again to the model grid
@@ -276,23 +288,27 @@ for t in timelist:
         var_fobj.data = var_fullfield
         var_fobj.dims = 2
         var_fobj.fieldn = 'Var'
+        var_fobj.unit = '(kg/s)^2'
         
         MP_fobj = copy.deepcopy(fobj)
         MP_fobj.data = MP_fullfield
         MP_fobj.data[MP_fobj.data == 0] = np.nan
         MP_fobj.dims = 2
         MP_fobj.fieldn = 'M(P)'
+        MP_fobj.unit = 'kg/s'
         
         mp_fobj = copy.deepcopy(fobj)
         mp_fobj.data = mp_fullfield
         mp_fobj.data[mp_fobj.data == 0] = np.nan
         mp_fobj.dims = 2
         mp_fobj.fieldn = 'm(p)'
+        mp_fobj.unit = 'kg/s'
         
         nvar_fobj = copy.deepcopy(fobj)
         nvar_fobj.data = var_fullfield /MP_fullfield/mp_fullfield
         nvar_fobj.dims = 2
         nvar_fobj.fieldn = 'Normalized Var = Var / M / m'
+        nvar_fobj.unit = ''
         
         wobj = copy.deepcopy(fobj)
         wobj.data = fobj.data[0]
@@ -315,15 +331,30 @@ for t in timelist:
                                 ji1=(411, 381), extend = 'both')
             cb = fig.colorbar(cf)
             cb.set_label(fob.unit)
-        figtitle = 'FIGTITLE'
+        figtitle = date + '+' + ddhhmmss(t) + ' n = ' + str(n).zfill(3)
         fig.suptitle(figtitle, fontsize='x-large')
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # To account for suptitle
-        fig.savefig(plotdir + 'test_var_' + ddhhmmss(t) + str(n).zfill(3),
+        plotdirnew = plotdir + '/var/'
+        if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+        fig.savefig(plotdirnew + 'var_' + ddhhmmss(t) + '_' + str(n).zfill(3),
                     dpi = 300)
+        
+        # Now actually calculate the variance constant/factor
+        # Method 1: Simply take the mean of nvar 
+        varres1list.append([var/(MPmean**2), Nmean])
+        
+        # Method 2: Do the slope approach
+        
+        #xfit = np.ravel(MPmean**2)
+        #yfit = np.ravel(var)
+        #mask = yfit > 0
+
+        
+        #slope = leastsq(origin_residual, 1, args = (xfit[mask], yfit[mask]))[0][0]
+        #varres2list.append([np.sqrt(slope), np.sqrt(1/np.nanmean(Nmean))])
             
-            
-            
-    
+    varres1list = np.array(varres1list)
+    #varres2list = np.array(varres2list)
     
 
     
@@ -333,11 +364,14 @@ for t in timelist:
     fig = fig_contourf_1sp(meantauc, pllevels = np.arange(0, 21, 1),
                            extend = 'max', sp_title = title_sufx)
     plt.tight_layout()
-    fig.savefig(plotdir + 'test_tauc_' + ddhhmmss(t))
+    plotdirnew = plotdir + '/tauc/'
+    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+    fig.savefig(plotdirnew + 'tauc_' + ddhhmmss(t), dpi = 300)
+    
     # 2. Plot cloud size and m/p distribution, plus RDF
     fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*2.5, 3.2))
     axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
-    axarr[0].plot([sizemean, sizemean], [1, axarr[0].get_ylim()[1]], c = 'gray', 
+    axarr[0].plot([sizemean, sizemean], [1, axarr[0].get_ylim()[1]], c = 'red', 
                   alpha = 0.5)
     axarr[0].set_xlabel('Cloud size [m^2]')
     axarr[0].set_ylabel('Number of clouds')
@@ -346,7 +380,7 @@ for t in timelist:
     axarr[0].set_yscale('log')
     
     axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
-    axarr[1].plot([summean, summean], [1, axarr[1].get_ylim()[1]], c = 'gray', 
+    axarr[1].plot([summean, summean], [1, axarr[1].get_ylim()[1]], c = 'red', 
                   alpha = 0.5)
     if ana == 'm':
         axarr[1].set_xlabel('Cloud mass flux [kg/s]')
@@ -358,14 +392,57 @@ for t in timelist:
     
     # 3. Plot RDF
     axarr[2].plot(r/1000., g)
-    axarr[2].plot([r_cluster, r_cluster], [0, 4], c = 'gray', alpha = 0.5)
+    axarr[2].plot([r_cluster, r_cluster], [0, 4], c = 'red', alpha = 0.5)
+    axarr[2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     axarr[2].set_xlabel('Distance [km]')
     axarr[2].set_ylabel('Normalized RDF')
     axarr[2].set_title('Radial distribution function')
     axarr[2].set_ylim(0, 4)
     axarr[2].set_xlim(0, np.max(r)/1000.)
     plt.tight_layout()
-    fig.savefig(plotdir + 'test_rdf_' + ddhhmmss(t), dpi = 300)
+    plotdirnew = plotdir + '/cloud_stats/'
+    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+    fig.savefig(plotdirnew + 'stats_' + ddhhmmss(t), dpi = 300)
+    
+    
+    # 4. Plot CC06 Fig4 
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4, 3.2))
+    clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
+
+    for x, y, n, c in zip(list(varres1list[:,1]),
+                          list(varres1list[:,0]),
+                          nlist, clist):
+        x[x==0] = np.nan   # Set no clouds to nan for correct mean
+
+        xcloud = np.sqrt(1/x)
+        ycloud = np.sqrt(y)
+        x = np.sqrt(1/np.nanmean(x))
+        y = np.sqrt(np.nanmean(y))
+        #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
+                   #linewidth = 0.2)
+        ax.scatter(xcloud, ycloud, marker = 'o', c = c, 
+                   s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8,
+                   label = str(n*2.8)+'km')
+    
+    #for x, y, n, c in zip(list(varres2list[:,1]),
+                          #list(varres2list[:,0]),
+                          #nlist, clist): 
+        #ax.scatter(x, y, marker = '*', c = c, label = str(n*2.8)+'km', s = 20,
+                   #linewidth = 0.2)
+    
+    ax.legend(loc =4, ncol = 2, prop={'size':6})
+    tmp = np.array([0,5])
+    ax.plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    ax.set_xlim(0,4)
+    ax.set_ylim(0,4)
+    ax.set_xlabel('Square root (1/N)')
+    ax.set_ylabel('Square root (Var(M)/M^2)')
+    ax.set_title(date + '+' + ddhhmmss(t))
+    plt.tight_layout()
+    plotdirnew = plotdir + '/var_scatter/'
+    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+    fig.savefig(plotdirnew + 'scatter_' + ddhhmmss(t), dpi = 300)
     
     
     
@@ -401,7 +478,7 @@ axarr[1,1].set_ylabel('Clustering length [km]')
 axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
 
 plt.tight_layout()
-fig.savefig(plotdir + 'test_cluster')
+fig.savefig(plotdir + 'timeseries')
 
 
 
