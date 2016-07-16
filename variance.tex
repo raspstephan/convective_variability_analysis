@@ -45,11 +45,14 @@ where $\sigma_i$ is the cloud size \citep{Cohen2006}.
 
 Two methods are used to identify clouds and the associated mass flux: 1) Instantaneous precipitation with a threshold of 0.001 mm s$^{-1}$ (for this criterion every m is replaced by a p); 2) Vertical velocity greater than 1 m s$^{-1}$ combined with a positive liquid water content at 2.4km height. The second criterion was also used in CC06 and  \cite{Davoudi2010}. A comparison of using precipitation and the above mentioned vertical velocity criterion is given in an iPhython Notebook. 
 
-Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avaid domain effects, the clouds are collapsed to their center of mass. 
+Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avoid domain effects, the clouds are collapsed to their center of mass. 
 
-The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. 
+The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. 
 
-The Variance $\langle (\delta M(P))^2 \rangle$ is then calculated for each coarse box between the 10 ensemble members. M(P) and m(p) are taken as ensemble means for each box. The variance is then plotted against Mm(Pp) as a scatter plot. A line through the origin is then fitted for the points for each $n$, giving a slope, which should be 2 if the data fits the theory. 
+The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. To facilitate an easy coarse-graining a domain of 256 by 256 grid points is chosen in the center of the domain. The domain is subsequently split into 4 parts with neighborhood sizes: 256, 128, 64, 32, 16, 8, 4 grid points (716.8 km down to 11.2 km) with 1, 4, 16, 64, 256, 1024, 4096 coarse-grained boxes. 
+
+The Variance $\langle (\delta M(P))^2 \rangle$ is then calculated for each coarse box between the 10 ensemble members. $M$ and $m$ are taken as ensemble means for each box. This means that for every coarse-grained box, there is one value of $Var(M)$, $M$, $m$ and $N$. 
+ The variance is then plotted against Mm(Pp) as a scatter plot. A line through the origin is then fitted for the points for each $n$, giving a slope, which should be 2 if the data fits the theory. 
 
 \subsection{Assumptions}
 1) The convective cloud field is fully displaced by the PSP scheme after a few hours. This assumption could be tested in a RCE simulation. 
@@ -59,10 +62,21 @@ Since the results are likely to be highly case dependent, in this section we wil
 \subsection{1 July 2009: DIURNAL}
 
 \section{Results}
-\subsection{Cloud size and m/p distribution}
-For each time step the cloud size and m/p distribution is evaluated as an ensemble average.
+\subsection{W and variance fields, plus tau_c}
+For each time step and coarsening scale, a plot is drawn of the vertical velocity field plus the normalized variance 
+
+\subsection{Cloud size and m/p distribution and RDF}
+For each time step the cloud size and m/p distribution is evaluated as an ensemble average over the whole analysis domain. Figure \ref{fig:} shows one this distribution for one time step (12UTC). Plots for all time steps can be found at ...
+
+\subsection{Variance scatter plots}
+Figure shows a variance scatter plot similar to Fig 4 in CC06 for one time step. Each dot represents one coarse grained box. The dashed line represents the theoretical scaling. 
+
+\subsection
 
 \section{Discussion}
+\subsection{Variance scatter plots: Average value for each neighborhood size}
+
+Question: Do I need to have one average value for the variance for one scale. If yes, how do I do that. A normal mean will be heavily affected by outliers. 
 
 
 \bibliographystyle{ametsoc}

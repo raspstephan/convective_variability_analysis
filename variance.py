@@ -60,7 +60,7 @@ ensdir = '/home/scratch/users/stephan.rasp/' + date + '/deout_onlypsp/'
 nens = 2
 nens = [1,2, 4, 5, 6, 8, 9, 10, 12, 13, 16, 20]
 #nens = [1,2]
-tstart = timedelta(hours=1)
+tstart = timedelta(hours=12)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
@@ -71,25 +71,7 @@ plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date
 water = True
 dx = 2800.
 
-def get_nlist(sx, sy, mindiff = 1, minval = 0):
-    #sx, sy = field.shape
-    # Determine smaller dimension
-    s_small = np.min([sx, sy])
-    nlist = []
-    for i in range(1, s_small):
-        nlist.append(int(np.floor(s_small/i)))
-    # Keep only unique values in list
-    nlist = sorted(list(set(nlist)))
-    # Minimum distance between n's
-    if mindiff > 1:
-        newlist = [nlist[0]]
-        for n in nlist[1:]:
-            if (n - newlist[-1]) >= mindiff:
-                newlist.append(n)
-        nlist = newlist
-    return [i for i in nlist if i > minval]
 
-nlist = get_nlist(461-50, 421-50, mindiff = 10)
 nlist = [256, 128, 64, 32, 16, 8, 4]
 
 # Specific setup for type of analysis
@@ -406,7 +388,7 @@ for t in timelist:
     
     
     # 4. Plot CC06 Fig4 
-    fig, ax = plt.subplots(1, 1, figsize = (95./25.4, 3.2))
+    fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 3.2))
     clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
 
     for x, y, n, c in zip(list(varres1list[:,1]),
@@ -416,13 +398,16 @@ for t in timelist:
 
         xcloud = np.sqrt(1/x)
         ycloud = np.sqrt(y)
-        x = np.sqrt(1/np.nanmean(x))
-        y = np.sqrt(np.nanmean(y))
+
         #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
                    #linewidth = 0.2)
-        ax.scatter(xcloud, ycloud, marker = 'o', c = c, 
+        axarr[0].scatter(xcloud, ycloud, marker = 'o', c = c, 
                    s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8,
                    label = str(n*2.8)+'km')
+
+        ypercent = y/(2./x)*100.
+        axarr[1].scatter(xcloud, ypercent, marker = 'o', c = c, 
+                   s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8)
     
     #for x, y, n, c in zip(list(varres2list[:,1]),
                           #list(varres2list[:,0]),
@@ -430,16 +415,24 @@ for t in timelist:
         #ax.scatter(x, y, marker = '*', c = c, label = str(n*2.8)+'km', s = 20,
                    #linewidth = 0.2)
     
-    ax.legend(loc =4, ncol = 2, prop={'size':6})
+    axarr[0].legend(loc =4, ncol = 2, prop={'size':6})
     tmp = np.array([0,5])
-    ax.plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
+    axarr[0].plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
-    ax.set_xlim(0,4)
-    ax.set_ylim(0,4)
-    ax.set_xlabel('Square root (1/N)')
-    ax.set_ylabel('Square root (Var(M)/M^2)')
-    ax.set_title(date + '+' + ddhhmmss(t))
-    plt.tight_layout()
+    axarr[0].set_xlim(0,4)
+    axarr[0].set_ylim(0,4)
+    axarr[0].set_xlabel('Square root (1/N)')
+    axarr[0].set_ylabel('Square root (Var(M)/M^2)')
+
+    axarr[1].set_yscale('log')
+    axarr[1].plot([0.,4],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[1].set_xlim(0,4)
+    axarr[1].set_ylim(1, 1000)
+    axarr[1].set_xlabel('Square root (1/N)')
+    axarr[1].set_ylabel('Percent of theoretical value')
+    fig.suptitle(date + '+' + ddhhmmss(t), fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     plotdirnew = plotdir + '/var_scatter/'
     if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
     fig.savefig(plotdirnew + 'scatter_' + ddhhmmss(t), dpi = 300)
