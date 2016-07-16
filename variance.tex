@@ -1,0 +1,71 @@
+\documentclass[a4paper, 12pt]{article}
+%\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+%\newcommandx{\note}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+\usepackage{natbib}
+
+\title{Variance scaling in real mid-latitude weather}
+
+\begin{document}
+\maketitle
+	
+\section{Theory and research question}
+
+\paragraph{The \cite{Craig2006} theory:} The CC06 theory aims to quantify the mass flux fluctuations of a cloud field in convective equilibrium. Convective equilibrium implies that the average properties of the convection are determined by the large-scale forcing. In more detail, the average total mass flux $\langle M \rangle$ and the average mass flux per cloud $\langle m \rangle$ are functions of the large-scales. To derive a formulation for the variance of the total mass flux in a given area $\langle (\delta M)^2 \rangle$, the following assumptions are made (These are the ones I picked out, look at paper for full list): a) Non-interacting clouds: Cloud are spatially separated (no clustering) and do not influence each other. b) Equal a priori probabilities: This statistical equilibrium assumption implies that ``that clouds are equally likely to occur in any location and with any mass flux''. From this assumption it can be deduced that $m$ is exponentially distributed and the number of clouds in a given area $N$ follows a Poisson distribution. 
+
+Combining these assumptions, $M$ also follows a Poisson distribution. The variance of $M$ can either be derived from the probability distribution for $M$ or, more simply, be derived from the variances of $m$ and $N$, following the theory of random sums: 
+\begin{equation}
+\langle (\delta M)^2 \rangle=\langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
+\end{equation} 
+Since $\langle (\delta m)^2 \rangle = \langle m \rangle^2$ and $\langle (\delta N)^2 \rangle = \langle N \rangle$, if the distributions are exponential and Poisson, respectively, and $\langle M \rangle=\langle N \rangle \langle m \rangle$, the total mass flux variance should follow:
+\begin{equation}
+\frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
+\end{equation} 
+
+This variance scaling theory has been tested in radiative convective equilibrium simulations by \cite{Cohen2006}, and was shows to work well. The equation for the variance is used in the \cite{Plant2008} stochastic convection parameterization.
+
+Other studies have tested ...
+
+\paragraph{Research questions and aims} In this study we aim to investigate the mass flux variability as predicted by theory against model simulations of real weather situations. The real world differs from idealized RCE settings in several ways: a) 
+
+
+
+\section{Methods and experimental setup}
+\subsection{Model runs}
+The model used is the COSMO model with 2.8km resolution in model version 5.4 with the operational settings, except for the PSP scheme described below. 
+In order to investigate the convective mass flux variability we need a setup with identical large scale forcing, but different realizations of the convection. To achieve this we use the PSP scheme which introduces stochastic perturbations in the boundary layer. 
+The model runs are use the same initial and boundary conditions from the ECMWF deterministic forecast. They are initialized at 00UTC and an ensemble is created by using different seeds for the PSP scheme. The number of ensemble members needed to get accurate statistics is unclear. Therefore, a twenty member ensemble is run, from which sensitivity tests will be conducted. 
+
+\subsection{Calculation of mass flux statistics} 
+The mass flux per cloud is defined as:
+\begin{equation}
+\label{eq:def_m}
+ m_i = \rho \sigma_i \bar{w_i},
+\end{equation}
+where $\sigma_i$ is the cloud size \citep{Cohen2006}. 
+
+Two methods are used to identify clouds and the associated mass flux: 1) Instantaneous precipitation with a threshold of 0.001 mm s$^{-1}$ (for this criterion every m is replaced by a p); 2) Vertical velocity greater than 1 m s$^{-1}$ combined with a positive liquid water content at 2.4km height. The second criterion was also used in CC06 and  \cite{Davoudi2010}. A comparison of using precipitation and the above mentioned vertical velocity criterion is given in an iPhython Notebook. 
+
+Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avaid domain effects, the clouds are collapsed to their center of mass. 
+
+The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. 
+
+The Variance $\langle (\delta M(P))^2 \rangle$ is then calculated for each coarse box between the 10 ensemble members. M(P) and m(p) are taken as ensemble means for each box. The variance is then plotted against Mm(Pp) as a scatter plot. A line through the origin is then fitted for the points for each $n$, giving a slope, which should be 2 if the data fits the theory. 
+
+\subsection{Assumptions}
+1) The convective cloud field is fully displaced by the PSP scheme after a few hours. This assumption could be tested in a RCE simulation. 
+
+\section{Case Studies}
+Since the results are likely to be highly case dependent, in this section we will try to characterize each of the cases using the following analyses: a) the convective adjustment timescale $\tau_c$ serves as an indicator of whether the convection is in equilibrium. 
+\subsection{1 July 2009: DIURNAL}
+
+\section{Results}
+\subsection{Cloud size and m/p distribution}
+For each time step the cloud size and m/p distribution is evaluated as an ensemble average.
+
+\section{Discussion}
+
+
+\bibliographystyle{ametsoc}
+{\small
+ \bibliography{library}}
+\end{document}
