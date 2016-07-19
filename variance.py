@@ -103,7 +103,7 @@ if ana == 'p':
             #(0.1  , 0.1   , 0.784),
     levelsWP = [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
     sizemax = 5.e8
-    summax = 0.2
+    summax = 0.25
     
 # Create plotdir if not exist
 if not os.path.exists(plotdir): os.makedirs(plotdir)
@@ -192,7 +192,7 @@ for t in timelist:
     sizelist_flat = [i for sl in sizelist for i in sl]
     sumlist_flat = [i for sl in sumlist for i in sl]
     sizehist, sizeedges = np.histogram(sizelist_flat, 
-                                       bins = 10, range = [0., sizemax])
+                                       bins = 15, range = [0., sizemax])
     sumhist, sumedges = np.histogram(sumlist_flat, 
                                      bins = 15, range = [0., summax])
     sizemean = np.mean(sizelist_flat)
@@ -209,7 +209,9 @@ for t in timelist:
     # Get clustering radius
     gthresh = 1.1
     if not np.isnan(np.mean(g)):
-        gind = np.where(g < gthresh)[0][1]
+        # This is the index where g drops below one after the first peak
+        tmpwhere = np.where(g < gthresh)[0]
+        gind = tmpwhere[np.where(np.diff(tmpwhere) > 1)[0][0]+1]
         r_cluster = r[gind]/1000.   # In km
     else:
         r_cluster = np.nan
