@@ -30,9 +30,6 @@ mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['lines.linewidth'] = 1.5
 mpl.rcParams['legend.fontsize'] = 8
 
-cmW = ("#7C0607","#903334","#A45657","#BA7B7C","#FFFFFF",
-       "#8688BA","#6567AA","#46499F","#1F28A2")
-levelsW = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
 
 cmTAUC = ("#FFFFC1","#FDFEB3","#FCF6A5","#FCEF97","#FCE88A","#FCE07E",
           "#FCD873","#FCD068","#FCC860","#FCC058","#FCB853","#FBB04F",
@@ -84,12 +81,29 @@ if ana == 'm':
     thresh = 1.
     sufx = 'z.nc_1h'
     plotdir += '/m/'
+    ana_unit = 'kg/s'
+    cmWP = ("#7C0607","#903334","#A45657","#BA7B7C","#FFFFFF",
+        "#8688BA","#6567AA","#46499F","#1F28A2")
+    levelsWP = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+    sizemax = 1.e8
+    summax = 5e8
 
 if ana == 'p':
     fieldn = 'TOT_PR'
     thresh = 0.001
     sufx = '.nc_5m'
     plotdir += '/p/'
+    ana_unit = 'mm/h'
+    cmWP = ((1    , 1     , 1    ), 
+            (0    , 0.627 , 1    ),
+            (0.137, 0.235 , 0.98 ),
+            (0.392, 0     , 0.627),
+            (0.784, 0     , 0.627),
+            (1    , 0.3   , 0.9  ) )
+            #(0.1  , 0.1   , 0.784),
+    levelsWP = [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
+    sizemax = 5.e8
+    summax = 0.2
     
 # Create plotdir if not exist
 if not os.path.exists(plotdir): os.makedirs(plotdir)
@@ -178,9 +192,9 @@ for t in timelist:
     sizelist_flat = [i for sl in sizelist for i in sl]
     sumlist_flat = [i for sl in sumlist for i in sl]
     sizehist, sizeedges = np.histogram(sizelist_flat, 
-                                       bins = 10, range = [0., 1e8])
+                                       bins = 10, range = [0., sizemax])
     sumhist, sumedges = np.histogram(sumlist_flat, 
-                                     bins = 15, range = [0., 5e8])
+                                     bins = 15, range = [0., summax])
     sizemean = np.mean(sizelist_flat)
     summean = np.mean(sumlist_flat)
     total = np.sum(sumlist_flat)
@@ -295,21 +309,21 @@ for t in timelist:
         var_fobj.data = var_fullfield
         var_fobj.dims = 2
         var_fobj.fieldn = 'Var'
-        var_fobj.unit = '(kg/s)^2'
+        var_fobj.unit = '(' + ana_unit + ')^2'
         
         MP_fobj = copy.deepcopy(fobj)
         MP_fobj.data = MP_fullfield
         MP_fobj.data[MP_fobj.data == 0] = np.nan
         MP_fobj.dims = 2
         MP_fobj.fieldn = 'M(P)'
-        MP_fobj.unit = 'kg/s'
+        MP_fobj.unit = ana_unit
         
         mp_fobj = copy.deepcopy(fobj)
         mp_fobj.data = mp_fullfield
         mp_fobj.data[mp_fobj.data == 0] = np.nan
         mp_fobj.dims = 2
         mp_fobj.fieldn = 'm(p)'
-        mp_fobj.unit = 'kg/s'
+        mp_fobj.unit = ana_unit
         
         nvar_fobj = copy.deepcopy(fobj)
         nvar_fobj.data = var_fullfield /MP_fullfield/mp_fullfield
@@ -317,15 +331,15 @@ for t in timelist:
         nvar_fobj.fieldn = 'Normalized Var = Var / M / m'
         nvar_fobj.unit = ''
         
-        wobj = copy.deepcopy(fobj)
-        if wobj.dims == 3:
-            wobj.data = fobj.data[0]
-            wobj.dims = 2
+        wpobj = copy.deepcopy(fobj)
+        if wpobj.dims == 3:
+            wpobj.data = fobj.data[0]
+            wpobj.dims = 2
         
         
         # Plotting
-        fobjlist_plot = [wobj, MP_fobj, nvar_fobj, mp_fobj]
-        cmlist = [(cmW, levelsW), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
+        fobjlist_plot = [wpobj, MP_fobj, nvar_fobj, mp_fobj]
+        cmlist = [(cmWP, levelsWP), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
                   (cmNVAR, levelsNVAR), (cmMP, levelsMP*np.nanmax(mp_fullfield))]
         
         fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
@@ -384,19 +398,15 @@ for t in timelist:
     axarr[0].set_xlabel('Cloud size [m^2]')
     axarr[0].set_ylabel('Number of clouds')
     axarr[0].set_title('Cloud size distribution')
-    axarr[0].set_xlim([0., 1e8])
+    axarr[0].set_xlim([0., sizemax])
     axarr[0].set_yscale('log')
     
     axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
     axarr[1].plot([summean, summean], [1, axarr[1].get_ylim()[1]], c = 'red', 
                   alpha = 0.5)
-    if ana == 'm':
-        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
-        axarr[1].set_title('Cloud mass flux distribution')
     axarr[1].set_ylabel('Number of clouds')
-    axarr[1].set_xlim([0., 5e8])
+    axarr[1].set_xlim([0., summax])
     axarr[1].set_yscale('log')
-    
     
     # 3. Plot RDF
     axarr[2].plot(r/1000., g)
@@ -407,6 +417,17 @@ for t in timelist:
     axarr[2].set_title('Radial distribution function')
     axarr[2].set_ylim(0, 4)
     axarr[2].set_xlim(0, np.max(r)/1000.)
+    
+    # Analysis specific stuff
+    if ana == 'm':
+        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+        axarr[1].set_title('Cloud mass flux distribution')
+    
+    else: 
+        axarr[1].set_xlabel('Cloud precipitation [mm/h]')
+        axarr[1].set_title('Cloud precipitation distribution')
+        
+        
     plt.tight_layout()
     plotdirnew = plotdir + '/cloud_stats/'
     if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
@@ -473,7 +494,6 @@ fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 6.))
 
 axarr[0,0].plot(timelist_plot, total_list)
 axarr[0,0].set_xlabel('time [h/UTC]')
-axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
 axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
 
 axarr[0,1].plot(timelist_plot, sizemmean_list)
@@ -488,7 +508,6 @@ axarr[0,2].set_xlim(timelist_plot[0], timelist_plot[-1])
 
 axarr[1,0].plot(timelist_plot, summean_list)
 axarr[1,0].set_xlabel('time [h/UTC]')
-axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
 axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
 
 axarr[1,1].plot(timelist_plot, r_cluster_list)
@@ -496,7 +515,16 @@ axarr[1,1].set_xlabel('time [h/UTC]')
 axarr[1,1].set_ylabel('Clustering length [km]')
 axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
 
-plt.tight_layout()
+if ana == 'm':
+    axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
+    axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
+    
+else:
+    axarr[0,0].set_ylabel('Domain total precipitation rate [mm/h]')
+    axarr[1,0].set_ylabel('Mean cloud precipitation rate [mm/h]')
+
+fig.suptitle(date + ' ' + ana, fontsize='x-large')
+plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 fig.savefig(plotdir + 'timeseries')
 
 
