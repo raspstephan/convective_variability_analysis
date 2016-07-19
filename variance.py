@@ -54,13 +54,15 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 
 # Setup
+water = True
+collapse = True
 ana = sys.argv[1]  # 'm' or 'p'
 date = sys.argv[2]
-ensdir = '/home/scratch/users/stephan.rasp/' + date + '/deout_onlypsp/'
+ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
 nens = 2
 nens = [1,2, 4, 5, 6, 8, 9, 10, 12, 13, 16, 20]
 #nens = [1,2]
-tstart = timedelta(hours=12)
+tstart = timedelta(hours=1)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
@@ -68,7 +70,9 @@ lx2 = -(lx1+1) # Number of grid pts to exclude at border
 ly1 = 164/2
 ly2 = -(ly1+1)
 plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date
-water = True
+if not collapse:
+    plotdir += '/noncollapse/'
+    date = 'noncoll_' + date
 dx = 2800.
 
 
@@ -82,7 +86,7 @@ if ana == 'm':
     plotdir += '/m/'
 
 if ana == 'p':
-    fieldn = 'inst. prec'
+    fieldn = 'TOT_PR'
     thresh = 0.001
     sufx = '.nc_5m'
     plotdir += '/p/'
@@ -135,6 +139,7 @@ for t in timelist:
     
     # For n loop
     comlist = []
+    labelslist = []
     for fobj, qcobj in zip(fobjlist, qcobjlist):
         # 2. Cloud size and m/p distribution
         if ana == 'm':
@@ -156,6 +161,7 @@ for t in timelist:
         g, r = rdf(labels, field, normalize = True)
         glist.append(g)
         
+        labelslist.append(labels)
         
         # 4. Calculate Variance (Save for n loop below)
         # TODO: Put this into a function later on
@@ -202,6 +208,7 @@ for t in timelist:
     varres2list = []
     
     for n in nlist:
+        print 'n', n
         # Determine size of coarse arrays
         nx = int(np.floor(sx/n))
         ny = int(np.floor(sy/n))
@@ -212,7 +219,12 @@ for t in timelist:
         Nlist = []
         
         # Loop over members
-        for com, cld_sum in zip(comlist, sumlist):
+        for fobj, labels, com, cld_sum in zip(fobjlist, labelslist, comlist, 
+                                              sumlist):
+            if ana == 'm':
+                field = fobj.data[0,lx1:lx2, ly1:ly2]
+            else: 
+                field = fobj.data[lx1:lx2, ly1:ly2]
         
             # Allocate array for saving
             mp_field = np.empty((nx, ny))
@@ -226,16 +238,29 @@ for t in timelist:
                     xmax = (i+1)*n
                     ymin = j*n
                     ymax = (j+1)*n
-                    # Create bool_arr
-                    bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
-                                (com[:,1]>=ymin)&(com[:,1]<ymax))
-                    # Get cld_size for subdomain
-                    sub_cld_sum = cld_sum[bool_arr]
                     
+                    if collapse:
+                        # 1. The collapsed version
+                        # Create bool_arr
+                        bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
+                                    (com[:,1]>=ymin)&(com[:,1]<ymax))
+                        # Get cld_size for subdomain
+                        sub_cld_sum = cld_sum[bool_arr]
+                        
+                    
+                    else:
+                        # 2. The "normal version"
+                        subfield = field[i*n:(i+1)*n, j*n:(j+1)*n]
+                        sublabels = labels[i*n:(i+1)*n, j*n:(j+1)*n]
+                        lrange = np.unique(sublabels)
+                        sub_cld_sum = measurements.sum(subfield, sublabels,
+                                                       lrange[1:])*dx*dx*0.9575
+                        
                     # Get important values
                     mp_field[i, j] = np.mean(sub_cld_sum)
                     MP_field[i, j] = np.sum(sub_cld_sum)
                     N_field[i, j] = sub_cld_sum.shape[0]
+                        
             
             # Write into ensemble list
             mplist.append(mp_field)
@@ -250,9 +275,9 @@ for t in timelist:
         
         # Plot these fields now
         # First, have to upscale them again to the model grid
-        var_fullfield = np.ones(fobj.data.shape[1:]) * np.nan
-        MP_fullfield = np.ones(fobj.data.shape[1:]) * np.nan
-        mp_fullfield = np.ones(fobj.data.shape[1:]) * np.nan
+        var_fullfield = np.ones((fobj.ny, fobj.nx)) * np.nan
+        MP_fullfield = np.ones((fobj.ny, fobj.nx)) * np.nan
+        mp_fullfield = np.ones((fobj.ny, fobj.nx)) * np.nan
         for i in range(nx):
             for j in range(ny):
                 # Get limits for each N box
@@ -293,17 +318,18 @@ for t in timelist:
         nvar_fobj.unit = ''
         
         wobj = copy.deepcopy(fobj)
-        wobj.data = fobj.data[0]
-        wobj.dims = 2
+        if wobj.dims == 3:
+            wobj.data = fobj.data[0]
+            wobj.dims = 2
         
         
         # Plotting
-        fobjlist = [wobj, MP_fobj, nvar_fobj, mp_fobj]
+        fobjlist_plot = [wobj, MP_fobj, nvar_fobj, mp_fobj]
         cmlist = [(cmW, levelsW), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
                   (cmNVAR, levelsNVAR), (cmMP, levelsMP*np.nanmax(mp_fullfield))]
         
         fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
-        for ax, fob, cm, i in zip(list(np.ravel(axarr)), fobjlist, cmlist, 
+        for ax, fob, cm, i in zip(list(np.ravel(axarr)), fobjlist_plot, cmlist, 
                                                 range(4)):
             plt.sca(ax)   # This is necessary for some reason...
             cf, tmp = ax_contourf(ax, fob, colors=cm[0], 
