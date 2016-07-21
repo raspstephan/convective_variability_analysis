@@ -51,14 +51,15 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 
 # Setup
-water = True
+water = False
 collapse = True
 ana = sys.argv[1]  # 'm' or 'p'
 date = sys.argv[2]
 ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
-nens = 2
-nens = [1,2, 4, 5, 6, 8, 9, 10, 12, 13, 16, 20]
-#nens = [1,2]
+try:
+    nens = int(sys.argv[3])
+except:    
+    nens = 20
 tstart = timedelta(hours=1)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
@@ -70,6 +71,12 @@ plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date
 if not collapse:
     plotdir += '/noncollapse/'
     date = 'noncoll_' + date
+if not nens == 20:
+    plotdir += '/n' + str(nens).zfill(2) + '/'
+    date = 'n' + str(nens).zfill(2) + '_' + date
+if not water:
+    plotdir += '/nowater/'
+    date = 'nowater_' + date
 dx = 2800.
 
 
@@ -102,8 +109,8 @@ if ana == 'p':
             (1    , 0.3   , 0.9  ) )
             #(0.1  , 0.1   , 0.784),
     levelsWP = [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
-    sizemax = 5.e8
-    summax = 0.25
+    sizemax = 8.e8
+    summax = 0.35
     
 # Create plotdir if not exist
 if not os.path.exists(plotdir): os.makedirs(plotdir)
@@ -192,9 +199,9 @@ for t in timelist:
     sizelist_flat = [i for sl in sizelist for i in sl]
     sumlist_flat = [i for sl in sumlist for i in sl]
     sizehist, sizeedges = np.histogram(sizelist_flat, 
-                                       bins = 15, range = [0., sizemax])
+                                       bins = 10, range = [0., sizemax])
     sumhist, sumedges = np.histogram(sumlist_flat, 
-                                     bins = 15, range = [0., summax])
+                                     bins = 20, range = [0., summax])
     sizemean = np.mean(sizelist_flat)
     summean = np.mean(sumlist_flat)
     total = np.sum(sumlist_flat)
@@ -317,21 +324,28 @@ for t in timelist:
         MP_fobj.data = MP_fullfield
         MP_fobj.data[MP_fobj.data == 0] = np.nan
         MP_fobj.dims = 2
-        MP_fobj.fieldn = 'M(P)'
         MP_fobj.unit = ana_unit
         
         mp_fobj = copy.deepcopy(fobj)
         mp_fobj.data = mp_fullfield
         mp_fobj.data[mp_fobj.data == 0] = np.nan
         mp_fobj.dims = 2
-        mp_fobj.fieldn = 'm(p)'
         mp_fobj.unit = ana_unit
         
         nvar_fobj = copy.deepcopy(fobj)
         nvar_fobj.data = var_fullfield /MP_fullfield/mp_fullfield
         nvar_fobj.dims = 2
-        nvar_fobj.fieldn = 'Normalized Var = Var / M / m'
         nvar_fobj.unit = ''
+        
+        if ana == 'm':
+            MP_fobj.fieldn = 'M'
+            mp_fobj.fieldn = 'm'
+            nvar_fobj.fieldn = 'Normalized Var = Var / M / m'
+            mpmax = 2e8
+        else:
+            MP_fobj.fieldn = 'P'
+            mp_fobj.fieldn = 'p'
+            nvar_fobj.fieldn = 'Normalized Var = Var / P / p'
         
         wpobj = copy.deepcopy(fobj)
         if wpobj.dims == 3:
@@ -362,6 +376,7 @@ for t in timelist:
         if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
         fig.savefig(plotdirnew + 'var_' + ddhhmmss(t) + '_' + str(n).zfill(3),
                     dpi = 300)
+        plt.close('all')
         
         # Now actually calculate the variance constant/factor
         # Method 1: Simply take the mean of nvar 
@@ -395,19 +410,21 @@ for t in timelist:
     # 2. Plot cloud size and m/p distribution, plus RDF
     fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*2.5, 3.2))
     axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
-    axarr[0].plot([sizemean, sizemean], [1, axarr[0].get_ylim()[1]], c = 'red', 
+    axarr[0].plot([sizemean, sizemean], [0.1, 1e4], c = 'red', 
                   alpha = 0.5)
     axarr[0].set_xlabel('Cloud size [m^2]')
     axarr[0].set_ylabel('Number of clouds')
     axarr[0].set_title('Cloud size distribution')
     axarr[0].set_xlim([0., sizemax])
+    axarr[0].set_ylim([0.1, 1e4])
     axarr[0].set_yscale('log')
     
     axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
-    axarr[1].plot([summean, summean], [1, axarr[1].get_ylim()[1]], c = 'red', 
+    axarr[1].plot([summean, summean], [0.1, 1e4], c = 'red', 
                   alpha = 0.5)
     axarr[1].set_ylabel('Number of clouds')
     axarr[1].set_xlim([0., summax])
+    axarr[1].set_ylim([0.1, 1e4])
     axarr[1].set_yscale('log')
     
     # 3. Plot RDF
@@ -469,10 +486,12 @@ for t in timelist:
     axarr[0].plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[0].set_xlim(0,4)
-    axarr[0].set_ylim(0,4)
+    axarr[0].set_ylim(0,5)
     axarr[0].set_xlabel('Square root (1/N)')
-    axarr[0].set_ylabel('Square root (Var(M)/M^2)')
-
+    if ana == 'm':
+        axarr[0].set_ylabel('Square root (Var(M)/M^2)')
+    else:
+        axarr[0].set_ylabel('Square root (Var(P)/P^2)')
     axarr[1].set_yscale('log')
     axarr[1].plot([0.,4],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
@@ -485,7 +504,7 @@ for t in timelist:
     plotdirnew = plotdir + '/var_scatter/'
     if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
     fig.savefig(plotdirnew + 'scatter_' + ddhhmmss(t), dpi = 300)
-    
+    plt.close('all')
     
     
     
