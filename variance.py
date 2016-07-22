@@ -51,7 +51,7 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 
 # Setup
-water = False
+water = True
 collapse = True
 ana = sys.argv[1]  # 'm' or 'p'
 date = sys.argv[2]
@@ -60,7 +60,7 @@ try:
     nens = int(sys.argv[3])
 except:    
     nens = 20
-tstart = timedelta(hours=1)
+tstart = timedelta(hours=14)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
@@ -149,7 +149,7 @@ for t in timelist:
                                 dir_suffix='/OUTPUT/',
                                 fieldn = 'TAU_C', nfill=2)
     # Get mean tauc object
-    meantauc, tmp = mean_spread_fieldobjlist(tauclist)
+    meantauc, tmp = mean_spread_fieldobjlist(tauclist, nan = True)
     dimeantauc = np.nanmean(meantauc.data[lx1:lx2, ly1:ly2])
     dimeantauc_list.append(dimeantauc)
     
@@ -401,7 +401,9 @@ for t in timelist:
     # 1. Ensemble mean tau_c over Germany
     title_sufx = 'mean tau_c, di_mean: ' + str(dimeantauc) + 'h + ' + ddhhmmss(t)
     fig = fig_contourf_1sp(meantauc, pllevels = np.arange(0, 21, 1),
-                           extend = 'max', sp_title = title_sufx)
+                           extend = 'max', sp_title = title_sufx,
+                           Basemap_drawrivers = False,
+                           ji0=(50, 50), ji1=(411, 381))
     plt.tight_layout()
     plotdirnew = plotdir + '/tauc/'
     if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
