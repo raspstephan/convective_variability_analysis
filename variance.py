@@ -51,17 +51,20 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 
 # Setup
+plotlist = ['corr']
 water = True
 collapse = True
-ana = sys.argv[1]  # 'm' or 'p'
-date = sys.argv[2]
+#ana = sys.argv[1]  # 'm' or 'p'
+#date = sys.argv[2]
+ana = 'm'
+date = '2009070100'
 ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
 try:
     nens = int(sys.argv[3])
 except:    
     nens = 20
 tstart = timedelta(hours=17)
-tend = timedelta(hours = 24)
+tend = timedelta(hours = 18)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
 lx2 = -(lx1+1) # Number of grid pts to exclude at border
@@ -119,13 +122,24 @@ if not os.path.exists(plotdir): os.makedirs(plotdir)
 # Make the timelist
 timelist = make_timelist(tstart, tend, tinc)
 # Time loop 
-# Initialize time list
+
+# Initialize time lists
 r_cluster_list = []
 r_cdf_cluster_list = []
 sizemmean_list = []
 summean_list = []
 total_list = []
 dimeantauc_list = []
+
+# Initialize total lists for correlation
+var_alllist = []
+M_alllist = []
+m_alllist = []
+N_alllist = []
+n_alllist = []
+tauc_alllist = []
+UTC_alllist = []
+
 for t in timelist:
     print t
     
@@ -304,11 +318,27 @@ for t in timelist:
             MPlist.append(MP_field)
             Nlist.append(N_field)
             
+        # Upscale tau
+        tauc_orig = meantauc.data[lx1:lx2, ly1:ly2]
+        tauc_field = np.empty((nx, ny))
+        for i in range(nx):
+            for j in range(ny):
+                tauc_field[i, j] = np.nanmean(tauc_orig[i*n:(i+1)*n, j*n:(j+1)*n])
+            
         # Calculate ensemble means and variances, fields
         var = np.var(MPlist, axis = 0, ddof = 1)
         MPmean = np.mean(MPlist, axis = 0)
         mpmean = np.nanmean(mplist, axis = 0)
         Nmean = np.mean(Nlist, axis = 0)
+        
+        # Append to alllist
+        var_alllist += list(np.ravel(var))
+        M_alllist += list(np.ravel(MPmean))
+        m_alllist += list(np.ravel(mpmean))
+        N_alllist += list(np.ravel(Nmean))
+        tauc_alllist += list(np.ravel(tauc_field))
+        n_alllist += [n]*len(list(np.ravel(var)))
+        UTC_alllist += [t]*len(list(np.ravel(var)))
         
         # Plot these fields now
         # First, have to upscale them again to the model grid
@@ -368,29 +398,30 @@ for t in timelist:
         
         
         # Plotting
-        fobjlist_plot = [wpobj, MP_fobj, nvar_fobj, mp_fobj]
-        cmlist = [(cmWP, levelsWP), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
-                  (cmNVAR, levelsNVAR), (cmMP, levelsMP*np.nanmax(mp_fullfield))]
-        
-        fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
-        for ax, fob, cm, i in zip(list(np.ravel(axarr)), fobjlist_plot, cmlist, 
-                                                range(4)):
-            plt.sca(ax)   # This is necessary for some reason...
-            cf, tmp = ax_contourf(ax, fob, colors=cm[0], 
-                                pllevels=cm[1], sp_title=fob.fieldn,
-                                Basemap_drawrivers = False,
-                                npars = 0, nmers = 0, ji0=(50, 50),
-                                ji1=(411, 381), extend = 'both')
-            cb = fig.colorbar(cf)
-            cb.set_label(fob.unit)
-        figtitle = date + '+' + ddhhmmss(t) + ' n = ' + str(n).zfill(3)
-        fig.suptitle(figtitle, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # To account for suptitle
-        plotdirnew = plotdir + '/var/'
-        if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
-        fig.savefig(plotdirnew + 'var_' + ddhhmmss(t) + '_' + str(n).zfill(3),
-                    dpi = 300)
-        plt.close('all')
+        if 'var' in plotlist:
+            fobjlist_plot = [wpobj, MP_fobj, nvar_fobj, mp_fobj]
+            cmlist = [(cmWP, levelsWP), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
+                      (cmNVAR, levelsNVAR), (cmMP, levelsMP*np.nanmax(mp_fullfield))]
+            
+            fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
+            for ax, fob, cm, i in zip(list(np.ravel(axarr)), fobjlist_plot, cmlist, 
+                                                    range(4)):
+                plt.sca(ax)   # This is necessary for some reason...
+                cf, tmp = ax_contourf(ax, fob, colors=cm[0], 
+                                    pllevels=cm[1], sp_title=fob.fieldn,
+                                    Basemap_drawrivers = False,
+                                    npars = 0, nmers = 0, ji0=(50, 50),
+                                    ji1=(411, 381), extend = 'both')
+                cb = fig.colorbar(cf)
+                cb.set_label(fob.unit)
+            figtitle = date + '+' + ddhhmmss(t) + ' n = ' + str(n).zfill(3)
+            fig.suptitle(figtitle, fontsize='x-large')
+            plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # To account for suptitle
+            plotdirnew = plotdir + '/var/'
+            if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+            fig.savefig(plotdirnew + 'var_' + ddhhmmss(t) + '_' + str(n).zfill(3),
+                        dpi = 300)
+            plt.close('all')
         
         # Now actually calculate the variance constant/factor
         # Method 1: Simply take the mean of nvar 
@@ -405,7 +436,8 @@ for t in timelist:
         
         #slope = leastsq(origin_residual, 1, args = (xfit[mask], yfit[mask]))[0][0]
         #varres2list.append([np.sqrt(slope), np.sqrt(1/np.nanmean(Nmean))])
-            
+    
+    # End n loop
     varres1list = np.array(varres1list)
     #varres2list = np.array(varres2list)
     
@@ -413,162 +445,184 @@ for t in timelist:
     
     # Plot what needs to be plotted every time step
     # 1. Ensemble mean tau_c over Germany
-    title_sufx = 'mean tau_c, di_mean: ' + str(dimeantauc) + 'h + ' + ddhhmmss(t)
-    fig = fig_contourf_1sp(meantauc, pllevels = np.arange(0, 21, 1),
-                           extend = 'max', sp_title = title_sufx,
-                           Basemap_drawrivers = False,
-                           ji0=(50, 50), ji1=(411, 381))
-    plt.tight_layout()
-    plotdirnew = plotdir + '/tauc/'
-    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
-    fig.savefig(plotdirnew + 'tauc_' + ddhhmmss(t), dpi = 300)
+    if 'tauc' in plotlist:
+        title_sufx = 'mean tau_c, di_mean: ' + str(dimeantauc) + 'h + ' + ddhhmmss(t)
+        fig = fig_contourf_1sp(meantauc, pllevels = np.arange(0, 21, 1),
+                               extend = 'max', sp_title = title_sufx,
+                               Basemap_drawrivers = False,
+                               ji0=(50, 50), ji1=(411, 381))
+        plt.tight_layout()
+        plotdirnew = plotdir + '/tauc/'
+        if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+        fig.savefig(plotdirnew + 'tauc_' + ddhhmmss(t), dpi = 300)
     
-    # 2. Plot cloud size and m/p distribution, plus RDF
-    fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*2.5, 3.2))
-    axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
-    axarr[0].plot([sizemean, sizemean], [0.1, 1e4], c = 'red', 
-                  alpha = 0.5)
-    axarr[0].set_xlabel('Cloud size [m^2]')
-    axarr[0].set_ylabel('Number of clouds')
-    axarr[0].set_title('Cloud size distribution')
-    axarr[0].set_xlim([0., sizemax])
-    axarr[0].set_ylim([0.1, 1e4])
-    axarr[0].set_yscale('log')
-    
-    axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
-    axarr[1].plot([summean, summean], [0.1, 1e4], c = 'red', 
-                  alpha = 0.5)
-    axarr[1].set_ylabel('Number of clouds')
-    axarr[1].set_xlim([0., summax])
-    axarr[1].set_ylim([0.1, 1e4])
-    axarr[1].set_yscale('log')
-    
-    # 3. Plot RDF
-    axarr[2].plot(r/1000., g)
-    axarr[2].plot([r_cluster, r_cluster], [0, 4], c = 'red', alpha = 0.5)
-    axarr[2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    
-    # Plot CDF 
-    axarr[2].plot(r/1000., g_cdf, c = 'g')
-    axarr[2].plot([r_cdf_cluster, r_cdf_cluster], [0, 4], c = 'pink', alpha = 0.5)
-
-    axarr[2].set_xlabel('Distance [km]')
-    axarr[2].set_ylabel('Normalized RDF')
-    axarr[2].set_title('Radial distribution function')
-    axarr[2].set_ylim(0, 4)
-    axarr[2].set_xlim(0, np.max(r)/1000.)
-    
-    # Analysis specific stuff
-    if ana == 'm':
-        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
-        axarr[1].set_title('Cloud mass flux distribution')
-    
-    else: 
-        axarr[1].set_xlabel('Cloud precipitation [mm/h]')
-        axarr[1].set_title('Cloud precipitation distribution')
+    if 'stats' in plotlist:
+        # 2. Plot cloud size and m/p distribution, plus RDF
+        fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*2.5, 3.2))
+        axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
+        axarr[0].plot([sizemean, sizemean], [0.1, 1e4], c = 'red', 
+                      alpha = 0.5)
+        axarr[0].set_xlabel('Cloud size [m^2]')
+        axarr[0].set_ylabel('Number of clouds')
+        axarr[0].set_title('Cloud size distribution')
+        axarr[0].set_xlim([0., sizemax])
+        axarr[0].set_ylim([0.1, 1e4])
+        axarr[0].set_yscale('log')
         
+        axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
+        axarr[1].plot([summean, summean], [0.1, 1e4], c = 'red', 
+                      alpha = 0.5)
+        axarr[1].set_ylabel('Number of clouds')
+        axarr[1].set_xlim([0., summax])
+        axarr[1].set_ylim([0.1, 1e4])
+        axarr[1].set_yscale('log')
         
-    plt.tight_layout()
-    plotdirnew = plotdir + '/cloud_stats/'
-    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
-    fig.savefig(plotdirnew + 'stats_' + ddhhmmss(t), dpi = 300)
+        # 3. Plot RDF
+        axarr[2].plot(r/1000., g)
+        axarr[2].plot([r_cluster, r_cluster], [0, 4], c = 'red', alpha = 0.5)
+        axarr[2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+        
+        # Plot CDF 
+        axarr[2].plot(r/1000., g_cdf, c = 'g')
+        axarr[2].plot([r_cdf_cluster, r_cdf_cluster], [0, 4], c = 'pink', alpha = 0.5)
     
+        axarr[2].set_xlabel('Distance [km]')
+        axarr[2].set_ylabel('Normalized RDF')
+        axarr[2].set_title('Radial distribution function')
+        axarr[2].set_ylim(0, 4)
+        axarr[2].set_xlim(0, np.max(r)/1000.)
+            
+        # Analysis specific stuff
+        if ana == 'm':
+            axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+            axarr[1].set_title('Cloud mass flux distribution')
+        
+        else: 
+            axarr[1].set_xlabel('Cloud precipitation [mm/h]')
+            axarr[1].set_title('Cloud precipitation distribution')
+            
+            
+        plt.tight_layout()
+        plotdirnew = plotdir + '/cloud_stats/'
+        if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+        fig.savefig(plotdirnew + 'stats_' + ddhhmmss(t), dpi = 300)
     
-    # 4. Plot CC06 Fig4 
-    fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 3.2))
-    clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
-
-    for x, y, n, c in zip(list(varres1list[:,1]),
-                          list(varres1list[:,0]),
-                          nlist, clist):
-        x[x==0] = np.nan   # Set no clouds to nan for correct mean
-
-        xcloud = np.sqrt(1/x)
-        ycloud = np.sqrt(y)
-
-        #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
-                   #linewidth = 0.2)
-        axarr[0].scatter(xcloud, ycloud, marker = 'o', c = c, 
-                   s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8,
-                   label = str(n*2.8)+'km')
-
-        ypercent = y/(2./x)*100.
-        axarr[1].scatter(xcloud, ypercent, marker = 'o', c = c, 
-                   s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8)
+    if 'scatter' in plotlist:
+        # 4. Plot CC06 Fig4 
+        fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 3.2))
+        clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
     
-    #for x, y, n, c in zip(list(varres2list[:,1]),
-                          #list(varres2list[:,0]),
-                          #nlist, clist): 
-        #ax.scatter(x, y, marker = '*', c = c, label = str(n*2.8)+'km', s = 20,
-                   #linewidth = 0.2)
+        for x, y, n, c in zip(list(varres1list[:,1]),
+                              list(varres1list[:,0]),
+                              nlist, clist):
+            x[x==0] = np.nan   # Set no clouds to nan for correct mean
     
-    axarr[0].legend(loc =4, ncol = 2, prop={'size':6})
-    tmp = np.array([0,5])
-    axarr[0].plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
-            zorder = 0.1)
-    axarr[0].set_xlim(0,4)
-    axarr[0].set_ylim(0,5)
-    axarr[0].set_xlabel('Square root (1/N)')
-    if ana == 'm':
-        axarr[0].set_ylabel('Square root (Var(M)/M^2)')
-    else:
-        axarr[0].set_ylabel('Square root (Var(P)/P^2)')
-    axarr[1].set_yscale('log')
-    axarr[1].plot([0.,4],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
-            zorder = 0.1)
-    axarr[1].set_xlim(0,4)
-    axarr[1].set_ylim(1, 1000)
-    axarr[1].set_xlabel('Square root (1/N)')
-    axarr[1].set_ylabel('Percent of theoretical value')
-    fig.suptitle(date + '+' + ddhhmmss(t), fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-    plotdirnew = plotdir + '/var_scatter/'
-    if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
-    fig.savefig(plotdirnew + 'scatter_' + ddhhmmss(t), dpi = 300)
-    plt.close('all')
+            xcloud = np.sqrt(1/x)
+            ycloud = np.sqrt(y)
     
+            #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
+                       #linewidth = 0.2)
+            axarr[0].scatter(xcloud, ycloud, marker = 'o', c = c, 
+                       s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8,
+                       label = str(n*2.8)+'km')
+    
+            ypercent = y/(2./x)*100.
+            axarr[1].scatter(xcloud, ypercent, marker = 'o', c = c, 
+                       s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8)
+        
+        #for x, y, n, c in zip(list(varres2list[:,1]),
+                              #list(varres2list[:,0]),
+                              #nlist, clist): 
+            #ax.scatter(x, y, marker = '*', c = c, label = str(n*2.8)+'km', s = 20,
+                       #linewidth = 0.2)
+        
+        axarr[0].legend(loc =4, ncol = 2, prop={'size':6})
+        tmp = np.array([0,5])
+        axarr[0].plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
+                zorder = 0.1)
+        axarr[0].set_xlim(0,4)
+        axarr[0].set_ylim(0,5)
+        axarr[0].set_xlabel('Square root (1/N)')
+        if ana == 'm':
+            axarr[0].set_ylabel('Square root (Var(M)/M^2)')
+        else:
+            axarr[0].set_ylabel('Square root (Var(P)/P^2)')
+        axarr[1].set_yscale('log')
+        axarr[1].plot([0.,4],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
+                zorder = 0.1)
+        axarr[1].set_xlim(0,4)
+        axarr[1].set_ylim(1, 1000)
+        axarr[1].set_xlabel('Square root (1/N)')
+        axarr[1].set_ylabel('Percent of theoretical value')
+        fig.suptitle(date + '+' + ddhhmmss(t), fontsize='x-large')
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        plotdirnew = plotdir + '/var_scatter/'
+        if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
+        fig.savefig(plotdirnew + 'scatter_' + ddhhmmss(t), dpi = 300)
+        plt.close('all')
+    
+# End time loop
     
     
 # Plot summary plots
-timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
-
-fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 6.))
-
-axarr[0,0].plot(timelist_plot, total_list)
-axarr[0,0].set_xlabel('time [h/UTC]')
-axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-
-axarr[0,1].plot(timelist_plot, sizemmean_list)
-axarr[0,1].set_xlabel('time [h/UTC]')
-axarr[0,1].set_ylabel('Mean cloud size [m^2]')
-axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-
-axarr[0,2].plot(timelist_plot, dimeantauc_list)
-axarr[0,2].set_xlabel('time [h/UTC]')
-axarr[0,2].set_ylabel('Domain mean tau_c [h]')
-axarr[0,2].set_xlim(timelist_plot[0], timelist_plot[-1])
-
-axarr[1,0].plot(timelist_plot, summean_list)
-axarr[1,0].set_xlabel('time [h/UTC]')
-axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-
-axarr[1,1].plot(timelist_plot, r_cluster_list)
-axarr[1,1].set_xlabel('time [h/UTC]')
-axarr[1,1].set_ylabel('Clustering length [km]')
-axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-
-if ana == 'm':
-    axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
-    axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
+if 'summary' in plotlist:
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
     
-else:
-    axarr[0,0].set_ylabel('Domain total precipitation rate [mm/h]')
-    axarr[1,0].set_ylabel('Mean cloud precipitation rate [mm/h]')
-
-fig.suptitle(date + ' ' + ana, fontsize='x-large')
-plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-fig.savefig(plotdir + 'timeseries')
-
+    fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 6.))
+    
+    axarr[0,0].plot(timelist_plot, total_list)
+    axarr[0,0].set_xlabel('time [h/UTC]')
+    axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[0,1].plot(timelist_plot, sizemmean_list)
+    axarr[0,1].set_xlabel('time [h/UTC]')
+    axarr[0,1].set_ylabel('Mean cloud size [m^2]')
+    axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[0,2].plot(timelist_plot, dimeantauc_list)
+    axarr[0,2].set_xlabel('time [h/UTC]')
+    axarr[0,2].set_ylabel('Domain mean tau_c [h]')
+    axarr[0,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,0].plot(timelist_plot, summean_list)
+    axarr[1,0].set_xlabel('time [h/UTC]')
+    axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,1].plot(timelist_plot, r_cluster_list)
+    axarr[1,1].set_xlabel('time [h/UTC]')
+    axarr[1,1].set_ylabel('Clustering length [km]')
+    axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    if ana == 'm':
+        axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
+        axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
+        
+    else:
+        axarr[0,0].set_ylabel('Domain total precipitation rate [mm/h]')
+        axarr[1,0].set_ylabel('Mean cloud precipitation rate [mm/h]')
+    
+    fig.suptitle(date + ' ' + ana, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    fig.savefig(plotdir + 'timeseries')
+    
+# Plot correlation plots
+if 'corr' in plotlist:
+    # convert to numpy arrays
+    var_alllist = np.array(var_alllist)
+    M_alllist = np.array(M_alllist)
+    m_alllist = np.array(m_alllist)
+    N_alllist = np.array(N_alllist)
+    n_alllist = np.array(n_alllist)
+    tauc_alllist = np.array(tauc_alllist)
+    
+    x = var_alllist/(M_alllist*M_alllist/N_alllist)
+    y = tauc_alllist
+    
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4, 3.2))
+    ax.scatter(x, y)
+    fig.savefig(plotdir + 'corr_test', dpi = 300)
+    nanmask = np.isfinite(x)
+    print np.corrcoef(x[nanmask], y[nanmask])[1,0]
 
 
 
