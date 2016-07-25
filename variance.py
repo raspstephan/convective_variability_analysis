@@ -60,7 +60,7 @@ try:
     nens = int(sys.argv[3])
 except:    
     nens = 20
-tstart = timedelta(hours=14)
+tstart = timedelta(hours=17)
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
@@ -121,6 +121,7 @@ timelist = make_timelist(tstart, tend, tinc)
 # Time loop 
 # Initialize time list
 r_cluster_list = []
+r_cdf_cluster_list = []
 sizemmean_list = []
 summean_list = []
 total_list = []
@@ -179,7 +180,7 @@ for t in timelist:
         sumlist.append(cld_sum) 
                 
         # 3. Calculate RDF
-        g, r = rdf(labels, field, normalize = True)
+        g, r = rdf(labels, field, normalize = True, rmax = 30, dr = 2)
         glist.append(g)
         
         labelslist.append(labels)
@@ -214,16 +215,29 @@ for t in timelist:
     #print glist
     g = np.mean(glist, axis = 0)
     # Get clustering radius
-    gthresh = 1.1
+    gthresh = 1.0
+    # convert to CDF
+    # Integrate g
+    g_cdf = np.cumsum(g)/(g.shape[0]-1)
+    g_cdf_thresh = 0.5
+    
     if not np.isnan(np.mean(g)):
         # This is the index where g drops below one after the first peak
         tmpwhere = np.where(g < gthresh)[0]
-        gind = tmpwhere[np.where(np.diff(tmpwhere) > 1)[0][0]+1]
+        if tmpwhere[0] == 0:   # First point is below zero
+            gind = tmpwhere[np.where(np.diff(tmpwhere) > 1)[0][0]+1]
+        else:
+            gind = tmpwhere[0]
         r_cluster = r[gind]/1000.   # In km
+        
+        # get radius from CDF 
+        r_cdf_cluster = r[np.where(g_cdf > g_cdf_thresh)[0][0]]/1000.
+
     else:
         r_cluster = np.nan
+        r_cdf_cluster = np.nan
     r_cluster_list.append(r_cluster)
-    
+    r_cdf_cluster_list.append(r_cdf_cluster)
     
     # cont 4. Variance
     # Loop over n
@@ -433,6 +447,11 @@ for t in timelist:
     axarr[2].plot(r/1000., g)
     axarr[2].plot([r_cluster, r_cluster], [0, 4], c = 'red', alpha = 0.5)
     axarr[2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    
+    # Plot CDF 
+    axarr[2].plot(r/1000., g_cdf, c = 'g')
+    axarr[2].plot([r_cdf_cluster, r_cdf_cluster], [0, 4], c = 'pink', alpha = 0.5)
+
     axarr[2].set_xlabel('Distance [km]')
     axarr[2].set_ylabel('Normalized RDF')
     axarr[2].set_title('Radial distribution function')
