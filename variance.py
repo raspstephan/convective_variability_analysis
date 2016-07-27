@@ -51,7 +51,7 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 
 # Setup
-plotlist = ['corr']
+plotlist = ['all']   # not plottling saves a significant amount of time
 water = True
 collapse = True
 ana = sys.argv[1]  # 'm' or 'p'
@@ -63,20 +63,19 @@ try:
     nens = int(sys.argv[3])
 except:    
     nens = 20
-tstart = timedelta(hours=1)
-tend = timedelta(hours = 24)
+nens = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+tstart = timedelta(hours=8)
+tend = timedelta(hours = 12)
 tinc = timedelta(hours = 1)
-lx1 = 204/2 # ATTENTION first dimension is actually y
-lx2 = -(lx1+1) # Number of grid pts to exclude at border
-ly1 = 164/2
-ly2 = -(ly1+1)
+
+
 plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date
 if not collapse:
     plotdir += '/noncollapse/'
     date = 'noncoll_' + date
-if not nens == 20:
-    plotdir += '/n' + str(nens).zfill(2) + '/'
-    date = 'n' + str(nens).zfill(2) + '_' + date
+#if not nens == 20:
+    #plotdir += '/n' + str(nens).zfill(2) + '/'
+    #date = 'n' + str(nens).zfill(2) + '_' + date
 if not water:
     plotdir += '/nowater/'
     date = 'nowater_' + date
@@ -86,7 +85,10 @@ dx = 2800.
 nlist = [256, 128, 64, 32, 16, 8, 4]
 
 # Specific setup for type of analysis
+lev = None
 if ana == 'm':
+    # zlev=1500.,2000.,2500.,3000.,3500.
+    lev = 2
     fieldn = 'W'
     thresh = 1.
     sufx = 'z.nc_1h'
@@ -99,6 +101,7 @@ if ana == 'm':
     summax = 5e8
 
 if ana == 'p':
+
     fieldn = 'TOT_PR'
     thresh = 0.001
     sufx = '.nc_5m'
@@ -148,13 +151,21 @@ for t in timelist:
     # Load ensembles 
     fobjlist = getfobj_ncdf_ens(ensdir, 'sub', nens, ncdffn, 
                                 dir_suffix='/OUTPUT/',
-                                fieldn = fieldn, nfill=2)
+                                fieldn = fieldn, nfill=2, levs = lev)
     if ana == 'm':   # Additional positive QC filter
         qcobjlist = getfobj_ncdf_ens(ensdir, 'sub', nens, ncdffn, 
                                      dir_suffix='/OUTPUT/',
-                                     fieldn = 'QC', nfill=2)
+                                     fieldn = 'QC', nfill=2, levs = lev)
     else:
         qcobjlist = [None]*len(fobjlist)
+    
+    # Evaluate the 256x256 analysis domain
+    sxo, syo = fobjlist[0].data.shape  # Original field shape
+    lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
+    lx2 = -(lx1+1) # Number of grid pts to exclude at border
+    ly1 = (syo-256-1)/2
+    ly2 = -(ly1+1)
+
     
     
     # Calculate what needs to be calculated
@@ -179,10 +190,12 @@ for t in timelist:
     for fobj, qcobj in zip(fobjlist, qcobjlist):
         # 2. Cloud size and m/p distribution
         if ana == 'm':
-            field = fobj.data[0,lx1:lx2, ly1:ly2]
+            #field = fobj.data[0,lx1:lx2, ly1:ly2]
+            field = fobj.data[lx1:lx2, ly1:ly2]
             labels, cld_size, cld_sum = identify_clouds(field,
                                                         thresh , 
-                                                        qcobj.data[0,lx1:lx2, ly1:ly2],
+                                                        #qcobj.data[0,lx1:lx2, ly1:ly2],
+                                                        qcobj.data[lx1:lx2, ly1:ly2],
                                                         opt_thresh = 0.,
                                                         water = True)
             cld_sum *= dx*dx*0.9575  # Here 1 stands for rho ATTENTION
@@ -272,10 +285,10 @@ for t in timelist:
         # Loop over members
         for fobj, labels, com, cld_sum in zip(fobjlist, labelslist, comlist, 
                                               sumlist):
-            if ana == 'm':
-                field = fobj.data[0,lx1:lx2, ly1:ly2]
-            else: 
-                field = fobj.data[lx1:lx2, ly1:ly2]
+            #if ana == 'm':
+                #field = fobj.data[0,lx1:lx2, ly1:ly2]
+            #else: 
+            field = fobj.data[lx1:lx2, ly1:ly2]
         
             # Allocate array for saving
             mp_field = np.empty((nx, ny))
@@ -398,7 +411,7 @@ for t in timelist:
         
         
         # Plotting
-        if 'var' in plotlist:
+        if 'var' or 'all' in plotlist:
             fobjlist_plot = [wpobj, MP_fobj, nvar_fobj, mp_fobj]
             cmlist = [(cmWP, levelsWP), (cmMP, levelsMP*np.nanmax(MP_fullfield)), 
                       (cmNVAR, levelsNVAR), (cmMP, levelsMP*np.nanmax(mp_fullfield))]
@@ -410,8 +423,8 @@ for t in timelist:
                 cf, tmp = ax_contourf(ax, fob, colors=cm[0], 
                                     pllevels=cm[1], sp_title=fob.fieldn,
                                     Basemap_drawrivers = False,
-                                    npars = 0, nmers = 0, ji0=(50, 50),
-                                    ji1=(411, 381), extend = 'both')
+                                    npars = 0, nmers = 0, ji0=(lx1, ly1),
+                                    ji1=(sxo+lx2, syo+ly2), extend = 'both')
                 cb = fig.colorbar(cf)
                 cb.set_label(fob.unit)
             figtitle = date + '+' + ddhhmmss(t) + ' n = ' + str(n).zfill(3)
@@ -445,18 +458,18 @@ for t in timelist:
     
     # Plot what needs to be plotted every time step
     # 1. Ensemble mean tau_c over Germany
-    if 'tauc' in plotlist:
+    if 'tauc' or 'all' in plotlist:
         title_sufx = 'mean tau_c, di_mean: ' + str(dimeantauc) + 'h + ' + ddhhmmss(t)
         fig = fig_contourf_1sp(meantauc, pllevels = np.arange(0, 21, 1),
                                extend = 'max', sp_title = title_sufx,
                                Basemap_drawrivers = False,
-                               ji0=(50, 50), ji1=(411, 381))
+                               ji0=(lx1, ly1), ji1=(sxo+lx2, syo+ly2))
         plt.tight_layout()
         plotdirnew = plotdir + '/tauc/'
         if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
         fig.savefig(plotdirnew + 'tauc_' + ddhhmmss(t), dpi = 300)
     
-    if 'stats' in plotlist:
+    if 'stats' or 'all' in plotlist:
         # 2. Plot cloud size and m/p distribution, plus RDF
         fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*2.5, 3.2))
         axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
@@ -507,7 +520,7 @@ for t in timelist:
         if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
         fig.savefig(plotdirnew + 'stats_' + ddhhmmss(t), dpi = 300)
     
-    if 'scatter' in plotlist:
+    if 'scatter' or 'all' in plotlist:
         # 4. Plot CC06 Fig4 
         fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 3.2))
         clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
@@ -565,7 +578,7 @@ for t in timelist:
     
     
 # Plot summary plots
-if 'summary' in plotlist:
+if 'summary' or 'all' in plotlist:
     timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
     
     fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 6.))
@@ -606,7 +619,7 @@ if 'summary' in plotlist:
     fig.savefig(plotdir + 'timeseries')
     
 # Plot correlation plots
-if 'corr' in plotlist:
+if 'corr' or 'all' in plotlist:
     # convert to numpy arrays
     var_alllist = np.array(var_alllist)
     M_alllist = np.array(M_alllist)
@@ -620,7 +633,7 @@ if 'corr' in plotlist:
     list_names = ['var', 'M', 'm', 'N', 'n', 'tauc', 'UTC']
     list_list = [var_alllist, M_alllist, m_alllist, N_alllist, n_alllist,
                  tauc_alllist, UTC_alllist]
-    np.save('./results/corr_lists.npy', (list_names, list_list))
+    np.save('./results/corr_' + date + '.npy', (list_names, list_list))
     
     x = var_alllist/(M_alllist*M_alllist/N_alllist)
     y = tauc_alllist
