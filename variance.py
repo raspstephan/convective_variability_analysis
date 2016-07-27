@@ -54,17 +54,17 @@ levelsMP = np.linspace(0,1+1/11,11)
 plotlist = ['corr']
 water = True
 collapse = True
-#ana = sys.argv[1]  # 'm' or 'p'
-#date = sys.argv[2]
-ana = 'm'
-date = '2009070100'
+ana = sys.argv[1]  # 'm' or 'p'
+date = sys.argv[2]
+#ana = 'm'
+#date = '2009070100'
 ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
 try:
     nens = int(sys.argv[3])
 except:    
     nens = 20
-tstart = timedelta(hours=17)
-tend = timedelta(hours = 18)
+tstart = timedelta(hours=1)
+tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 lx1 = 204/2 # ATTENTION first dimension is actually y
 lx2 = -(lx1+1) # Number of grid pts to exclude at border
@@ -614,6 +614,13 @@ if 'corr' in plotlist:
     N_alllist = np.array(N_alllist)
     n_alllist = np.array(n_alllist)
     tauc_alllist = np.array(tauc_alllist)
+    UTC_alllist = np.array(UTC_alllist)
+    
+    # save lists
+    list_names = ['var', 'M', 'm', 'N', 'n', 'tauc', 'UTC']
+    list_list = [var_alllist, M_alllist, m_alllist, N_alllist, n_alllist,
+                 tauc_alllist, UTC_alllist]
+    np.save('./results/corr_lists.npy', (list_names, list_list))
     
     x = var_alllist/(M_alllist*M_alllist/N_alllist)
     y = tauc_alllist
@@ -621,7 +628,7 @@ if 'corr' in plotlist:
     fig, ax = plt.subplots(1, 1, figsize = (95./25.4, 3.2))
     ax.scatter(x, y)
     fig.savefig(plotdir + 'corr_test', dpi = 300)
-    nanmask = np.isfinite(x)
+    nanmask = np.isfinite(x) * np.isfinite(y)
     print np.corrcoef(x[nanmask], y[nanmask])[1,0]
 
 
