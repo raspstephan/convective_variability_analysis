@@ -65,7 +65,7 @@ except:
     nens = 20
 nens = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 tstart = timedelta(hours=8)
-tend = timedelta(hours = 12)
+tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 
 
@@ -89,6 +89,8 @@ lev = None
 if ana == 'm':
     # zlev=1500.,2000.,2500.,3000.,3500.
     lev = 2
+    if date == '2009070100':
+        lev = 0
     fieldn = 'W'
     thresh = 1.
     sufx = 'z.nc_1h'
@@ -523,7 +525,7 @@ for t in timelist:
     if 'scatter' or 'all' in plotlist:
         # 4. Plot CC06 Fig4 
         fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 3.2))
-        clist = ("#ff0000", "#ff8000", "#ffff00","#40ff00","#00ffff","#0040ff","#ff00ff")
+        clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff","#ff00ff")
     
         for x, y, n, c in zip(list(varres1list[:,1]),
                               list(varres1list[:,0]),
@@ -532,16 +534,31 @@ for t in timelist:
     
             xcloud = np.sqrt(1/x)
             ycloud = np.sqrt(y)
-    
+            
+            # Get mean 
+            xmean = 10**(np.mean(np.log10(xcloud[np.isfinite(xcloud*ycloud)])))
+            ymean = 10**(np.mean(np.log10(ycloud[np.isfinite(xcloud*ycloud)])))
+            #xmean = np.nanmean(xcloud)
+            #ymean = np.nanmean(ycloud)
+            print n
+            print xmean, ymean
+            
             #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
                        #linewidth = 0.2)
             axarr[0].scatter(xcloud, ycloud, marker = 'o', c = c, 
                        s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8,
                        label = str(n*2.8)+'km')
+            
+            
+            axarr[0].scatter(xmean, ymean, marker = 'x', c = c, 
+                       s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
     
             ypercent = y/(2./x)*100.
+            ypercent_mean = np.mean(ypercent[np.isfinite(xcloud*ycloud)])
             axarr[1].scatter(xcloud, ypercent, marker = 'o', c = c, 
                        s = 4, zorder = 0.2, linewidth = 0, alpha = 0.8)
+            axarr[1].scatter(xmean, ypercent_mean, marker = 'x', c = c, 
+                       s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
         
         #for x, y, n, c in zip(list(varres2list[:,1]),
                               #list(varres2list[:,0]),
@@ -549,22 +566,27 @@ for t in timelist:
             #ax.scatter(x, y, marker = '*', c = c, label = str(n*2.8)+'km', s = 20,
                        #linewidth = 0.2)
         
-        axarr[0].legend(loc =4, ncol = 2, prop={'size':6})
-        tmp = np.array([0,5])
+        axarr[0].legend(loc =3, ncol = 2, prop={'size':6})
+        tmp = np.array([0,10])
         axarr[0].plot(tmp,tmp*np.sqrt(2), c = 'gray', alpha = 0.5, linestyle = '--',
                 zorder = 0.1)
-        axarr[0].set_xlim(0,4)
-        axarr[0].set_ylim(0,5)
+        axarr[0].set_xlim(0.05,10)
+        axarr[0].set_ylim(0.01,100)
+        axarr[0].set_xscale('log')
+        axarr[0].set_yscale('log')
+        axarr[0].invert_xaxis()
         axarr[0].set_xlabel('Square root (1/N)')
         if ana == 'm':
             axarr[0].set_ylabel('Square root (Var(M)/M^2)')
         else:
             axarr[0].set_ylabel('Square root (Var(P)/P^2)')
-        axarr[1].set_yscale('log')
-        axarr[1].plot([0.,4],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
+        axarr[1].plot([0.,10],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
                 zorder = 0.1)
-        axarr[1].set_xlim(0,4)
+        axarr[1].set_xlim(0.05,10)
         axarr[1].set_ylim(1, 1000)
+        axarr[1].set_xscale('log')
+        axarr[1].set_yscale('log')
+        axarr[1].invert_xaxis()
         axarr[1].set_xlabel('Square root (1/N)')
         axarr[1].set_ylabel('Percent of theoretical value')
         fig.suptitle(date + '+' + ddhhmmss(t), fontsize='x-large')
