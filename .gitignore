@@ -1,1 +1,6 @@
 results/*
+*.aux
+*.bbl
+*.blg
+*.log
+*.backup

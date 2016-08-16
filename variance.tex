@@ -3,39 +3,89 @@
 %\newcommandx{\note}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
 \usepackage{natbib}
 
-\title{Variance scaling in real mid-latitude weather}
+\title{Convective variability in real mid-latitude weather}
 
 \begin{document}
 \maketitle
 	
-\section{Theory and research question}
+\section{Introduction}
 
-\paragraph{The \cite{Craig2006} theory:} The CC06 theory aims to quantify the mass flux fluctuations of a cloud field in convective equilibrium. Convective equilibrium implies that the average properties of the convection are determined by the large-scale forcing. In more detail, the average total mass flux $\langle M \rangle$ and the average mass flux per cloud $\langle m \rangle$ are functions of the large-scales. To derive a formulation for the variance of the total mass flux in a given area $\langle (\delta M)^2 \rangle$, the following assumptions are made (These are the ones I picked out, look at paper for full list): a) Non-interacting clouds: Cloud are spatially separated (no clustering) and do not influence each other. b) Equal a priori probabilities: This statistical equilibrium assumption implies that ``that clouds are equally likely to occur in any location and with any mass flux''. From this assumption it can be deduced that $m$ is exponentially distributed and the number of clouds in a given area $N$ follows a Poisson distribution. 
+\subsection{Motivation}
+% parameterizations explained and problems of deterministic parameterizations
+Physical processes which occur on scales smaller than the grid spacing of a numerical model typically have to be parameterized. One such process is convection, which acts to restore stability in the atmosphere and is also the cause of significant amounts of precipitation. Parameterizations represent the effect of these sub-grid scale processes on the resolved scales is represented. Traditionally, this is done in a deterministic way, where the average, most likely, sub-grid effect given a certain large-scale forcing is described. If the sampling size of the unresolved features is large enough, the fluctuations about this mean are indeed small and negligible. So, for example, a grid box of a climate model with several hundreds of kilometers in size contains many convective features, typically 1-10 km in size. Global weather models nowadays, however, have grid spacings on the order of 10 km. Here the sampling size becomes insufficient and the fluctuation about a mean state are significant. Ignoring these fluctuations can lead to systematic biases in the non-linear atmosphere \citep[e.g.][]{Berner2016} and can also lead to an under-representation of extreme events. Furthermore, in an ensemble system, completely deterministic models are severely underdispersive and, therefore, unreliable. 
 
-Combining these assumptions, $M$ also follows a Poisson distribution. The variance of $M$ can either be derived from the probability distribution for $M$ or, more simply, be derived from the variances of $m$ and $N$, following the theory of random sums: 
-\begin{equation}
-\langle (\delta M)^2 \rangle=\langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
-\end{equation} 
-Since $\langle (\delta m)^2 \rangle = \langle m \rangle^2$ and $\langle (\delta N)^2 \rangle = \langle N \rangle$, if the distributions are exponential and Poisson, respectively, and $\langle M \rangle=\langle N \rangle \langle m \rangle$, the total mass flux variance should follow:
-\begin{equation}
-\frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
-\end{equation} 
+% Stochastic parameterizations
+Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an ad hoc manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1996, Shutts2005}. These ad hoc methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of a parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. One attempt do formulate such a physically-based stochastic parameterization for convection is described now. 
 
-This variance scaling theory has been tested in radiative convective equilibrium simulations by \cite{Cohen2006}, and was shows to work well. The equation for the variance is used in the \cite{Plant2008} stochastic convection parameterization.
+\subsection{The \cite{Craig2006} theory and its application in \cite{Plant2008}} 
+% CC06 theory (following Davoudi2010)
+The \cite[][CC06]{Craig2006} theory aims to quantify the mass flux fluctuations of a cloud field in convective equilibrium. Convective equilibrium implies that the average properties of the convection are determined by the large-scale forcing. In more detail, the average total mass flux $\langle M \rangle$ is a function of the large-scales. Other assumptions are: (a) the mean mass flux per cloud $\langle m \rangle$ does not depend on the large-scale forcing, only the mean number of clouds $\langle N \rangle$ does; (b) non-interacting clouds: Cloud are spatially separated (no clustering) and do not influence each other. (c) Equal a priori probabilities: This statistical equilibrium assumption implies that ``that clouds are equally likely to occur in any location and with any mass flux''. Using these arguments as a basis, a statistical theory is constructed for the distributions of $N$ and $m$:
+\begin{equation} \label{N_dist}
+ P(N) = \frac{\langle N \rangle^N}{N!}e^{-\langle N \rangle}
+\end{equation}
+\begin{equation} \label{m_dist}
+ P(m) = \frac{1}{\langle m \rangle}e^{-m/\langle m \rangle}
+\end{equation}
+Combing these, the distribution of the total mass flux $M$ is given by
+\begin{equation} \label{M_dist}
+ P(M) = \left( \frac{\langle N \rangle}{\langle m \rangle} \right)^{1/2} e^{-\langle N \rangle} M^{-1/2} e^{-M/\langle m \rangle} I_1\left[ 2 \left( \frac{\langle N \rangle}{\langle m \rangle} M \right)^{1/2} \right],
+\end{equation}
+where $I_1(x)$is the modified Bessel function of order 1. For large (small) values of $\langle N \rangle$ the shape of this function resembles a Gaussian (Poisson) distribution.   
+It is also possible to derive an equation for the normalized variance of $M$:
+\begin{equation} \label{M_var}
+ \frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
+\end{equation}
+Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$.
 
-Other studies have tested ...
+% Numerical experiments in CC06b
+The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory.
 
-\paragraph{Research questions and aims} In this study we aim to investigate the mass flux variability as predicted by theory against model simulations of real weather situations. The real world differs from idealized RCE settings in several ways: a) 
+% Usage in PC08
+\begin{itemize}
+ \item What about other studies eg Davoudi2010
+ \item Need to elaborate on how PC08 works
+ \item Mention SC15b
+\end{itemize}
 
+\subsection{Research questions}
+The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. There has, however, been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
 
+\paragraph{RQ1} How does the convective variability of ``real'' mid-latitude weather situations compare to the predictions of CC06?
+\paragraph{Hypothesis} There will be some deviations from the theoretical predictions. 
+If this hypothesis is true, a follow up research questions is:
+\paragraph{RQ1.1} Which parameters, if any, determine the deviations from the theory?
+\paragraph{Hypothesis} Factors which ``make'' the real weather not be in equilibrium determine the deviations.
 
-\section{Methods and experimental setup}
-\subsection{Model runs}
-The model used is the COSMO model with 2.8km resolution in model version 5.4 with the operational settings, except for the PSP scheme described below. 
-In order to investigate the convective mass flux variability we need a setup with identical large scale forcing, but different realizations of the convection. To achieve this we use the PSP scheme which introduces stochastic perturbations in the boundary layer. 
-The model runs are use the same initial and boundary conditions from the ECMWF deterministic forecast. They are initialized at 00UTC and an ensemble is created by using different seeds for the PSP scheme. The number of ensemble members needed to get accurate statistics is unclear. Therefore, a twenty member ensemble is run, from which sensitivity tests will be conducted. 
+The hope is that by finding these factors in the second hypothesis, stochastic parameterizations can be constructed which include a better representation of the real variability of convection. 
 
-\subsection{Calculation of mass flux statistics} 
+\section{Methods}
+
+\subsection{General research strategy}
+\begin{itemize}
+ \item Use convection-permitting numerical experiments of real weather situations over Germany and a stochastic boundary-layer scheme to displace the convection
+ \item Analyze the data similar to CC06 and compare the results to theory. 
+ \item Try to find meaningful measure to characterize the synoptic situations of the case studies and try to find correlations with deviation from predicted variability
+\end{itemize}
+
+\subsection{Numerical experiments}
+
+\begin{itemize}
+ \item COSMO-2.8km with ... domain size
+ \item Initial and boundary conditions from operational COSMO-EU deterministic runs started at 00UTC for all cases. Boundary condition frequency is 1/3 h. 
+ \item Ensemble is created with PSP scheme as described below: 20 members
+\end{itemize}
+
+\subsubsection{The PSP boundary-layer scheme}
+\begin{itemize}
+ \item a good brief summary of KC16
+\end{itemize}
+
+\subsection{Case studies}
+Which cases are picked and why a priori?
+
+\subsection{Analyses}
+
+\subsubsection{Identification of clouds and calculation of cloud statistics}
 The mass flux per cloud is defined as:
 \begin{equation}
 \label{eq:def_m}
@@ -45,27 +95,26 @@ where $\sigma_i$ is the cloud size \citep{Cohen2006}.
 
 Two methods are used to identify clouds and the associated mass flux: 1) Instantaneous precipitation with a threshold of 0.001 mm s$^{-1}$ (for this criterion every m is replaced by a p); 2) Vertical velocity greater than 1 m s$^{-1}$ combined with a positive liquid water content at 2.4km height. The second criterion was also used in CC06 and  \cite{Davoudi2010}. A comparison of using precipitation and the above mentioned vertical velocity criterion is given in an iPhython Notebook. 
 
-Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avaid domain effects, the clouds are collapsed to their center of mass. 
+Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avoid domain effects, the clouds are collapsed to their center of mass. 
 
-The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. 
+The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. 
+
+\subsubsection{Calculation of radial distribution functions and clustering parameters}
+
+\subsubsection{Calculation of ensemble means and variances}
+
+To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. 
+
+\subsubsection{Scatter plots: Comparison with predicted values}
 
 The Variance $\langle (\delta M(P))^2 \rangle$ is then calculated for each coarse box between the 10 ensemble members. M(P) and m(p) are taken as ensemble means for each box. The variance is then plotted against Mm(Pp) as a scatter plot. A line through the origin is then fitted for the points for each $n$, giving a slope, which should be 2 if the data fits the theory. 
 
-\subsection{Assumptions}
-1) The convective cloud field is fully displaced by the PSP scheme after a few hours. This assumption could be tested in a RCE simulation. 
 
-\section{Case Studies}
-Since the results are likely to be highly case dependent, in this section we will try to characterize each of the cases using the following analyses: a) the convective adjustment timescale $\tau_c$ serves as an indicator of whether the convection is in equilibrium. 
-\subsection{1 July 2009: DIURNAL}
-
-\section{Results}
-\subsection{Cloud size and m/p distribution}
-For each time step the cloud size and m/p distribution is evaluated as an ensemble average.
-
-\subsection{Convective timescale}
+\subsubsection{Calculation of the convective adjustment timescale}
 The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individuallay and then averaged. This leads to some not-smooth regions at the edges. 
 
-\section{Discussion}
+\section{Results}
+
 
 
 \bibliographystyle{ametsoc}
