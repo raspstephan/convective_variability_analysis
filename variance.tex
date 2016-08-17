@@ -1,7 +1,7 @@
 \documentclass[a4paper, 12pt]{article}
-%\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
-%\newcommandx{\note}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
 \usepackage{natbib}
+\usepackage{graphicx}
+\graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
 
 \title{Convective variability in real mid-latitude weather}
 
@@ -20,19 +20,19 @@ Stochastic parameterizations aim to solve the problems outlined above. Here, ran
 \subsection{The \cite{Craig2006} theory and its application in \cite{Plant2008}} 
 % CC06 theory (following Davoudi2010)
 The \cite[][CC06]{Craig2006} theory aims to quantify the mass flux fluctuations of a cloud field in convective equilibrium. Convective equilibrium implies that the average properties of the convection are determined by the large-scale forcing. In more detail, the average total mass flux $\langle M \rangle$ is a function of the large-scales. Other assumptions are: (a) the mean mass flux per cloud $\langle m \rangle$ does not depend on the large-scale forcing, only the mean number of clouds $\langle N \rangle$ does; (b) non-interacting clouds: Cloud are spatially separated (no clustering) and do not influence each other. (c) Equal a priori probabilities: This statistical equilibrium assumption implies that ``that clouds are equally likely to occur in any location and with any mass flux''. Using these arguments as a basis, a statistical theory is constructed for the distributions of $N$ and $m$:
-\begin{equation} \label{N_dist}
+\begin{equation} \label{eq:N_dist}
  P(N) = \frac{\langle N \rangle^N}{N!}e^{-\langle N \rangle}
 \end{equation}
-\begin{equation} \label{m_dist}
+\begin{equation} \label{eq:m_dist}
  P(m) = \frac{1}{\langle m \rangle}e^{-m/\langle m \rangle}
 \end{equation}
 Combing these, the distribution of the total mass flux $M$ is given by
-\begin{equation} \label{M_dist}
+\begin{equation} \label{eq:M_dist}
  P(M) = \left( \frac{\langle N \rangle}{\langle m \rangle} \right)^{1/2} e^{-\langle N \rangle} M^{-1/2} e^{-M/\langle m \rangle} I_1\left[ 2 \left( \frac{\langle N \rangle}{\langle m \rangle} M \right)^{1/2} \right],
 \end{equation}
 where $I_1(x)$is the modified Bessel function of order 1. For large (small) values of $\langle N \rangle$ the shape of this function resembles a Gaussian (Poisson) distribution.   
 It is also possible to derive an equation for the normalized variance of $M$:
-\begin{equation} \label{M_var}
+\begin{equation} \label{eq:M_var}
  \frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
 \end{equation}
 Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$.
@@ -61,63 +61,151 @@ The hope is that by finding these factors in the second hypothesis, stochastic p
 \section{Methods}
 
 \subsection{General research strategy}
-\begin{itemize}
- \item Use convection-permitting numerical experiments of real weather situations over Germany and a stochastic boundary-layer scheme to displace the convection
- \item Analyze the data similar to CC06 and compare the results to theory. 
- \item Try to find meaningful measure to characterize the synoptic situations of the case studies and try to find correlations with deviation from predicted variability
-\end{itemize}
+We will use convection-permitting simulations of real weather situations over Germany. A stochastic boundary-layer scheme will be used to create an ensemble where the convection is displaced. We will then use these ensembles to calculate statistics similar to those in CC06 and compare the results to the theoretical prediction. To explain deviations from the theory, we will try to find meaningful measures to characterize the synoptic situation of the case studies and to correlate them with the deviations.  
 
 \subsection{Numerical experiments}
+The model used is the COSMO model with 2.8 km horizontal grid spacing $\Delta x$ and operational COSMO-DE settings with one exception, the stochastic boundary-layer scheme which will be described below. The domain size is 357 grid points in either direction with the domain centered at 10E and 50N. For the analysis a 256 by 256 grid point domain (roughly 717km) at the center of the simulation domain is considered. The 50 grid point gap to the boundary ensures that boundary effects are minimal. 
 
-\begin{itemize}
- \item COSMO-2.8km with ... domain size
- \item Initial and boundary conditions from operational COSMO-EU deterministic runs started at 00UTC for all cases. Boundary condition frequency is 1/3 h. 
- \item Ensemble is created with PSP scheme as described below: 20 members
-\end{itemize}
+Initial and boundary conditions are taken from the operational COSMO-EU (7km) deterministic forecast with a boundary condition update frequency of 1 h. All runs are started at 00UTC and are run for 24 h. A 20 member ensemble is created by setting a different random number seed in the stochastic boundary-layer scheme for each member. Otherwise, all members are identical, making sure that the large-scale condition are the same and only the convection is shuffled around. 
 
-\subsubsection{The PSP boundary-layer scheme}
+\subsubsection{The PSPbl boundary-layer scheme}
+The physically-based stochastic perturbation boundary-layer scheme (PSPbl) is described and tested in \cite{Kober2016}. A brief outline is given here now. 
+
 \begin{itemize}
  \item a good brief summary of KC16
 \end{itemize}
 
 \subsection{Case studies}
-Which cases are picked and why a priori?
+The case studies are all from a recent, convectively active period over Central Europe in May/June 2016 with one exception: We also considered 1 July 2009, which is the test case used in \cite{Kober2016}, since this day is a good example of weakly forced diurnal convection.  
 
 \subsection{Analyses}
 
 \subsubsection{Identification of clouds and calculation of cloud statistics}
-The mass flux per cloud is defined as:
-\begin{equation}
-\label{eq:def_m}
- m_i = \rho \sigma_i \bar{w_i},
+To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$.
+
+Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
+
+For each identified cloud in each ensemble member a cloud size $\sigma_i$ is determined as
+\begin{equation} \label{eq:cld_size}
+ \sigma_i = n_{px} \Delta x^2,
 \end{equation}
-where $\sigma_i$ is the cloud size \citep{Cohen2006}. 
-
-Two methods are used to identify clouds and the associated mass flux: 1) Instantaneous precipitation with a threshold of 0.001 mm s$^{-1}$ (for this criterion every m is replaced by a p); 2) Vertical velocity greater than 1 m s$^{-1}$ combined with a positive liquid water content at 2.4km height. The second criterion was also used in CC06 and  \cite{Davoudi2010}. A comparison of using precipitation and the above mentioned vertical velocity criterion is given in an iPhython Notebook. 
-
-Additionally, ``overlapping'' clouds have been identified for both methods with the local maximum method, followed by a watershed algorithm to get the extents of each cloud. To avoid domain effects, the clouds are collapsed to their center of mass. 
-
-The values for $m$($p$) were computed as  $m_i = \rho \Delta x^2 \sum_{pixel} w$. 
+where $n_{px}$ is the number of pixels for each cloud $i$. Furthermore, the mass flux per cloud $m_i$ is computed for criterion (1) as
+\begin{equation} \label{eq:mass_flux_per_cloud}
+ m_i = \Delta x^2 \sum_{px} w \rho,
+\end{equation}
+where $\rho$ is density. For criterion (2), the precipitation rate per cloud $p_i$ is calculated as
+\begin{equation} \label{eq:pr_per_cloud}
+ p_i = \sum_{px} pr,
+\end{equation}
+Statistics of these variables, such as the mean and the distribution are then calculated (see results).
 
 \subsubsection{Calculation of radial distribution functions and clustering parameters}
+A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. 
+
+A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
 
 \subsubsection{Calculation of ensemble means and variances}
+For the variance calculations, a coarse-graining is applied with edge lengths of 256, 128, 64, 32, 16, 8 and 4$\Delta x$. No neighborhoods smaller are considered, since these would be significantly below the effective resolution of the model \citep{Bierdel2012}. For each coarse box, the an average value of $m$/$p$ is computed, as well as a total mass flux/precipitation rate $M$/$P$ and the number of clouds $N$ in each box.
 
-To get values for $M$($P$) and the number of clouds in the domain $N$, all the clouds were summed up. This means that positive (or negative) contributions to the domain total outside the identified clouds are ignored. The domain is coarse-grained with different ``neighborhood'' sizes $n$, where $N = n^2$. 
+To deal with clouds at the boundaries of the coarse-fields, the centers of mass for each cloud is first identified. Then the $m_i$ or $p_i$ is attributed to that one point in space. Therefore, the coarse box which contains the center of mass also contains the entire cloud, while the other box does not contain any of the cloud. 
+
+Finally, the variance $\langle (\delta M \mathrm{or} P)^2 \rangle$ and the ensemble mean $M$/$P$ and $N$ are computed for each box and each coarsening scale, resulting in one two-dimensional field for each coarsening scale. 
 
 \subsubsection{Scatter plots: Comparison with predicted values}
-
-The Variance $\langle (\delta M(P))^2 \rangle$ is then calculated for each coarse box between the 10 ensemble members. M(P) and m(p) are taken as ensemble means for each box. The variance is then plotted against Mm(Pp) as a scatter plot. A line through the origin is then fitted for the points for each $n$, giving a slope, which should be 2 if the data fits the theory. 
-
+To compare the obtained values to the theoretical predictions, the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
+\begin{equation} \label{eq:normalized_variance}
+ \mu_{2 j, n} = \frac{\langle (\delta M_{j,n} \mathrm{ or } P_{j,n})^2 \rangle}{M_{j,n} \mathrm{ or } P_{j,n}}.
+\end{equation}
+This normalized variance is then plotted against the mean number of clouds $N{j,n}$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot. To get a quantitative comparison of the simulation results and theory, the percent fraction is calculated as
+\begin{equation} \label{eq:normalized_variance_percent}
+ \frac{\mu_{2 j, n}}{\frac{2}{M_{j,n} \mathrm{ or } P_{j,n}}}\times 100\%.
+\end{equation}
 
 \subsubsection{Calculation of the convective adjustment timescale}
-The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individuallay and then averaged. This leads to some not-smooth regions at the edges. 
+The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. 
 
 \section{Results}
 
+\subsection{Case 1: 2009070100}
+\subsubsection{Case description}
+
+\subsection{Cloud statistics}
+Fig.\ref{fig:case1_stats} shows histograms of the cloud size $\sigma_i$ and mass flux $m_i$ or precipitation per cloud $p_i$ alongside the radial distribution function for one time step. 
+
+\subsection{Variance fields}
+Fig.\ref{fig:case1_var_fields} shows the variance and ensemble mean fields for one time step and one coarsening scale. Blue regions in the bottom left plot indicate less variability compared to theory.
+
+\subsection{Variance scatter plots}
+Fig.\ref{fig:case1_var_scatter} summarizes the comparison to theory for each coarsening scale.
+
+\subsection{Convective adjustment time scale}
+Fig.\ref{fig:case1_tau_c} shows the ensemble mean $\tau_c$. Since the timescale is not always defined for all members, some discontinuities can occur. 
+
+\subsection{Timeseries plots}
+Fig.\ref{fig:case1_timeseries}
 
 
+
+
+\newpage
 \bibliographystyle{ametsoc}
 {\small
  \bibliography{library}}
+
+\newpage
+\section{Figures}
+
+%%%%%%%%%%%%%%%%%%%%%
+% CASE 1
+%%%%%%%%%%%%%%%%%%%%%
+
+% Cloud statistics
+\begin{figure}[ht] \label{fig:case1_stats}
+\noindent \centering
+2009070100 14UTC m water
+\includegraphics[width=\textwidth]{2009070100/m/cloud_stats/stats_00140000.png}\\
+2009070100 14UTC m nowater
+\includegraphics[width=\textwidth]{2009070100/nowater/m/cloud_stats/stats_00140000.png}\\
+2009070100 14UTC p water
+\includegraphics[width=\textwidth]{2009070100/p/cloud_stats/stats_00140000.png}\\
+2009070100 14UTC p nowater
+\includegraphics[width=\textwidth]{2009070100/nowater/p/cloud_stats/stats_00140000.png}\\
+\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bin width = ) and $m_i$/$p_i$ (bin width = ). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
+\end{figure}
+
+% Variance fields
+\begin{figure}[ht] \label{fig:case1_var_fields}
+\noindent \centering
+2009070100 14UTC m water
+\includegraphics[width=\textwidth]{2009070100/m/var/var_00140000_064.png}\\
+\caption{Variance fields:  The top left picture shows the vertical velocity field at 2500m height. All blue regions are clouds (given that the cloud water content is positive, not shown). The top right picture shows the ensemble mean total mass flux $M_{j,n}$ for one coarsening scale. The bottom right picture shows the ensemble mean $m_{j,n}$. The bottom right picture shows the Normalized variance divided by the mean cloud number, which the theory predicts to be 2.}
+\end{figure}
+
+% Variance scatter
+\begin{figure}[ht] \label{fig:case1_var_scatter}
+\noindent \centering
+2009070100 14UTC m water
+\includegraphics[width=\textwidth]{2009070100/m/var_scatter/scatter_00140000.png}\\
+\caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
+\end{figure}
+
+% Variance scatter
+\begin{figure}[ht] \label{fig:case1_tau_c}
+\noindent \centering
+2009070100 14UTC m water
+\includegraphics[width=\textwidth]{2009070100/m/tauc/tauc_00140000.png}\\
+\caption{Ensemble mean convective adjustment timescale}
+\end{figure}
+
+% Timeseries
+\begin{figure}[ht] \label{fig:case1_timeseries}
+\noindent \centering
+2009070100 14UTC m water
+\includegraphics[width=\textwidth]{2009070100/m/timeseries.png}\\
+2009070100 14UTC p water
+\includegraphics[width=\textwidth]{2009070100/p/timeseries.png}\\
+\caption{Timeseries of several values}
+\end{figure}
+
+
 \end{document}
