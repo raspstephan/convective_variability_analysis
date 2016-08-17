@@ -52,33 +52,35 @@ levelsMP = np.linspace(0,1+1/11,11)
 
 # Setup
 plotlist = ['all']   # not plottling saves a significant amount of time
-water = True
 collapse = True
 ana = sys.argv[1]  # 'm' or 'p'
 date = sys.argv[2]
+water = True
+try: 
+    if sys.argv[3] == 'nowater':
+        water = False
+except:
+    pass
 #ana = 'm'
 #date = '2009070100'
 ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
-try:
-    nens = int(sys.argv[3])
-except:    
-    nens = 20
-nens = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-tstart = timedelta(hours=8)
+nens = 20
+tstart = timedelta(hours=1)   # Cannot be 0 because of tau_c calculation!
 tend = timedelta(hours = 24)
 tinc = timedelta(hours = 1)
 
 
-plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date
+plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + date + '/' + ana
 if not collapse:
-    plotdir += '/noncollapse/'
+    plotdir += '_noncollapse'
     date = 'noncoll_' + date
 #if not nens == 20:
     #plotdir += '/n' + str(nens).zfill(2) + '/'
     #date = 'n' + str(nens).zfill(2) + '_' + date
 if not water:
-    plotdir += '/nowater/'
+    plotdir += '_nowater'
     date = 'nowater_' + date
+plotdir += '/'
 dx = 2800.
 
 
@@ -89,17 +91,16 @@ lev = None
 if ana == 'm':
     # zlev=1500.,2000.,2500.,3000.,3500.
     lev = 2
-    if date == '2009070100':
-        lev = 0
+    #if date == '2009070100':
+        #lev = 0
     fieldn = 'W'
     thresh = 1.
     sufx = 'z.nc_1h'
-    plotdir += '/m/'
     ana_unit = 'kg/s'
     cmWP = ("#7C0607","#903334","#A45657","#BA7B7C","#FFFFFF",
         "#8688BA","#6567AA","#46499F","#1F28A2")
     levelsWP = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
-    sizemax = 1.e8
+    sizemax = 1.5e8
     summax = 5e8
 
 if ana == 'p':
@@ -107,7 +108,6 @@ if ana == 'p':
     fieldn = 'TOT_PR'
     thresh = 0.001
     sufx = '.nc_5m'
-    plotdir += '/p/'
     ana_unit = 'mm/h'
     cmWP = ((1    , 1     , 1    ), 
             (0    , 0.627 , 1    ),
@@ -117,8 +117,8 @@ if ana == 'p':
             (1    , 0.3   , 0.9  ) )
             #(0.1  , 0.1   , 0.784),
     levelsWP = [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
-    sizemax = 8.e8
-    summax = 0.35
+    sizemax = 10.e8
+    summax = 1
     
 # Create plotdir if not exist
 if not os.path.exists(plotdir): os.makedirs(plotdir)
@@ -153,11 +153,11 @@ for t in timelist:
     # Load ensembles 
     fobjlist = getfobj_ncdf_ens(ensdir, 'sub', nens, ncdffn, 
                                 dir_suffix='/OUTPUT/',
-                                fieldn = fieldn, nfill=2, levs = lev)
+                                fieldn = fieldn, nfill=1, levs = lev)
     if ana == 'm':   # Additional positive QC filter
         qcobjlist = getfobj_ncdf_ens(ensdir, 'sub', nens, ncdffn, 
                                      dir_suffix='/OUTPUT/',
-                                     fieldn = 'QC', nfill=2, levs = lev)
+                                     fieldn = 'QC', nfill=1, levs = lev)
     else:
         qcobjlist = [None]*len(fobjlist)
     
@@ -175,7 +175,7 @@ for t in timelist:
     taucfn = 'lfff' + ddhhmmss(t) + '.nc_5m'
     tauclist = getfobj_ncdf_ens(ensdir, 'sub', nens, taucfn, 
                                 dir_suffix='/OUTPUT/',
-                                fieldn = 'TAU_C', nfill=2)
+                                fieldn = 'TAU_C', nfill=1)
     # Get mean tauc object
     meantauc, tmp = mean_spread_fieldobjlist(tauclist, nan = True)
     dimeantauc = np.nanmean(meantauc.data[lx1:lx2, ly1:ly2])
@@ -229,9 +229,9 @@ for t in timelist:
     sizelist_flat = [i for sl in sizelist for i in sl]
     sumlist_flat = [i for sl in sumlist for i in sl]
     sizehist, sizeedges = np.histogram(sizelist_flat, 
-                                       bins = 10, range = [0., sizemax])
+                                       bins = 15, range = [0., sizemax])
     sumhist, sumedges = np.histogram(sumlist_flat, 
-                                     bins = 20, range = [0., summax])
+                                     bins = 15, range = [0., summax])
     sizemean = np.mean(sizelist_flat)
     summean = np.mean(sumlist_flat)
     total = np.sum(sumlist_flat)
@@ -399,12 +399,12 @@ for t in timelist:
         if ana == 'm':
             MP_fobj.fieldn = 'M'
             mp_fobj.fieldn = 'm'
-            nvar_fobj.fieldn = 'Normalized Var = Var / M / m'
+            nvar_fobj.fieldn = 'Normalized Var * N'
             mpmax = 2e8
         else:
             MP_fobj.fieldn = 'P'
             mp_fobj.fieldn = 'p'
-            nvar_fobj.fieldn = 'Normalized Var = Var / P / p'
+            nvar_fobj.fieldn = 'Normalized Var * N'
         
         wpobj = copy.deepcopy(fobj)
         if wpobj.dims == 3:
@@ -429,8 +429,9 @@ for t in timelist:
                                     ji1=(sxo+lx2, syo+ly2), extend = 'both')
                 cb = fig.colorbar(cf)
                 cb.set_label(fob.unit)
-            figtitle = date + '+' + ddhhmmss(t) + ' n = ' + str(n).zfill(3)
-            fig.suptitle(figtitle, fontsize='x-large')
+            plotttitle = (date + '+' + ddhhmmss(t) + ' ' + ana + ' water=' + 
+                          str(water) + ' n = ' + str(n).zfill(3))
+            fig.suptitle(plotttitle, fontsize='x-large')
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # To account for suptitle
             plotdirnew = plotdir + '/var/'
             if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
@@ -516,8 +517,10 @@ for t in timelist:
             axarr[1].set_xlabel('Cloud precipitation [mm/h]')
             axarr[1].set_title('Cloud precipitation distribution')
             
-            
-        plt.tight_layout()
+        plotttitle = (date + '+' + ddhhmmss(t) + ' ' + ana + ' water=' + 
+                      str(water))
+        fig.suptitle(plotttitle, fontsize='x-large')
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plotdirnew = plotdir + '/cloud_stats/'
         if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
         fig.savefig(plotdirnew + 'stats_' + ddhhmmss(t), dpi = 300)
@@ -540,8 +543,6 @@ for t in timelist:
             ymean = 10**(np.mean(np.log10(ycloud[np.isfinite(xcloud*ycloud)])))
             #xmean = np.nanmean(xcloud)
             #ymean = np.nanmean(ycloud)
-            print n
-            print xmean, ymean
             
             #ax.scatter(x, y, marker = 'D', c = c, label = str(n*2.8)+'km', s = 20,
                        #linewidth = 0.2)
@@ -589,7 +590,9 @@ for t in timelist:
         axarr[1].invert_xaxis()
         axarr[1].set_xlabel('Square root (1/N)')
         axarr[1].set_ylabel('Percent of theoretical value')
-        fig.suptitle(date + '+' + ddhhmmss(t), fontsize='x-large')
+        plotttitle = (date + '+' + ddhhmmss(t) + ' ' + ana + ' water=' + 
+                      str(water))
+        fig.suptitle(plotttitle, fontsize='x-large')
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plotdirnew = plotdir + '/var_scatter/'
         if not os.path.exists(plotdirnew): os.makedirs(plotdirnew)
@@ -635,13 +638,14 @@ if 'summary' or 'all' in plotlist:
     else:
         axarr[0,0].set_ylabel('Domain total precipitation rate [mm/h]')
         axarr[1,0].set_ylabel('Mean cloud precipitation rate [mm/h]')
-    
-    fig.suptitle(date + ' ' + ana, fontsize='x-large')
+    plotttitle = (date + ' ' + ana + ' water=' + 
+                      str(water))
+    fig.suptitle(plotttitle, fontsize='x-large')
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     fig.savefig(plotdir + 'timeseries')
     
 # Plot correlation plots
-if 'corr' or 'all' in plotlist:
+if 'corr' in plotlist:
     # convert to numpy arrays
     var_alllist = np.array(var_alllist)
     M_alllist = np.array(M_alllist)

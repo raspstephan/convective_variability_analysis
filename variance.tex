@@ -15,7 +15,7 @@
 Physical processes which occur on scales smaller than the grid spacing of a numerical model typically have to be parameterized. One such process is convection, which acts to restore stability in the atmosphere and is also the cause of significant amounts of precipitation. Parameterizations represent the effect of these sub-grid scale processes on the resolved scales is represented. Traditionally, this is done in a deterministic way, where the average, most likely, sub-grid effect given a certain large-scale forcing is described. If the sampling size of the unresolved features is large enough, the fluctuations about this mean are indeed small and negligible. So, for example, a grid box of a climate model with several hundreds of kilometers in size contains many convective features, typically 1-10 km in size. Global weather models nowadays, however, have grid spacings on the order of 10 km. Here the sampling size becomes insufficient and the fluctuation about a mean state are significant. Ignoring these fluctuations can lead to systematic biases in the non-linear atmosphere \citep[e.g.][]{Berner2016} and can also lead to an under-representation of extreme events. Furthermore, in an ensemble system, completely deterministic models are severely underdispersive and, therefore, unreliable. 
 
 % Stochastic parameterizations
-Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an ad hoc manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1996, Shutts2005}. These ad hoc methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of a parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. One attempt do formulate such a physically-based stochastic parameterization for convection is described now. 
+Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an ad hoc manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1999, Berner2009a}. These ad hoc methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of a parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. One attempt do formulate such a physically-based stochastic parameterization for convection is described now. 
 
 \subsection{The \cite{Craig2006} theory and its application in \cite{Plant2008}} 
 % CC06 theory (following Davoudi2010)
@@ -165,12 +165,12 @@ Fig.\ref{fig:case1_timeseries}
 2009070100 14UTC m water
 \includegraphics[width=\textwidth]{2009070100/m/cloud_stats/stats_00140000.png}\\
 2009070100 14UTC m nowater
-\includegraphics[width=\textwidth]{2009070100/nowater/m/cloud_stats/stats_00140000.png}\\
+\includegraphics[width=\textwidth]{2009070100/m_nowater/cloud_stats/stats_00140000.png}\\
 2009070100 14UTC p water
 \includegraphics[width=\textwidth]{2009070100/p/cloud_stats/stats_00140000.png}\\
 2009070100 14UTC p nowater
-\includegraphics[width=\textwidth]{2009070100/nowater/p/cloud_stats/stats_00140000.png}\\
-\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bin width = ) and $m_i$/$p_i$ (bin width = ). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
+\includegraphics[width=\textwidth]{2009070100/p_nowater/cloud_stats/stats_00140000.png}\\
+\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bins = 15 with bin width = 0.1e8/0.67e8) and $m_i$/$p_i$(bins = 15 with bin width = 0.33e8/0.067). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
 \end{figure}
 
 % Variance fields
