@@ -1,4 +1,4 @@
-\documentclass[a4paper, 12pt]{article}
+\documentclass[a4paper, 12pt, draft]{article}
 \usepackage{natbib}
 \usepackage{graphicx}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
@@ -43,9 +43,11 @@ The theoretical predictions above were tested against numerical simulations in r
 % Usage in PC08
 \begin{itemize}
  \item What about other studies eg Davoudi2010
- \item Need to elaborate on how PC08 works
  \item Mention SC15b
 \end{itemize}
+
+% Plant Craig 2008 basics: What quantities that I want to look at later are important for a stochastic parameterization
+In the \cite[][PC08]{Plant2008} stochastic parameterization approach, the exponential $m$ distribution (Eq. \ref{eq:m_dist}) is used to create a random population of plumes for each grid-box consistent with a large scale $\langle M \rangle$. From this distribution the large-scale tendencies are then computed as the sum of the cloud model output for each plume. $\langle M \rangle = 2 \times 10^7$kg s$^{-1}$ is assumed to be a constant. This assumption is motivated by RCE simulations \citep[e.g.][]{Cohen2006}. The theoretical prediction for the variance of $M$ (Eq. \ref{eq:M_var}) is not explicitly used in PC08, but comes from the exponential $m$ distribution combined with the random initiation of new clouds. The cloud life time is set to 45 minutes for all clouds. 
 
 \subsection{Research questions}
 The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. There has, however, been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
@@ -68,12 +70,18 @@ The model used is the COSMO model with 2.8 km horizontal grid spacing $\Delta x$
 
 Initial and boundary conditions are taken from the operational COSMO-EU (7km) deterministic forecast with a boundary condition update frequency of 1 h. All runs are started at 00UTC and are run for 24 h. A 20 member ensemble is created by setting a different random number seed in the stochastic boundary-layer scheme for each member. Otherwise, all members are identical, making sure that the large-scale condition are the same and only the convection is shuffled around. 
 
-\subsubsection{The PSPbl boundary-layer scheme}
-The physically-based stochastic perturbation boundary-layer scheme (PSPbl) is described and tested in \cite{Kober2016}. A brief outline is given here now. 
+\subsubsection{The PSPturb turbulence scheme}
+The physically-based stochastic perturbation boundary-layer scheme (PSPturb) is described and tested in \cite[][KC16]{Kober2016}. A brief outline is given here now. 
 
-\begin{itemize}
- \item a good brief summary of KC16
-\end{itemize}
+The PSPbl scheme is additive:
+\begin{equation} \label{eq:PSPturb_additive}
+\left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{total}} = \left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{parameterized}} + \eta \sigma_{\left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{parameterized}}}
+\end{equation}
+These perturbations are process-specific, so for each parameterized process the perturbations have to be calculated separately. The last term in the equation above contains a random number $\eta = \mathit{N}(0,1)$ and the standard deviation of the parameterized tendencies. The random number field has a horizontal correlation length of 5$\Delta x$, the effective resolution and is held constant for 10 minutes and then drawn again from scratch. This represents a typical eddy turnover time in the boundary layer. In KC16 the standard deviation term is approximated by
+\begin{equation} \label{eq:PSPturb_std}
+\sigma_{\left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{parameterized}}} = \alpha_{\mathrm{const}, \Phi} \frac{\mathit{l_{\infty}}}{5 \Delta x}\frac{1}{dt} \sigma_{\Phi},
+\end{equation}
+where $\mathit{l_{\infty}} = 150$ m is the mixing length describing the average size of an eddy. The term $\sigma_{\Phi}$ is the sub-grid scale standard deviation. For the turbulence perturbations the considered variables are vertical velocity $w$, potential temperature $\theta$ and humidity $q$. The standard deviations are calculated in the turbulence parameterization (see KC06 for details). The factor $\frac{\mathit{l_{\infty}}}{5 \Delta x} \propto \frac{1}{\sqrt{N_{\mathrm{eddy}}}}$ scales the variability according to number of unresolved eddies similar to Eq. \ref{eq:M_var}. The factor $\frac{1}{dt}$  converts the term into a tendency term dependent on the time step. Finally, a scaling factor $\alpha_{\mathrm{const}, \Phi}$ is included for tuning purposes and should be of order one.
 
 \subsection{Case studies}
 The case studies are all from a recent, convectively active period over Central Europe in May/June 2016 with one exception: We also considered 1 July 2009, which is the test case used in \cite{Kober2016}, since this day is a good example of weakly forced diurnal convection.  
