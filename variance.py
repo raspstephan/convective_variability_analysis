@@ -66,7 +66,7 @@ except:
 ensdir = '/home/cosmo/stephan.rasp/' + date + '/deout_onlypsp/'
 nens = 20
 tstart = timedelta(hours=1)   # Cannot be 0 because of tau_c calculation!
-tend = timedelta(hours = 24)
+tend = timedelta(hours = 22)  
 tinc = timedelta(hours = 1)
 
 
@@ -135,6 +135,8 @@ sizemmean_list = []
 summean_list = []
 total_list = []
 dimeantauc_list = []
+nvar_list = []
+nvar_n_list = []
 
 # Initialize total lists for correlation
 var_alllist = []
@@ -345,6 +347,7 @@ for t in timelist:
         MPmean = np.mean(MPlist, axis = 0)
         mpmean = np.nanmean(mplist, axis = 0)
         Nmean = np.mean(Nlist, axis = 0)
+        Nvar = np.var(Nlist, axis = 0, ddof = 1)
         
         # Append to alllist
         var_alllist += list(np.ravel(var))
@@ -448,7 +451,10 @@ for t in timelist:
         #xfit = np.ravel(MPmean**2)
         #yfit = np.ravel(var)
         #mask = yfit > 0
-
+        
+        if n == 64:
+            nvar_list.append(np.nanmean(nvar_fobj.data))
+            nvar_n_list.append(np.nanmean(Nvar/Nmean))
         
         #slope = leastsq(origin_residual, 1, args = (xfit[mask], yfit[mask]))[0][0]
         #varres2list.append([np.sqrt(slope), np.sqrt(1/np.nanmean(Nmean))])
@@ -626,10 +632,15 @@ if 'summary' or 'all' in plotlist:
     axarr[1,0].set_xlabel('time [h/UTC]')
     axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[1,1].plot(timelist_plot, r_cluster_list)
+    axarr[1,1].plot(timelist_plot, nvar_n_list)
     axarr[1,1].set_xlabel('time [h/UTC]')
-    axarr[1,1].set_ylabel('Clustering length [km]')
+    axarr[1,1].set_ylabel('NVar(N) for n = 179.2km')
     axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,2].plot(timelist_plot, nvar_list)
+    axarr[1,2].set_xlabel('time [h/UTC]')
+    axarr[1,2].set_ylabel('NVar(M) <N> for n = 179.2km')
+    axarr[1,2].set_xlim(timelist_plot[0], timelist_plot[-1])
     
     if ana == 'm':
         axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')

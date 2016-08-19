@@ -1,4 +1,5 @@
-\documentclass[a4paper, 12pt, draft]{article}
+% \documentclass[a4paper, 12pt, draft]{article}
+\documentclass[a4paper, 12pt]{article}
 \usepackage{natbib}
 \usepackage{graphicx}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
@@ -38,16 +39,21 @@ It is also possible to derive an equation for the normalized variance of $M$:
 Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$.
 
 % Numerical experiments in CC06b
-The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory.
-
-% Usage in PC08
-\begin{itemize}
- \item What about other studies eg Davoudi2010
- \item Mention SC15b
-\end{itemize}
+The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory. The error in $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ is around 10\%, with $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle \approx 1.6$. Other studies introduced time-varying forcings andlooked at the differences in mass flux statistics as described below.
 
 % Plant Craig 2008 basics: What quantities that I want to look at later are important for a stochastic parameterization
 In the \cite[][PC08]{Plant2008} stochastic parameterization approach, the exponential $m$ distribution (Eq. \ref{eq:m_dist}) is used to create a random population of plumes for each grid-box consistent with a large scale $\langle M \rangle$. From this distribution the large-scale tendencies are then computed as the sum of the cloud model output for each plume. $\langle M \rangle = 2 \times 10^7$kg s$^{-1}$ is assumed to be a constant. This assumption is motivated by RCE simulations \citep[e.g.][]{Cohen2006}. The theoretical prediction for the variance of $M$ (Eq. \ref{eq:M_var}) is not explicitly used in PC08, but comes from the exponential $m$ distribution combined with the random initiation of new clouds. The cloud life time is set to 45 minutes for all clouds. 
+
+\subsection{Deviations from theory in other studies}
+Two studies looked at the deviations from the CC06 predictions in their simulations of convection with a time varying forcing: \cite{Davies2008} and \cite{Davoudi2010}.
+
+\subsubsection{\cite{Davies2008}}
+She used a model with 1km resolution, a prescribed radiative cooling and time-varying surface fluxes or temperature. For the reference RCE simulation she found $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle \approx 1.5$ at 3 km, a deviation of 10\% in $\langle (\delta M)^2 \rangle/\langle M \rangle^2$, which is in agreement with CC06. When looking at their time-varying simulations, they see that $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ is increased (about 2.2) 1h after convection is first triggered and at around 15UTC. They find that at the triggering time and at 18UTC there is strong clustering at scales from 5--20 km.. At the time of maximum convection (12UTC), the RDF is almost uniform and $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \approx 0.7$. She argues that the deviation from the predicted variance can be largely explained by clustering. 
+
+\subsubsection{\cite{Davoudi2010}}
+They used a similar model setup to CC06, but with a diurnal cycle through interactive radiation, but with a fixed SST. In their Fig. 13, they show their values of $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle$ for different heights. They find that for $z <$8 km, this value is less than two. Additionally, in their Fig. 12. they plot histograms of $P(M)$ from their data. They then fit Eq. \ref{eq:M_dist} with $\langle M \rangle$ and $\langle N \rangle$ as free parameters. When they compare these fitted values to the calculated values of $\langle M \rangle$ and $\langle N \rangle$ from their data, they find that $\langle M \rangle$  is similar but the fitted $\langle N \rangle$ is larger than the observed $\langle N \rangle$. They state that ``Therefore, predictions of $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ are smaller than the corresponding normalized variance from the data. Figure 13 demonstrates that the variance, as well as skewness, is underestimated by the theory close to the cloud base and for the range of altitudes in $z \in$  [2, 8] km.''
+
+They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle M \rangle}$, where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
 
 \subsection{Research questions}
 The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. There has, however, been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
@@ -89,9 +95,9 @@ The case studies are all from a recent, convectively active period over Central 
 \subsection{Analyses}
 
 \subsubsection{Identification of clouds and calculation of cloud statistics}
-To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$.
+To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$. 
 
-Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
+Contiguous areas are then identified as clouds. Which algorithm??? Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
 
 For each identified cloud in each ensemble member a cloud size $\sigma_i$ is determined as
 \begin{equation} \label{eq:cld_size}
@@ -208,10 +214,63 @@ Fig.\ref{fig:case1_timeseries}
 % Timeseries
 \begin{figure}[ht] \label{fig:case1_timeseries}
 \noindent \centering
-2009070100 14UTC m water
+2009070100 m water
 \includegraphics[width=\textwidth]{2009070100/m/timeseries.png}\\
-2009070100 14UTC p water
+2009070100 p water
 \includegraphics[width=\textwidth]{2009070100/p/timeseries.png}\\
+\caption{Timeseries of several values}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%
+% CASE 2
+%%%%%%%%%%%%%%%%%%%%%
+
+% Cloud statistics
+\begin{figure}[ht] \label{fig:case1_stats}
+\noindent \centering
+2016060200 14UTC m water
+\includegraphics[width=\textwidth]{2016060200/m/cloud_stats/stats_00140000.png}\\
+2016060200 14UTC m nowater
+\includegraphics[width=\textwidth]{2016060200/m_nowater/cloud_stats/stats_00140000.png}\\
+2016060200 14UTC p water
+\includegraphics[width=\textwidth]{2016060200/p/cloud_stats/stats_00140000.png}\\
+2016060200 14UTC p nowater
+\includegraphics[width=\textwidth]{2016060200/p_nowater/cloud_stats/stats_00140000.png}\\
+\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bins = 15 with bin width = 0.1e8/0.67e8) and $m_i$/$p_i$(bins = 15 with bin width = 0.33e8/0.067). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
+\end{figure}
+
+% Variance fields
+\begin{figure}[ht] \label{fig:case1_var_fields}
+\noindent \centering
+2016060200 14UTC m water
+\includegraphics[width=\textwidth]{2016060200/m/var/var_00140000_064.png}\\
+\caption{Variance fields:  The top left picture shows the vertical velocity field at 2500m height. All blue regions are clouds (given that the cloud water content is positive, not shown). The top right picture shows the ensemble mean total mass flux $M_{j,n}$ for one coarsening scale. The bottom right picture shows the ensemble mean $m_{j,n}$. The bottom right picture shows the Normalized variance divided by the mean cloud number, which the theory predicts to be 2.}
+\end{figure}
+
+% Variance scatter
+\begin{figure}[ht] \label{fig:case1_var_scatter}
+\noindent \centering
+2016060200 14UTC m water
+\includegraphics[width=\textwidth]{2016060200/m/var_scatter/scatter_00140000.png}\\
+\caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
+\end{figure}
+
+% Variance scatter
+\begin{figure}[ht] \label{fig:case1_tau_c}
+\noindent \centering
+2016060200 14UTC m water
+\includegraphics[width=\textwidth]{2016060200/m/tauc/tauc_00140000.png}\\
+\caption{Ensemble mean convective adjustment timescale}
+\end{figure}
+
+% Timeseries
+\begin{figure}[ht] \label{fig:case1_timeseries}
+\noindent \centering
+2016060200 m water
+\includegraphics[width=\textwidth]{2016060200/m/timeseries.png}\\
+2016060200 p water
+\includegraphics[width=\textwidth]{2016060200/p/timeseries.png}\\
 \caption{Timeseries of several values}
 \end{figure}
 
