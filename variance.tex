@@ -34,35 +34,47 @@ Combing these, the distribution of the total mass flux $M$ is given by
 where $I_1(x)$is the modified Bessel function of order 1. For large (small) values of $\langle N \rangle$ the shape of this function resembles a Gaussian (Poisson) distribution.   
 It is also possible to derive an equation for the normalized variance of $M$:
 \begin{equation} \label{eq:M_var}
- \frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
+ \mu_2 = \frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{2}{\langle N \rangle}
 \end{equation}
-Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$.
+Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$. Eq. \ref{eq:M_var} can be derived directly from Eq. \ref{eq:M_dist} or from the theory of random sums \cite[][p.70ff]{Taylor1998}:
+% theory of random sums
+Assume $X=\xi_1 + ... + \xi_N$ where $\xi_k$ and $N$ have the finite moments $E[\xi_k]=\mu$, $Var[\xi_k]=\sigma^2$ and $E[N]=\nu$, $Var[N]=\tau^2$. Then the first and second moment of $X$ are $E[X]=\mu\nu$, $Var[X]=\nu\sigma^2 + \mu^2\tau^2$.
 
 % Numerical experiments in CC06b
-The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory. The error in $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ is around 10\%, with $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle \approx 1.6$. Other studies introduced time-varying forcings andlooked at the differences in mass flux statistics as described below.
+The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory. The error in $\mu_2$ is around 10\%, with $\mu_2 \langle N \rangle \approx 1.6$. Other studies introduced time-varying forcings andlooked at the differences in mass flux statistics as described below.
 
 % Plant Craig 2008 basics: What quantities that I want to look at later are important for a stochastic parameterization
-In the \cite[][PC08]{Plant2008} stochastic parameterization approach, the exponential $m$ distribution (Eq. \ref{eq:m_dist}) is used to create a random population of plumes for each grid-box consistent with a large scale $\langle M \rangle$. From this distribution the large-scale tendencies are then computed as the sum of the cloud model output for each plume. $\langle M \rangle = 2 \times 10^7$kg s$^{-1}$ is assumed to be a constant. This assumption is motivated by RCE simulations \citep[e.g.][]{Cohen2006}. The theoretical prediction for the variance of $M$ (Eq. \ref{eq:M_var}) is not explicitly used in PC08, but comes from the exponential $m$ distribution combined with the random initiation of new clouds. The cloud life time is set to 45 minutes for all clouds. 
+In the \cite[][PC08]{Plant2008} stochastic parameterization approach, the exponential $m$ distribution (Eq. \ref{eq:m_dist}) is used to create a random population of plumes for each grid-box consistent with a large scale $\langle M \rangle$. From this distribution the large-scale tendencies are then computed as the sum of the cloud model output for each plume. $\langle m \rangle = 2 \times 10^7$kg s$^{-1}$ is assumed to be a constant. This assumption is motivated by RCE simulations \citep[e.g.][]{Cohen2006}. The theoretical prediction for the variance of $M$ (Eq. \ref{eq:M_var}) is not explicitly used in PC08, but comes from the exponential $m$ distribution combined with the random initiation of new clouds. The cloud life time is set to 45 minutes for all clouds. 
 
 \subsection{Deviations from theory in other studies}
 Two studies looked at the deviations from the CC06 predictions in their simulations of convection with a time varying forcing: \cite{Davies2008} and \cite{Davoudi2010}.
 
 \subsubsection{\cite{Davies2008}}
-She used a model with 1km resolution, a prescribed radiative cooling and time-varying surface fluxes or temperature. For the reference RCE simulation she found $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle \approx 1.5$ at 3 km, a deviation of 10\% in $\langle (\delta M)^2 \rangle/\langle M \rangle^2$, which is in agreement with CC06. When looking at their time-varying simulations, they see that $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ is increased (about 2.2) 1h after convection is first triggered and at around 15UTC. They find that at the triggering time and at 18UTC there is strong clustering at scales from 5--20 km.. At the time of maximum convection (12UTC), the RDF is almost uniform and $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \approx 0.7$. She argues that the deviation from the predicted variance can be largely explained by clustering. 
+She used a model with 1km resolution, a prescribed radiative cooling and time-varying surface fluxes or temperature. For the reference RCE simulation she found $\mu_2 \langle N \rangle \approx 1.5$ at 3 km, a deviation of 10\% in $\mu_2$, which is in agreement with CC06. When looking at their time-varying simulations, they see that $\mu_2$ is increased (about 2.2) 1h after convection is first triggered and at around 15UTC. They find that at the triggering time and at 18UTC there is strong clustering at scales from 5--20 km.. At the time of maximum convection (12UTC), the RDF is almost uniform and $\mu_2 \approx 0.7$. She argues that the deviation from the predicted variance can be largely explained by clustering. 
 
 \subsubsection{\cite{Davoudi2010}}
-They used a similar model setup to CC06, but with a diurnal cycle through interactive radiation, but with a fixed SST. In their Fig. 13, they show their values of $\langle (\delta M)^2 \rangle/\langle M \rangle^2 \langle N \rangle$ for different heights. They find that for $z <$8 km, this value is less than two. Additionally, in their Fig. 12. they plot histograms of $P(M)$ from their data. They then fit Eq. \ref{eq:M_dist} with $\langle M \rangle$ and $\langle N \rangle$ as free parameters. When they compare these fitted values to the calculated values of $\langle M \rangle$ and $\langle N \rangle$ from their data, they find that $\langle M \rangle$  is similar but the fitted $\langle N \rangle$ is larger than the observed $\langle N \rangle$. They state that ``Therefore, predictions of $\langle (\delta M)^2 \rangle/\langle M \rangle^2$ are smaller than the corresponding normalized variance from the data. Figure 13 demonstrates that the variance, as well as skewness, is underestimated by the theory close to the cloud base and for the range of altitudes in $z \in$  [2, 8] km.''
+They used a similar model setup to CC06, but with a diurnal cycle through interactive radiation, but with a fixed SST. In their Fig. 13, they show their values of $\mu_2 \langle N \rangle$ for different heights. They find that for $z <$8 km, this value is less than two. Additionally, in their Fig. 12. they plot histograms of $P(M)$ from their data. They then fit Eq. \ref{eq:M_dist} with $\langle M \rangle$ and $\langle N \rangle$ as free parameters. When they compare these fitted values to the calculated values of $\langle M \rangle$ and $\langle N \rangle$ from their data, they find that $\langle M \rangle$  is similar but the fitted $\langle N \rangle$ is larger than the observed $\langle N \rangle$. They state that ``Therefore, predictions of $\mu_2$ are smaller than the corresponding normalized variance from the data. Figure 13 demonstrates that the variance, as well as skewness, is underestimated by the theory close to the cloud base and for the range of altitudes in $z \in$  [2, 8] km.''
 
 They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle M \rangle}$, where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
 
 \subsection{Research questions}
-The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. There has, however, been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
+The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. Other studies have looked the influence of a time varying forcing and clustering on convective variability, but these studies also used highly idealized setups. So far, there has been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
 
-\paragraph{RQ1} How does the convective variability of ``real'' mid-latitude weather situations compare to the predictions of CC06?
-\paragraph{Hypothesis} There will be some deviations from the theoretical predictions. 
+\textbf{RQ1} How does the convective variability of ``real'' mid-latitude weather situations compare to the predictions of CC06?
+
+\textbf{Hypothesis} There will be some deviations from the theoretical predictions. 
+
 If this hypothesis is true, a follow up research questions is:
-\paragraph{RQ1.1} Which parameters, if any, determine the deviations from the theory?
-\paragraph{Hypothesis} Factors which ``make'' the real weather not be in equilibrium determine the deviations.
+
+\textbf{RQ1.1} Are the deviations from the theoretical prediction similar to what previous idealized studies found? If so, can the change in variability be, to a large extent, explained by clustering?
+
+\textbf{Hypothesis} Clustering can explain most of the deviations from the predicted variance.
+
+If this latest hypothesis is not true, then the next follow up research question is:
+
+\textbf{RQ1.2} Can other parameters be found to explain the remaining deviations from theory?
+
+\textbf{Hypothesis} External parameters like the convective timescale of orography can explain some of the deviations.
 
 The hope is that by finding these factors in the second hypothesis, stochastic parameterizations can be constructed which include a better representation of the real variability of convection. 
 
@@ -130,7 +142,7 @@ To compare the obtained values to the theoretical predictions, the normalized va
 \begin{equation} \label{eq:normalized_variance}
  \mu_{2 j, n} = \frac{\langle (\delta M_{j,n} \mathrm{ or } P_{j,n})^2 \rangle}{M_{j,n} \mathrm{ or } P_{j,n}}.
 \end{equation}
-This normalized variance is then plotted against the mean number of clouds $N{j,n}$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot. To get a quantitative comparison of the simulation results and theory, the percent fraction is calculated as
+This normalized variance is then plotted against the mean number of clouds $N_{j,n}$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot. To get a quantitative comparison of the simulation results and theory, the percent fraction is calculated as
 \begin{equation} \label{eq:normalized_variance_percent}
  \frac{\mu_{2 j, n}}{\frac{2}{M_{j,n} \mathrm{ or } P_{j,n}}}\times 100\%.
 \end{equation}

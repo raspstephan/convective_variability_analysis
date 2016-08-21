@@ -135,8 +135,12 @@ sizemmean_list = []
 summean_list = []
 total_list = []
 dimeantauc_list = []
+
 nvar_list = []
 nvar_n_list = []
+for i in range(len(nlist)):
+    nvar_list.append([])
+    nvar_n_list.append([])
 
 # Initialize total lists for correlation
 var_alllist = []
@@ -201,7 +205,7 @@ for t in timelist:
                                                         #qcobj.data[0,lx1:lx2, ly1:ly2],
                                                         qcobj.data[lx1:lx2, ly1:ly2],
                                                         opt_thresh = 0.,
-                                                        water = True)
+                                                        water = water)
             cld_sum *= dx*dx*0.9575  # Here 1 stands for rho ATTENTION
         else:
             field = fobj.data[lx1:lx2, ly1:ly2]
@@ -275,7 +279,7 @@ for t in timelist:
     varres1list = []
     varres2list = []
     
-    for n in nlist:
+    for i_n, n in enumerate(nlist):
         print 'n', n
         # Determine size of coarse arrays
         nx = int(np.floor(sx/n))
@@ -452,13 +456,11 @@ for t in timelist:
         #yfit = np.ravel(var)
         #mask = yfit > 0
         
-        if n == 64:
-            nvar_list.append(np.nanmean(nvar_fobj.data))
-            nvar_n_list.append(np.nanmean(Nvar/Nmean))
+        nvar_list[i_n].append(np.nanmean(nvar_fobj.data))
+        nvar_n_list[i_n].append(np.nanmean(Nvar/Nmean))
         
         #slope = leastsq(origin_residual, 1, args = (xfit[mask], yfit[mask]))[0][0]
         #varres2list.append([np.sqrt(slope), np.sqrt(1/np.nanmean(Nmean))])
-    
     # End n loop
     varres1list = np.array(varres1list)
     #varres2list = np.array(varres2list)
@@ -612,7 +614,7 @@ for t in timelist:
 if 'summary' or 'all' in plotlist:
     timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
     
-    fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 6.))
+    fig, axarr = plt.subplots(2, 3, figsize = (95./25.4*3, 7.))
     
     axarr[0,0].plot(timelist_plot, total_list)
     axarr[0,0].set_xlabel('time [h/UTC]')
@@ -632,16 +634,25 @@ if 'summary' or 'all' in plotlist:
     axarr[1,0].set_xlabel('time [h/UTC]')
     axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[1,1].plot(timelist_plot, nvar_n_list)
-    axarr[1,1].set_xlabel('time [h/UTC]')
-    axarr[1,1].set_ylabel('NVar(N) for n = 179.2km')
-    axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-    
-    axarr[1,2].plot(timelist_plot, nvar_list)
-    axarr[1,2].set_xlabel('time [h/UTC]')
-    axarr[1,2].set_ylabel('NVar(M) <N> for n = 179.2km')
-    axarr[1,2].set_xlim(timelist_plot[0], timelist_plot[-1])
-    
+    # Loop over nlist
+    for i, n in enumerate(nlist):
+        axarr[1,1].plot(timelist_plot, nvar_n_list[i], c = clist[i], 
+                        label = str(n*2.8)+'km')
+        axarr[1,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+        axarr[1,1].set_xlabel('time [h/UTC]')
+        axarr[1,1].set_ylabel('NVar(N) for')
+        axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        
+        axarr[1,2].plot(timelist_plot, nvar_list[i], c = clist[i], 
+                        label = str(n*2.8)+'km')
+        axarr[1,2].plot(timelist_plot, [2.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+        axarr[1,2].set_xlabel('time [h/UTC]')
+        axarr[1,2].set_ylabel('NVar(M) <N>')
+        axarr[1,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[1,2].legend(loc =3, ncol = 2, prop={'size':4})
+        
     if ana == 'm':
         axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
         axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
