@@ -1,5 +1,5 @@
-% \documentclass[a4paper, 12pt, draft]{article}
-\documentclass[a4paper, 12pt]{article}
+\documentclass[a4paper, 12pt, draft]{article}
+% \documentclass[a4paper, 12pt]{article}
 \usepackage{natbib}
 \usepackage{graphicx}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
@@ -55,7 +55,7 @@ She used a model with 1km resolution, a prescribed radiative cooling and time-va
 \subsubsection{\cite{Davoudi2010}}
 They used a similar model setup to CC06, but with a diurnal cycle through interactive radiation, but with a fixed SST. In their Fig. 13, they show their values of $\mu_2 \langle N \rangle$ for different heights. They find that for $z <$8 km, this value is less than two. Additionally, in their Fig. 12. they plot histograms of $P(M)$ from their data. They then fit Eq. \ref{eq:M_dist} with $\langle M \rangle$ and $\langle N \rangle$ as free parameters. When they compare these fitted values to the calculated values of $\langle M \rangle$ and $\langle N \rangle$ from their data, they find that $\langle M \rangle$  is similar but the fitted $\langle N \rangle$ is larger than the observed $\langle N \rangle$. They state that ``Therefore, predictions of $\mu_2$ are smaller than the corresponding normalized variance from the data. Figure 13 demonstrates that the variance, as well as skewness, is underestimated by the theory close to the cloud base and for the range of altitudes in $z \in$  [2, 8] km.''
 
-They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle M \rangle}$, where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
+They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle N \rangle}$, where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
 
 \subsection{Research questions}
 The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. Other studies have looked the influence of a time varying forcing and clustering on convective variability, but these studies also used highly idealized setups. So far, there has been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
@@ -106,10 +106,13 @@ The case studies are all from a recent, convectively active period over Central 
 
 \subsection{Analyses}
 
+\subsubsection{Heigh level of analyses}
+Since the height above sea level is not constant for our simulations, the questions arises which level to take for domain averages. Height above sea level would not be a good choice since the vertical location of the statistics since the boundary layer depends on the height above ground level, which would also not be a good choice since the tropopause level is largely unaffected by the height above ground level. A logical choice is to use model levels. In the COSMO model the model levels are terrain-following. In the lower troposphere, they are largely parallel to the ground, but at around 10 km, they are largely parallel to sea level. To pick certain levels, we look at a column above the ocean and search for the closes model level to a height above sea level. 
+
 \subsubsection{Identification of clouds and calculation of cloud statistics}
 To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$. 
 
-Contiguous areas are then identified as clouds. Which algorithm??? Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
+Contiguous areas are then identified as clouds using a 4-point segmentation algorithm. Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
 
 For each identified cloud in each ensemble member a cloud size $\sigma_i$ is determined as
 \begin{equation} \label{eq:cld_size}
@@ -137,7 +140,7 @@ To deal with clouds at the boundaries of the coarse-fields, the centers of mass 
 
 Finally, the variance $\langle (\delta M \mathrm{or} P)^2 \rangle$ and the ensemble mean $M$/$P$ and $N$ are computed for each box and each coarsening scale, resulting in one two-dimensional field for each coarsening scale. 
 
-\subsubsection{Scatter plots: Comparison with predicted values}
+\subsubsection{Comparison with prediction I: Scatter plots}
 To compare the obtained values to the theoretical predictions, the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
 \begin{equation} \label{eq:normalized_variance}
  \mu_{2 j, n} = \frac{\langle (\delta M_{j,n} \mathrm{ or } P_{j,n})^2 \rangle}{M_{j,n} \mathrm{ or } P_{j,n}}.
@@ -146,6 +149,36 @@ This normalized variance is then plotted against the mean number of clouds $N_{j
 \begin{equation} \label{eq:normalized_variance_percent}
  \frac{\mu_{2 j, n}}{\frac{2}{M_{j,n} \mathrm{ or } P_{j,n}}}\times 100\%.
 \end{equation}
+
+\subsubsection{Comparison with prediction II: Mean normalized variance evolution}
+To get a summary measure of how the normalized variance compares to the predicted value for each scale $n$, the mean $\mu_{2} \langle N \rangle$ is calculated:
+\begin{equation} \label{eq:mean_nvar_n}
+ \overline{\mu_{2}\langle N \rangle}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \mu_{2 j,n}\langle N \rangle_{j,n}.
+\end{equation}
+According to theory this value should be 2. 
+
+Following \cite{Davoudi2010}, we calculate $\alpha = \frac{\langle (\delta N)^2 \rangle}{\langle M \rangle}$ as a measure of the clustering, or deviation from a Poisson distribution:
+\begin{equation} \label{eq:mean_alpha}
+ \overline{\alpha}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle M \rangle_{j,n}}.
+\end{equation}
+
+To include the effects of $\alpha \neq 1$ for $\mu_2$, we derive an adjusted equation from the theory of random sums (see above), which states:
+\begin{equation} \label{eq:derivation_1}
+ \langle (\delta M)^2 \rangle = \langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
+\end{equation}
+Here we assume an exponential distribution for $m$, so that $\langle (\delta m)^2 \rangle = \langle m \rangle^2$, but do not assume a Poisson distribution for $N$, which ouwl give $\langle (\delta N)^2 \rangle = \langle N \rangle$ and lead to Eq. \ref{eq:M_var}. Together with $\langle NM \rangle = \langle m \rangle \langle N \rangle$ we can write:
+\begin{equation} \label{eq:derivation_2}
+ \langle (\delta M)^2 \rangle = \frac{\langle M \rangle^2}{\langle N \rangle^2} (\langle N \rangle + \langle (\delta N)^2 \rangle)
+\end{equation}
+And therefore,
+\begin{equation} \label{eq:adjusted_M_var}
+ \tilde{\mu}_2 = \frac{\langle (\delta M)^2 \rangle}{\langle M \rangle^2} = \frac{(\langle N \rangle + \langle (\delta N)^2 \rangle)}{\langle N \rangle^2 } = \frac{1+\alpha}{\langle N \rangle}
+\end{equation}
+If N follows a Poisson distribution, this equation is equivalent to Eq. \ref{eq:M_var}. For increased clustering $\alpha>1$, so therefore $\tilde{\mu}_2 > \mu_2$. With this adjusted equation for the normalized mass flux variance, the clustering which has an effect on $N$ is accounted for. If the clustering explains all of the diviations of $\mu_2$ from theory, then 
+\begin{equation} \label{eq:adjusted_M_var}
+ \overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \frac{\mu_{2 j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}
+\end{equation} 
+should be 1, which can be tested directly from the data to answer \textbf{RQ1.1}.
 
 \subsubsection{Calculation of the convective adjustment timescale}
 The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. 
