@@ -260,6 +260,7 @@ if 'summary_stats' in args.plot:
         compM = []
         compm = []
         compsize = []
+        comptauc = []
         for dataset in datasetlist:
             tmp1 = dataset.variables['cld_size'][:,iz,:]
             compsize.append(np.mean(tmp1, axis = 1))
@@ -267,11 +268,14 @@ if 'summary_stats' in args.plot:
             tmp2 = dataset.variables['cld_sum'][:,iz,:]
             compm.append(np.mean(tmp2, axis = 1))
             compM.append(np.sum(tmp2, axis = 1))
+            
+            comptauc.append(dataset.variables['meantauc'][:])
         
         # Get the composite means
         compsize = np.mean(np.array(compsize), axis = 0)
         compm = np.mean(np.array(compm), axis = 0)
         compM = np.mean(np.array(compM), axis = 0)
+        comptauc = np.mean(np.array(comptauc), axis = 0)
         
         # Create the figure
         fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
@@ -291,6 +295,11 @@ if 'summary_stats' in args.plot:
         axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
         axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
         
+        axarr[1,1].plot(timelist_plot, comptauc)
+        axarr[1,1].set_xlabel('time [h/UTC]')
+        axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[1,1].set_ylabel('Mean tau_c [h]')
+        
         titlestr = (alldatestr + ', ' + args.ana + 
                     ', water=' + str(args.water) + ', lev= ' + str(lev) + 
                     ', nens=' + str(args.nens))
@@ -299,7 +308,9 @@ if 'summary_stats' in args.plot:
         
         plotsavestr = ('summary_stats_' + alldatestr + '_ana-' + args.ana + 
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens))
+                        '_nens-' + str(args.nens)+ '_tstart-' + 
+                        str(args.tstart) + '_tend-' + str(args.tend) + 
+                        '_tinc-' + str(args.tinc))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
 
             
@@ -400,28 +411,28 @@ if 'summary_var' in args.plot:
                         zorder = 0.1)
         axarr[0,0].set_xlabel('time [h/UTC]')
         axarr[0,0].set_ylabel('NVar(M)N/2')
-        axarr[0,0].set_xlim(0,2)
+        axarr[0,0].set_ylim(0,2)
         axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
         
         axarr[0,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
         axarr[0,1].set_xlabel('time [h/UTC]')
         axarr[0,1].set_ylabel('NVar(M) <N> / (1+Var(N)/N)')
-        axarr[0,1].set_xlim(0,2)
+        axarr[0,1].set_ylim(0,2)
         axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
         
         axarr[1,0].plot(timelist_plot, [1]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
         axarr[1,0].set_xlabel('time [h/UTC]')
         axarr[1,0].set_ylabel('Var(m) / m^2')
-        axarr[1,0].set_xlim(0,2)
+        axarr[1,0].set_ylim(0,2)
         axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
         
         axarr[1,1].plot(timelist_plot, [1]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
         axarr[1,1].set_xlabel('time [h/UTC]')
         axarr[1,1].set_ylabel('Var(N)/N')
-        axarr[1,1].set_xlim(0,2)
+        axarr[1,1].set_ylim(0,2)
         axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
             
         axarr[1,1].legend(loc =3, ncol = 2, prop={'size':6})
@@ -435,7 +446,9 @@ if 'summary_var' in args.plot:
         
         plotsavestr = ('summary_var_' + alldatestr + '_ana-' + args.ana + 
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens))
+                        '_nens-' + str(args.nens)+ '_tstart-' + 
+                        str(args.tstart) + '_tend-' + str(args.tend) + 
+                        '_tinc-' + str(args.tinc))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
                 
             
