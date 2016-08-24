@@ -101,7 +101,8 @@ levs[:]  = levlist
 
 dr       = rootgrp.createVariable('dr', 'f4', ('dr',))
 
-meantauc = rootgrp.createVariable('meantauc', 'f8', ('time'))
+ditauc   = rootgrp.createVariable('ditauc', 'f8', ('time'))
+enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
 cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','levs','N_cld'))
 cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','levs','N_cld'))
 rdf      = rootgrp.createVariable('rdf', 'f8', ('time','levs','dr'))
@@ -111,6 +112,7 @@ varm     = rootgrp.createVariable('varm', 'f8', ('time','levs','n','x','y'))
 meanN    = rootgrp.createVariable('meanN', 'f8', ('time','levs','n','x','y'))
 meanM    = rootgrp.createVariable('meanM', 'f8', ('time','levs','n','x','y'))
 meanm    = rootgrp.createVariable('meanm', 'f8', ('time','levs','n','x','y'))
+
 # End allocation
 ################################################################################
 
@@ -126,14 +128,28 @@ for it, t in enumerate(timelist):
     fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                  dir_suffix='/OUTPUT/', fieldn = fieldn, 
                                  nfill=1, levs = levlist, return_arrays = True)
+    
+    # Crop all fields to analysis domain
+    sxo, syo = fieldlist[0][0].shape  # Original field shape
+    lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
+    lx2 = -(lx1+1) # Number of grid pts to exclude at border
+    ly1 = (syo-256-1)/2
+    ly2 = -(ly1+1)
+    for i in range(len(fieldlist)):
+        fieldlist[i] = fieldlist[i][:, lx1:lx2, ly1:ly2]
+        
     if args.ana == 'm':   # Load some extra variables 
         qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QC', 
                                   nfill=1, levs = levlist, return_arrays = True)
+        for i in range(len(qclist)):
+            qclist[i] = qclist[i][:, lx1:lx2, ly1:ly2]
         ncdffn_rho = ncdffn + '_buoy'
         rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_rho, 
                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
                                    nfill=1, levs = levlist, return_arrays = True)
+        for i in range(len(rholist)):
+            rholist[i] = rholist[i][:, lx1:lx2, ly1:ly2]
     else:   # Fill lists with None
         qclist = [None]*len(fieldlist)
         rholist = [None]*len(fieldlist)
@@ -143,25 +159,18 @@ for it, t in enumerate(timelist):
     tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                  dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
                                  nfill=1, levs = levlist, return_arrays = True)
+    for i in range(len(tauclist)):
+        tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
     
-    # Crop all fields to analysis domain
-    sxo, syo = fieldlist[0][0].shape  # Original field shape
-    lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
-    lx2 = -(lx1+1) # Number of grid pts to exclude at border
-    ly1 = (syo-256-1)/2
-    ly2 = -(ly1+1)
-    for field in fieldlist + qclist + rholist:   # 3D
-        if not field == None:
-            field = field[:,lx1:lx2, ly1:ly2]
-    for field in tauclist:   # 2D
-        if not field == None:
-            field = field[lx1:lx2, ly1:ly2]
+        
+
     # End loading data
     ############################################################################
     
     ############################################################################
     # Calculate mean tau_c and save
-    meantauc[it] = np.nanmean(tauclist)
+    ditauc[it] = np.nanmean(tauclist)
+    enstauc[it] = np.nanmean(tauclist, axis = 0)
     # End calculate mean tau_c and save
     ############################################################################
 

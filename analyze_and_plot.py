@@ -343,6 +343,10 @@ if 'summary_var' in args.plot:
             meanM = dataset.variables['meanM'][:]
             meanN = dataset.variables['meanN'][:]
             meanm = dataset.variables['meanm'][:]
+            NvarMN = varM / (meanM**2) * meanN
+            varNoN = varN / meanN
+            NvarMN_adj = NvarMN / (1 + varNoN)
+            varmomm = varm / (meanm**2)
 
             ########## n loop ########
             NvarMN_nlist = []
@@ -453,8 +457,55 @@ if 'summary_var' in args.plot:
                 
             
 
+################################################################################
+if 'stamps_var' in args.plot:
+    if len(datasetlist) > 1:
+        raise Exception, 'More than one date is not implemented'
+    dataset = datasetlist[0]
+    plotdirsub = plotdir +  '/stamps_var/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    # Load the data
+    varM = dataset.variables['varM'][:]
+    varN = dataset.variables['varN'][:]
+    meanM = dataset.variables['meanM'][:]
+    meanN = dataset.variables['meanN'][:]
+    NvarMN = 
+    
+    
+    enstauc = dataset.variables['enstauc'][:]
+    
+    ############# Time loop ##############
+    for it, t in enumerate(timelist):
+        print 'time: ', t
+        
+        ######## Lev loop #####################
+        for iz, lev in enumerate(dataset.variables['levs']):
+            print 'lev: ', lev
             
             
+            ####### n loop #######################
+            for i_n, n in enumerate(dataset.variables['n']):
+                print 'n: ', n
             
+                # Set up the figure 
+                fig, axarr = plt.subplots(2, 2, , figsize = (9, 8))
+                
+                
  
             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
