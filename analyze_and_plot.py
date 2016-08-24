@@ -12,9 +12,10 @@ from netCDF4 import Dataset
 import numpy as np
 from datetime import timedelta
 from cosmo_utils.helpers import ddhhmmss
-from cosmo_utils.pyncdf import getfobj_ncdf
+from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
 from cosmo_utils.pywgrib import fieldobj
 from cosmo_utils.plot import ax_contourf
+from cosmo_utils.diag import mean_spread_fieldobjlist
 import matplotlib.pyplot as plt
 
 
@@ -619,14 +620,107 @@ if 'stamps_var' in args.plot:
                 fig.suptitle(titlestr, fontsize='x-large')
                 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
                 
-                plotsavestr = ('scatter_' + args.date[0] + '_ana-' + args.ana + 
+                plotsavestr = ('stamps_var_' + args.date[0] + '_ana-' + args.ana + 
                             '_wat-' + str(args.water) + '_lev-' + str(lev) +
                             '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) +
                             '_n-' + str(n))
                 fig.savefig(plotdirsub + plotsavestr, dpi = 300)
             
 
-
+################################################################################
+if 'stamps_w' in args.plot:
+    if len(datasetlist) > 1:
+        raise Exception, 'More than one date is not implemented'
+    dataset = datasetlist[0]
+    plotdirsub = plotdir +  '/stamps_w/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    # Plot setup
+    cmW = ("#7C0607","#903334","#A45657","#BA7B7C","#FFFFFF",
+            "#8688BA","#6567AA","#46499F","#1F28A2")
+    levelsW = np.array([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5])
+    
+    ############# Time loop ##############
+    for it, t in enumerate(timelist):
+        print 'time: ', t
+        
+        ######## Lev loop #####################
+        for iz, lev in enumerate(dataset.variables['levs']):
+            print 'lev: ', lev
+                
+            # Load W ens data
+            ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m'
+            wobjlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'W', 
+                                        nfill=1, 
+                                        levs = dataset.variables['levs'][:])
+            # Get mean 
+            meanw, tmp = mean_spread_fieldobjlist(wobjlist)
+            
+            # Crop all fields to analysis domain
+            sxo, syo = wobjlist[0].data.shape[1:]  # Original field shape
+            lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
+            lx2 = -(lx1+1) # Number of grid pts to exclude at border
+            ly1 = (syo-256-1)/2
+            ly2 = -(ly1+1)
+            rlats = meanw.rlats[lx1:lx2,0]
+            rlons = meanw.rlons[0,ly1:ly2]
+            
+            for wobj in wobjlist:
+                wobj.data = wobj.data[:, lx1:lx2, ly1:ly2]
+                wobj.rlats = wobj.rlats[lx1:lx2, ly1:ly2]
+                wobj.rlons = wobj.rlons[lx1:lx2, ly1:ly2]
+                wobj.lats = wobj.lats[lx1:lx2, ly1:ly2]
+                wobj.lons = wobj.lons[lx1:lx2, ly1:ly2]
+            
+            meanw.data = meanw.data[:, lx1:lx2, ly1:ly2]
+            meanw.rlats = meanw.rlats[lx1:lx2, ly1:ly2]
+            meanw.rlons = meanw.rlons[lx1:lx2, ly1:ly2]
+            meanw.lats = meanw.lats[lx1:lx2, ly1:ly2]
+            meanw.lons = meanw.lons[lx1:lx2, ly1:ly2]
+            
+            # Set up the figure 
+            fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
+            
+            # Plot
+            # 1. mean W
+            plt.sca(axarr[0,0])   # This is necessary for some reason...
+            cf, tmp = ax_contourf(axarr[0,0], meanw, 
+                                    pllevels=levelsW/args.nens, colors = cmW,
+                                    sp_title=meanw.fieldn,
+                                    Basemap_drawrivers = False,
+                                    Basemap_parallelslabels = [0,0,0,0],
+                                    Basemap_meridiansslabels = [0,0,0,0],
+                                    extend = 'both', lev = iz)
+            cb = fig.colorbar(cf)
+            cb.set_label(meanw.unit)
+            
+            for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), wobjlist[:3],
+                                    range(1,4)):
+            
+                # 2. NvarMN
+                plt.sca(ax)
+                cf, tmp = ax_contourf(ax, fob, 
+                                    pllevels=levelsW, colors = cmW,
+                                    sp_title=fob.fieldn + str(i),
+                                    Basemap_drawrivers = False,
+                                    Basemap_parallelslabels = [0,0,0,0],
+                                    Basemap_meridiansslabels = [0,0,0,0],
+                                    extend = 'both', lev = iz)
+                cb = fig.colorbar(cf)
+                cb.set_label(fob.unit)
+            
+            
+            titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                        ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                        ', nens=' + str(args.nens))
+            fig.suptitle(titlestr, fontsize='x-large')
+            plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+            
+            plotsavestr = ('stamps_w_' + args.date[0] + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+            fig.savefig(plotdirsub + plotsavestr, dpi = 300)
 
 
 
