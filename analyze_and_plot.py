@@ -527,9 +527,9 @@ if 'stamps_var' in args.plot:
                         NvarMN_adj_map[xmin:xmax, ymin:ymax] = NvarMN_adj[it,iz,i_n,i,j]
                 
                 # Set missing values to nans
-                NvarMN_map[NvarMN_map == 0.] = np.nan
                 varNoN_map[NvarMN_map == 0.] = np.nan
                 NvarMN_adj_map[NvarMN_map == 0.] = np.nan
+                NvarMN_map[NvarMN_map == 0.] = np.nan
                 
                 # 2. NvarMN
                 NvarMNobj = fieldobj(data = NvarMN_map/2.,
@@ -613,7 +613,17 @@ if 'stamps_var' in args.plot:
                 cb = fig.colorbar(cf)
                 cb.set_label(NvarMN_adjobj.unit)
                 
-                fig.savefig(plotdirsub + 'test')
+                titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                            ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                            ', nens=' + str(args.nens) +  ',  n=' + str(n))
+                fig.suptitle(titlestr, fontsize='x-large')
+                plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+                
+                plotsavestr = ('scatter_' + args.date[0] + '_ana-' + args.ana + 
+                            '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                            '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) +
+                            '_n-' + str(n))
+                fig.savefig(plotdirsub + plotsavestr, dpi = 300)
             
 
 
