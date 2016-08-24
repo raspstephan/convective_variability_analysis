@@ -205,7 +205,7 @@ for it, t in enumerate(timelist):
             labelslist.append(labels)
             # Calculste centers of mass
             num = np.unique(labels).shape[0]   # Number of clouds
-            com = np.array(center_of_mass(field, labels, range(1,num)))
+            com = np.array(center_of_mass(field[iz], labels, range(1,num)))
             if com.shape[0] == 0:   # Accout for empty arrays
                 com = np.empty((0,2))
             comlist.append(com)
@@ -260,7 +260,6 @@ for it, t in enumerate(timelist):
                         bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
                                     (com[:,1]>=ymin)&(com[:,1]<ymax))
                         sub_cld_sum = cld_sum_mem[bool_arr]
-                        
                         # Calculate statistics
                         varm_coarse[ico, jco] = np.var(sub_cld_sum, ddof = 1)
                         m_coarse[ico, jco] = np.mean(sub_cld_sum)
@@ -280,6 +279,7 @@ for it, t in enumerate(timelist):
             meanM[it,iz,i_n,:nx,:ny] = np.mean(Mlist, axis = 0)
             meanm[it,iz,i_n,:nx,:ny] = np.nanmean(mlist, axis = 0)
             meanN[it,iz,i_n,:nx,:ny] = np.mean(Nlist, axis = 0)
+            
             # End coarse upscaled variances and means
             ####################################################################
             

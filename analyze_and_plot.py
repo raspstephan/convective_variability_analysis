@@ -12,6 +12,9 @@ from netCDF4 import Dataset
 import numpy as np
 from datetime import timedelta
 from cosmo_utils.helpers import ddhhmmss
+from cosmo_utils.pyncdf import getfobj_ncdf
+from cosmo_utils.pywgrib import fieldobj
+from cosmo_utils.plot import ax_contourf
 import matplotlib.pyplot as plt
 
 
@@ -57,6 +60,8 @@ alldatestr = alldatestr[:-1]   # revome final underscore
 timelist = [timedelta(seconds=ts) for ts in datasetlist[0].variables['time']]
 plotdir = ('/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + alldatestr + 
            '/' + args.ana)
+
+ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens/'
 
 
 # Now comes the plotting
@@ -343,6 +348,7 @@ if 'summary_var' in args.plot:
             meanM = dataset.variables['meanM'][:]
             meanN = dataset.variables['meanN'][:]
             meanm = dataset.variables['meanm'][:]
+            # Calculate the statistics
             NvarMN = varM / (meanM**2) * meanN
             varNoN = varN / meanN
             NvarMN_adj = NvarMN / (1 + varNoN)
@@ -354,23 +360,6 @@ if 'summary_var' in args.plot:
             varmomm_nlist = []
             NvarMN_adj_nlist = []
             for i_n, n in enumerate(datasetlist[0].variables['n']):
-                print 'analysis n: ', n
-                # Extract the correct data
-                varM_tmp = varM[:,iz,i_n,:,:]
-                varN_tmp = varN[:,iz,i_n,:,:]
-                varm_tmp = varm[:,iz,i_n,:,:]
-                meanM_tmp = meanM[:,iz,i_n,:,:]
-                meanN_tmp = meanN[:,iz,i_n,:,:]
-                meanm_tmp = meanm[:,iz,i_n,:,:]
-                
-                NvarM = varM_tmp/(meanM_tmp**2)
-                NvarMN = NvarM * meanN_tmp
-                
-                varNoN = varN_tmp / meanN_tmp
-                
-                varmomm = varm_tmp / (meanm_tmp**2)
-                
-                NvarMN_adj = NvarMN / (1+varNoN)
                 
                 # Get timeseries mean
                 tmp1 = []
@@ -378,10 +367,10 @@ if 'summary_var' in args.plot:
                 tmp3 = []
                 tmp4 = []
                 for it in range(NvarMN.shape[0]):
-                    tmp1.append(np.mean(NvarMN[it]))
-                    tmp2.append(np.mean(varNoN[it]))
-                    tmp3.append(np.mean(varmomm[it]))
-                    tmp4.append(np.mean(NvarMN_adj[it]))
+                    tmp1.append(np.mean(NvarMN[it,iz,i_n,:,:]))
+                    tmp2.append(np.mean(varNoN[it,iz,i_n,:,:]))
+                    tmp3.append(np.mean(varmomm[it,iz,i_n,:,:]))
+                    tmp4.append(np.mean(NvarMN_adj[it,iz,i_n,:,:]))
                 NvarMN_nlist.append(tmp1)
                 varNoN_nlist.append(tmp2)
                 varmomm_nlist.append(tmp3)
@@ -468,12 +457,22 @@ if 'stamps_var' in args.plot:
     # Load the data
     varM = dataset.variables['varM'][:]
     varN = dataset.variables['varN'][:]
+    varm = dataset.variables['varm'][:]
     meanM = dataset.variables['meanM'][:]
     meanN = dataset.variables['meanN'][:]
-    NvarMN = 
-    
+    meanm = dataset.variables['meanm'][:]
+    # Calculate the statistics
+    NvarMN = varM / (meanM**2) * meanN
+    varNoN = varN / meanN
+    NvarMN_adj = NvarMN / (1 + varNoN)
+    varmomm = varm / (meanm**2)
     
     enstauc = dataset.variables['enstauc'][:]
+    
+    # Plot setup
+    cmM = ("#0030C4","#3F5BB6","#7380C0","#A0A7CE","#CCCEDC","#DDCACD",
+          "#D09AA4","#BF6A7D","#AA3656","#920031")
+    levelsM = np.array([1, 1.14, 1.33, 1.6, 1.78, 2, 2.25, 2.5, 3, 3.5, 4])/2.
     
     ############# Time loop ##############
     for it, t in enumerate(timelist):
@@ -487,12 +486,134 @@ if 'stamps_var' in args.plot:
             ####### n loop #######################
             for i_n, n in enumerate(dataset.variables['n']):
                 print 'n: ', n
+                
+                # Do upscaling and create fobjs
+                # 0. Load one fobj to get parameters
+                tmpfobj = getfobj_ncdf(ensdir + '1/OUTPUT/lfff00000000c.nc_30m',
+                                       fieldn = 'HSURF')
+                # Crop all fields to analysis domain
+                sxo, syo = tmpfobj.data.shape  # Original field shape
+                lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
+                lx2 = -(lx1+1) # Number of grid pts to exclude at border
+                ly1 = (syo-256-1)/2
+                ly2 = -(ly1+1)
+                rlats = tmpfobj.rlats[lx1:lx2,0]
+                rlons = tmpfobj.rlons[0,ly1:ly2]
+                # 1. tauc 
+                taucobj = fieldobj(data = enstauc[it],
+                                   fieldn = 'TAU_C',
+                                   rlats = rlats,
+                                   rlons = rlons,
+                                   polelat = tmpfobj.polelat,
+                                   polelon = tmpfobj.polelon,
+                                   levs_inp = 'surf',
+                                   unit = 'h')
+                
+                # Map fields to original grid
+                NvarMN_map = np.empty((taucobj.ny, taucobj.nx))
+                varNoN_map = np.empty((taucobj.ny, taucobj.nx))
+                NvarMN_adj_map = np.empty((taucobj.ny, taucobj.nx))
+                for i in range(256/n):
+                    for j in range(256/n):
+                        # Get limits for each N box
+                        xmin = i*n
+                        xmax = (i+1)*n
+                        ymin = j*n
+                        ymax = (j+1)*n
+                        
+                        NvarMN_map[xmin:xmax, ymin:ymax] = NvarMN[it,iz,i_n,i,j]
+                        #print NvarMN_map[xmin:xmax, ymin:ymax]
+                        varNoN_map[xmin:xmax, ymin:ymax] = varNoN[it,iz,i_n,i,j]
+                        NvarMN_adj_map[xmin:xmax, ymin:ymax] = NvarMN_adj[it,iz,i_n,i,j]
+                
+                # Set missing values to nans
+                NvarMN_map[NvarMN_map == 0.] = np.nan
+                varNoN_map[NvarMN_map == 0.] = np.nan
+                NvarMN_adj_map[NvarMN_map == 0.] = np.nan
+                
+                # 2. NvarMN
+                NvarMNobj = fieldobj(data = NvarMN_map/2.,
+                                   fieldn = '0.5 * NvarMN',
+                                   rlats = rlats,
+                                   rlons = rlons,
+                                   polelat = tmpfobj.polelat,
+                                   polelon = tmpfobj.polelon,
+                                   levs_inp = lev,
+                                   unit = '')
+                
+                # 2. varNoN
+                varNoNobj = fieldobj(data = varNoN_map,
+                                   fieldn = 'varNoN',
+                                   rlats = rlats,
+                                   rlons = rlons,
+                                   polelat = tmpfobj.polelat,
+                                   polelon = tmpfobj.polelon,
+                                   levs_inp = lev,
+                                   unit = '')
+                
+                # 3. NvarMN_adj
+                NvarMN_adjobj = fieldobj(data = NvarMN_adj_map,
+                                   fieldn = 'NvarMN_adj',
+                                   rlats = rlats,
+                                   rlons = rlons,
+                                   polelat = tmpfobj.polelat,
+                                   polelon = tmpfobj.polelon,
+                                   levs_inp = lev,
+                                   unit = '')
             
                 # Set up the figure 
-                fig, axarr = plt.subplots(2, 2, , figsize = (9, 8))
+                fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
                 
+                # Plot
+                # 1. tauc
+                plt.sca(axarr[0,0])   # This is necessary for some reason...
+                cf, tmp = ax_contourf(axarr[0,0], taucobj, 
+                                      pllevels=np.arange(0, 21, 1), 
+                                      sp_title=taucobj.fieldn,
+                                      Basemap_drawrivers = False,
+                                      Basemap_parallelslabels = [0,0,0,0],
+                                      Basemap_meridiansslabels = [0,0,0,0],
+                                      extend = 'both')
+                cb = fig.colorbar(cf)
+                cb.set_label(taucobj.unit)
                 
- 
+                # 2. NvarMN
+                plt.sca(axarr[0,1])
+                cf, tmp = ax_contourf(axarr[0,1], NvarMNobj, 
+                                      pllevels=levelsM, colors = cmM,
+                                      sp_title=NvarMNobj.fieldn,
+                                      Basemap_drawrivers = False,
+                                      Basemap_parallelslabels = [0,0,0,0],
+                                      Basemap_meridiansslabels = [0,0,0,0],
+                                      extend = 'both')
+                cb = fig.colorbar(cf)
+                cb.set_label(NvarMNobj.unit)
+                
+                # 3. varNoN
+                plt.sca(axarr[1,0])
+                cf, tmp = ax_contourf(axarr[1,0], varNoNobj, 
+                                      pllevels=levelsM,  colors = cmM,
+                                      sp_title=varNoNobj.fieldn,
+                                      Basemap_drawrivers = False,
+                                      Basemap_parallelslabels = [0,0,0,0],
+                                      Basemap_meridiansslabels = [0,0,0,0],
+                                      extend = 'both')
+                cb = fig.colorbar(cf)
+                cb.set_label(varNoNobj.unit)
+                
+                # 4. NvarMN_adj
+                plt.sca(axarr[1,1])
+                cf, tmp = ax_contourf(axarr[1,1], NvarMN_adjobj, 
+                                      pllevels=levelsM,  colors = cmM,
+                                      sp_title=NvarMN_adjobj.fieldn,
+                                      Basemap_drawrivers = False,
+                                      Basemap_parallelslabels = [0,0,0,0],
+                                      Basemap_meridiansslabels = [0,0,0,0],
+                                      extend = 'both')
+                cb = fig.colorbar(cf)
+                cb.set_label(NvarMN_adjobj.unit)
+                
+                fig.savefig(plotdirsub + 'test')
             
 
 
