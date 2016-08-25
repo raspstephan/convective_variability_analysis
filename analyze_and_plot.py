@@ -33,6 +33,9 @@ parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
 args = parser.parse_args()
 
+if 'all' in args.plot:
+    args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
+                 'stamps_var', 'stamps_w']
 
 ################################################################################
 # Load datatsets
@@ -91,7 +94,7 @@ if 'cloud_stats' in args.plot:
                                                bins = 15, range = [0., sizemax])
             sizemean = np.mean(cld_size_tmp)
             cld_sum_tmp = dataset.variables['cld_sum'][it,iz, :]
-            cld_sum_tmp = cld_size_tmp[~cld_sum_tmp.mask].data
+            cld_sum_tmp = cld_size_tmp[~cld_sum_tmp.mask]
             sumhist, sumedges = np.histogram(cld_sum_tmp, 
                                              bins = 15, range = [0., summax])
             summean = np.mean(cld_sum_tmp)
@@ -192,6 +195,7 @@ if 'scatter' in args.plot:
     varM = dataset.variables['varM'][:]
     meanM = dataset.variables['meanM'][:]
     meanN = dataset.variables['meanN'][:]
+    NvarMN = varM / (meanM**2) * meanN
     
     ############# Time loop ##############
     for it, t in enumerate(timelist):
@@ -210,21 +214,36 @@ if 'scatter' in args.plot:
                 
                 # Convert the data
                 varM_tmp = varM[it,iz,i_n,:,:]
-                varM_tmp = np.ravel(varM_tmp[~varM_tmp.mask].data)
+                varM_tmp = np.ravel(varM_tmp[~varM_tmp.mask])
                 meanM_tmp = meanM[it,iz,i_n,:,:]
-                meanM_tmp = np.ravel(meanM_tmp[~meanM_tmp.mask].data)
+                meanM_tmp = np.ravel(meanM_tmp[~meanM_tmp.mask])
                 meanN_tmp = meanN[it,iz,i_n,:,:]
-                meanN_tmp = np.ravel(meanN_tmp[~meanN_tmp.mask].data)
+                meanN_tmp = np.ravel(meanN_tmp[~meanN_tmp.mask])
                 
-                # Get the x and y values and filter where there are no clouds
-                cld_mask = meanN_tmp > 0
-                x = (varM_tmp/(meanM_tmp**2))[cld_mask]
-                y = (1/meanN_tmp)[cld_mask]
-                
+                y = np.sqrt((varM_tmp/(meanM_tmp**2)))
+                x = np.sqrt((1/meanN_tmp))
+                ymean = np.sqrt(np.nanmean(NvarMN[it,iz,i_n,:,:]) /
+                                np.nanmean(meanN[it,iz,i_n,:,:]))
+                xmean = np.sqrt((1/np.nanmean(meanN_tmp)))
+
                 # Scatterplots
                 axarr[0].scatter(x, y, marker = 'o', c = clist[i_n], 
                                  s = 4, zorder = 0.2, linewidth = 0, 
                                  alpha = 0.8, label = str(n*2.8)+'km')
+                
+                axarr[0].scatter(xmean, ymean, marker = 'x', c = clist[i_n], 
+                                s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
+                
+                ypercent_mean = (np.nanmean(NvarMN[it,iz,i_n,:,:]) / np.nanmean(meanN[it,iz,i_n,:,:])/
+                         (2./np.nanmean(meanN[it,iz,i_n,:,:]))) * 100.
+                ypercent = (varM_tmp/(meanM_tmp**2))/(2./meanN_tmp) * 100.
+                axarr[1].scatter(x, ypercent, marker = 'o', c = clist[i_n], 
+                                 s = 4, zorder = 0.2, linewidth = 0, 
+                                 alpha = 0.8, label = str(n*2.8)+'km')
+                
+                axarr[1].scatter(xmean, ypercent_mean, marker = 'x', c = clist[i_n], 
+                                s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
+                
             
             # Complete the figure
             axarr[0].legend(loc =3, ncol = 2, prop={'size':6})
@@ -238,6 +257,16 @@ if 'scatter' in args.plot:
             axarr[0].invert_xaxis()
             axarr[0].set_xlabel('Square root (1/N)')
             axarr[0].set_ylabel('Square root (Var(M)/M^2)')
+            
+            axarr[1].plot([0.,10],[100,100], c = 'gray', alpha = 0.5, linestyle = '--',
+                    zorder = 0.1)
+            axarr[1].set_xlim(0.05,10)
+            axarr[1].set_ylim(1, 1000)
+            axarr[1].set_xscale('log')
+            axarr[1].set_yscale('log')
+            axarr[1].invert_xaxis()
+            axarr[1].set_xlabel('Square root (1/N)')
+            axarr[1].set_ylabel('Percent of theoretical value')
             
             titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
                         ', water=' + str(args.water) + ', lev= ' + str(lev) + 
@@ -275,7 +304,7 @@ if 'summary_stats' in args.plot:
             compm.append(np.mean(tmp2, axis = 1))
             compM.append(np.sum(tmp2, axis = 1))
             
-            comptauc.append(dataset.variables['meantauc'][:])
+            comptauc.append(dataset.variables['ditauc'][:])
         
         # Get the composite means
         compsize = np.mean(np.array(compsize), axis = 0)
@@ -361,7 +390,7 @@ if 'summary_var' in args.plot:
             varmomm_nlist = []
             NvarMN_adj_nlist = []
             for i_n, n in enumerate(datasetlist[0].variables['n']):
-                
+                print n
                 # Get timeseries mean
                 tmp1 = []
                 tmp2 = []
@@ -640,6 +669,14 @@ if 'stamps_w' in args.plot:
             "#8688BA","#6567AA","#46499F","#1F28A2")
     levelsW = np.array([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5])
     
+    cmPREC = ((1    , 1     , 1    ), 
+        (0    , 0.627 , 1    ),
+        (0.137, 0.235 , 0.98 ),
+        (0.392, 0     , 0.627),
+        (0.784, 0     , 0.627),
+        (1    , 0.3   , 0.9  ) )
+    levelsPREC = [0, 0.1, 0.3, 1, 3, 10, 30]
+    
     ############# Time loop ##############
     for it, t in enumerate(timelist):
         print 'time: ', t
@@ -647,15 +684,22 @@ if 'stamps_w' in args.plot:
         ######## Lev loop #####################
         for iz, lev in enumerate(dataset.variables['levs']):
             print 'lev: ', lev
-                
+            
+            
+            # Load Prec ens data
+            ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
+            precobjlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'PREC_ACCUM', 
+                                        nfill=1)
+            # Get mean 
+            meanprec, tmp = mean_spread_fieldobjlist(precobjlist)
+
             # Load W ens data
             ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m'
             wobjlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                         dir_suffix='/OUTPUT/', fieldn = 'W', 
                                         nfill=1, 
                                         levs = dataset.variables['levs'][:])
-            # Get mean 
-            meanw, tmp = mean_spread_fieldobjlist(wobjlist)
             
             # Crop all fields to analysis domain
             sxo, syo = wobjlist[0].data.shape[1:]  # Original field shape
@@ -663,8 +707,7 @@ if 'stamps_w' in args.plot:
             lx2 = -(lx1+1) # Number of grid pts to exclude at border
             ly1 = (syo-256-1)/2
             ly2 = -(ly1+1)
-            rlats = meanw.rlats[lx1:lx2,0]
-            rlons = meanw.rlons[0,ly1:ly2]
+
             
             for wobj in wobjlist:
                 wobj.data = wobj.data[:, lx1:lx2, ly1:ly2]
@@ -673,11 +716,11 @@ if 'stamps_w' in args.plot:
                 wobj.lats = wobj.lats[lx1:lx2, ly1:ly2]
                 wobj.lons = wobj.lons[lx1:lx2, ly1:ly2]
             
-            meanw.data = meanw.data[:, lx1:lx2, ly1:ly2]
-            meanw.rlats = meanw.rlats[lx1:lx2, ly1:ly2]
-            meanw.rlons = meanw.rlons[lx1:lx2, ly1:ly2]
-            meanw.lats = meanw.lats[lx1:lx2, ly1:ly2]
-            meanw.lons = meanw.lons[lx1:lx2, ly1:ly2]
+            meanprec.data = meanprec.data[lx1:lx2, ly1:ly2]
+            meanprec.rlats = meanprec.rlats[lx1:lx2, ly1:ly2]
+            meanprec.rlons = meanprec.rlons[lx1:lx2, ly1:ly2]
+            meanprec.lats = meanprec.lats[lx1:lx2, ly1:ly2]
+            meanprec.lons = meanprec.lons[lx1:lx2, ly1:ly2]
             
             # Set up the figure 
             fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
@@ -685,15 +728,16 @@ if 'stamps_w' in args.plot:
             # Plot
             # 1. mean W
             plt.sca(axarr[0,0])   # This is necessary for some reason...
-            cf, tmp = ax_contourf(axarr[0,0], meanw, 
-                                    pllevels=levelsW/args.nens, colors = cmW,
-                                    sp_title=meanw.fieldn,
+            cf, tmp = ax_contourf(axarr[0,0], meanprec, 
+                                    pllevels=levelsPREC, 
+                                    colors = cmPREC,
+                                    sp_title=meanprec.fieldn,
                                     Basemap_drawrivers = False,
                                     Basemap_parallelslabels = [0,0,0,0],
                                     Basemap_meridiansslabels = [0,0,0,0],
-                                    extend = 'both', lev = iz)
+                                    extend = 'both')
             cb = fig.colorbar(cf)
-            cb.set_label(meanw.unit)
+            cb.set_label(meanprec.unit)
             
             for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), wobjlist[:3],
                                     range(1,4)):
