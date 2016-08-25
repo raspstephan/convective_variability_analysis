@@ -241,44 +241,67 @@ for it, t in enumerate(timelist):
             mlist = []
             Mlist = []
             Nlist = []
-            for field, labels, com, cld_sum_mem in zip(fieldlist, labelslist,
-                                                       comlist, sumlist):
-                # Allocate coarse arrays
-                varm_coarse = np.empty((nx, ny))
-                m_coarse = np.empty((nx, ny))
-                M_coarse = np.empty((nx, ny))
-                N_coarse = np.empty((nx, ny))
-                # Loop over coarse grid boxes
-                for ico  in range(nx):
-                    for jco in range(ny):
-                        # Get limits for each N box
-                        xmin = ico*n
-                        xmax = (ico+1)*n
-                        ymin = jco*n
-                        ymax = (jco+1)*n
+            
+            # NOTE I need all m's for every coarse box, then I can calculate M, m and var(m) and N
+            
+            # Loop over coarse grid boxes
+            # Allocate coarse arrays
+            varm_coarse = np.empty((nx, ny))
+            m_coarse = np.empty((nx, ny))
+            M_coarse = np.empty((nx, ny))
+            N_coarse = np.empty((nx, ny))
+            for ico  in range(nx):
+                for jco in range(ny):
+                    # Get limits for each N box
+                    xmin = ico*n
+                    xmax = (ico+1)*n
+                    ymin = jco*n
+                    ymax = (jco+1)*n
+                    
+                    tmp_cldlist = []
+                    tmp_Mlist = []
+                    tmp_Nlist = []
+                    # Loop over members
+                    for field, labels, com, cld_sum_mem in zip(fieldlist, 
+                                                               labelslist,
+                                                               comlist, 
+                                                               sumlist):
                         # Get the collapsed clouds for each box
                         bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
                                     (com[:,1]>=ymin)&(com[:,1]<ymax))
-                        sub_cld_sum = cld_sum_mem[bool_arr]
-                        # Calculate statistics
-                        varm_coarse[ico, jco] = np.var(sub_cld_sum, ddof = 1)
-                        m_coarse[ico, jco] = np.mean(sub_cld_sum)
-                        M_coarse[ico, jco] = np.sum(sub_cld_sum)
-                        N_coarse[ico, jco] = sub_cld_sum.shape[0]
+                        # This lists then contains all clouds for all members in a box
+                        box_cld_sum = cld_sum_mem[bool_arr]
+                        tmp_cldlist += list(box_cld_sum)
+                        if len(box_cld_sum) > 0:
+                            tmp_Mlist.append(np.sum(box_cld_sum))
+                        else:
+                            tmp_Mlist.append(0.)
+                        tmp_Nlist.append(box_cld_sum.shape[0])
+                        # End member loop
+                    
+                    tmp_cldlist = np.array(tmp_cldlist)
+                    # Calculate statistics and save them in ncdf file
+                    # Check if x number of members have clouds in them
+                    min_mem = 5
+                    if np.sum(np.array(tmp_Nlist)>0) >= min_mem:
+                        varM[it,iz,i_n,ico,jco] = np.var(tmp_Mlist, ddof = 1)
+                        varN[it,iz,i_n,ico,jco] = np.var(tmp_Nlist, ddof = 1)
+                        varm[it,iz,i_n,ico,jco] = np.var(tmp_cldlist, ddof = 1)
+                        meanM[it,iz,i_n,ico,jco] = np.mean(tmp_Mlist)
+                        meanm[it,iz,i_n,ico,jco] = np.mean(tmp_cldlist)
+                        meanN[it,iz,i_n,ico,jco] = np.mean(tmp_Nlist)
+                    else:
+                        varM[it,iz,i_n,ico,jco] = np.nan
+                        varN[it,iz,i_n,ico,jco] = np.nan
+                        varm[it,iz,i_n,ico,jco] = np.nan
+                        meanM[it,iz,i_n,ico,jco] = np.nan
+                        meanm[it,iz,i_n,ico,jco] = np.nan
+                        meanN[it,iz,i_n,ico,jco] = np.nan
+                    
+
+                    
+  
                 
-                varmlist.append(varm_coarse)
-                mlist.append(m_coarse)
-                Mlist.append(M_coarse)
-                Nlist.append(N_coarse)      
-                # End member loop
-                
-            # Calculate statistics and save them in ncdf file
-            varM[it,iz,i_n,:nx,:ny] = np.var(Mlist, axis = 0, ddof = 1)
-            varN[it,iz,i_n,:nx,:ny] = np.var(Nlist, axis = 0, ddof = 1)
-            varm[it,iz,i_n,:nx,:ny] = np.mean(varmlist, axis = 0)
-            meanM[it,iz,i_n,:nx,:ny] = np.mean(Mlist, axis = 0)
-            meanm[it,iz,i_n,:nx,:ny] = np.nanmean(mlist, axis = 0)
-            meanN[it,iz,i_n,:nx,:ny] = np.mean(Nlist, axis = 0)
             
             # End coarse upscaled variances and means
             ####################################################################
