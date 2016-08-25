@@ -2,6 +2,7 @@
 % \documentclass[a4paper, 12pt]{article}
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage[top=3cm, bottom=3cm, left=2.5cm, right=2.5cm]{geometry}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
 
 \title{Convective variability in real mid-latitude weather}
@@ -110,63 +111,88 @@ The case studies are all from a recent, convectively active period over Central 
 Since the height above sea level is not constant for our simulations, the questions arises which level to take for domain averages. Height above sea level would not be a good choice since the vertical location of the statistics since the boundary layer depends on the height above ground level, which would also not be a good choice since the tropopause level is largely unaffected by the height above ground level. A logical choice is to use model levels. In the COSMO model the model levels are terrain-following. In the lower troposphere, they are largely parallel to the ground, but at around 10 km, they are largely parallel to sea level. To pick certain levels, we look at a column above the ocean and search for the closes model level to a height above sea level. 
 
 \subsubsection{Identification of clouds and calculation of cloud statistics}
-To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$. 
+To identify clouds, first the fields are converted to binary fields by applying a threshold. Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The height chosen is 2500 m, which is above the level of shallow convection. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$. As of now, only criterion (1) is used!
 
 Contiguous areas are then identified as clouds using a 4-point segmentation algorithm. Optionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud. If this step is (not) applied, the label (``nowater'') ``water'' is used. 
 
-For each identified cloud in each ensemble member a cloud size $\sigma_i$ is determined as
+For each identified cloud $k=1,...,N_{\mathrm{cld},i}$ in each ensemble member $i=1,...,N_{\mathrm{ens}}$ a cloud size $\sigma_k$ is determined as
 \begin{equation} \label{eq:cld_size}
- \sigma_i = n_{px} \Delta x^2,
+ \sigma_k = n_{px} \Delta x^2,
 \end{equation}
-where $n_{px}$ is the number of pixels for each cloud $i$. Furthermore, the mass flux per cloud $m_i$ is computed for criterion (1) as
+where $N_{\mathrm{px}}$ is the number of pixels for each cloud $k$. Furthermore, the mass flux per cloud $m_k$ is computed for criterion (1) as
 \begin{equation} \label{eq:mass_flux_per_cloud}
- m_i = \Delta x^2 \sum_{px} w \rho,
+ m_k = \Delta x^2 \sum_{l}^{N_{\mathrm{px}}} w_l \rho_l,
 \end{equation}
-where $\rho$ is density. For criterion (2), the precipitation rate per cloud $p_i$ is calculated as
-\begin{equation} \label{eq:pr_per_cloud}
- p_i = \sum_{px} pr,
-\end{equation}
-Statistics of these variables, such as the mean and the distribution are then calculated (see results).
+where $\rho$ is density.
+% For criterion (2), the precipitation rate per cloud $p_k$ is calculated as
+% \begin{equation} \label{eq:pr_per_cloud}
+%  p_k = \sum_{px} pr,
+% \end{equation}
+% Statistics of these variables, such as the mean and the distribution are then calculated (see results).
 
 \subsubsection{Calculation of radial distribution functions and clustering parameters}
 A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. 
 
-A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
+% A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
 
 \subsubsection{Calculation of ensemble means and variances}
-For the variance calculations, a coarse-graining is applied with edge lengths of 256, 128, 64, 32, 16, 8 and 4$\Delta x$. No neighborhoods smaller are considered, since these would be significantly below the effective resolution of the model \citep{Bierdel2012}. For each coarse box, the an average value of $m$/$p$ is computed, as well as a total mass flux/precipitation rate $M$/$P$ and the number of clouds $N$ in each box.
+For the variance calculations, a coarse-graining is applied to create coarse boxes $j=1,...,N_{\mathrm{box,n}}$ edge lengths of $n=$ 256, 128, 64, 32, 16, 8 and 4$\Delta x$, where $N_{\mathrm{box,n}}=n^2$. No neighborhoods smaller are considered, since these would be significantly below the effective resolution of the model \citep{Bierdel2012}. Ensemble statistics are then calculated for each box $j$. The sample variance is computed with
+\begin{equation} \label{eq:calc_varM}
+ \langle (\delta M )^2 \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}-1} \sum_{i=1}^{N_{\mathrm{ens}}} (M_{i,j,n} - \langle M \rangle_{j,n})^2,
+\end{equation}
+where the ensemble mean is
+\begin{equation} \label{eq:calc_meanM}
+ \langle M \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}} \sum_{i=1}^{N_{\mathrm{ens}}} M_{i,j,n}.
+\end{equation}
+These calculations are done analogously for $N$. The total mass flux per box per member $M_{i,j,n}$ is given by
+\begin{equation} \label{eq:calc_memM}
+ M_{i,j,n} = \sum_{k=1}^{N_{\mathrm{cld}\,i,j,n}} m_{k,i,j,n}.
+\end{equation}
+To deal with clouds at the boundaries of the coarse-fields, the centers of mass for each cloud is first identified. Then the $m_k$ is attributed to that one point in space. Therefore, the coarse box which contains the center of mass also contains the entire cloud, while the other box does not contain any of the cloud. $N_{i,j,n}=N_{\mathrm{cld}\,i,j,n}$ is simply the number of clouds which fall into each box.
 
-To deal with clouds at the boundaries of the coarse-fields, the centers of mass for each cloud is first identified. Then the $m_i$ or $p_i$ is attributed to that one point in space. Therefore, the coarse box which contains the center of mass also contains the entire cloud, while the other box does not contain any of the cloud. 
+To compute statistics for $m$ a different approach is taken. Here the clouds in all members for each box are considered together to calculate the variance and mean. The total number of clouds over all ensemble members is denoted by $N_{\mathrm{cldtot}} = \sum_{i=1}^{N_{\mathrm{ens}}} N_{\mathrm{cld}\,i,j,n}$.
+\begin{equation} \label{eq:calc_varm}
+ \langle (\delta m )^2 \rangle_{j,n} = \frac{1}{N_{\mathrm{cldtot}}-1} \sum_{k=1}^{N_{\mathrm{cldtot}}} (m_{k,j,n} - \langle m \rangle_{j,n})^2,
+\end{equation}
+where the mean is
+\begin{equation} \label{eq:calc_meanM}
+ \langle m \rangle_{j,n} = \frac{1}{N_{\mathrm{cldtot}}} \sum_{k=1}^{N_{\mathrm{cldtot}}} m_{k,j,n}.
+\end{equation}
 
-Finally, the variance $\langle (\delta M \mathrm{or} P)^2 \rangle$ and the ensemble mean $M$/$P$ and $N$ are computed for each box and each coarsening scale, resulting in one two-dimensional field for each coarsening scale. 
+\subsubsection{Sampling issues}
+Since we are sampling a distribution with a limited number of data points $N_{\mathrm{ens}}$, sampling issues arise when $\langle N \rangle$ becomes small ($\approx \frac{1}{N_{\mathrm{ens}}}$). In particular, if only one member contains a cloud chances are that the real $\langle N \rangle < \frac{1}{N_{\mathrm{ens}}}$ and we therefore overestimate the mean mass flux $\langle M \rangle$. To avoid this issue, a criterion is introduced where at least 5 out of 20 ensemble members must contain at least one cloud. \textit{This threshold is a quick fix and should be determined statistically.}
 
 \subsubsection{Comparison with prediction I: Scatter plots}
 To compare the obtained values to the theoretical predictions, the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
 \begin{equation} \label{eq:normalized_variance}
- \mu_{2 j, n} = \frac{\langle (\delta M_{j,n} \mathrm{ or } P_{j,n})^2 \rangle}{M_{j,n} \mathrm{ or } P_{j,n}}.
+ \mu_{2\,j, n} = \frac{\langle (\delta M )^2 \rangle_{j,n}}{M_{j,n}^2}.
 \end{equation}
-This normalized variance is then plotted against the mean number of clouds $N_{j,n}$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot. To get a quantitative comparison of the simulation results and theory, the percent fraction is calculated as
+The normalized variance is then plotted against the mean number of clouds $\langle N_{j,n} \rangle$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot. To get a quantitative comparison of the simulation results and theory, the percent fraction is calculated as
 \begin{equation} \label{eq:normalized_variance_percent}
- \frac{\mu_{2 j, n}}{\frac{2}{M_{j,n} \mathrm{ or } P_{j,n}}}\times 100\%.
+ \frac{\mu_{2\,j, n}}{2 / N_{j,n}}\times 100\%.
 \end{equation}
 
 \subsubsection{Comparison with prediction II: Mean normalized variance evolution}
 To get a summary measure of how the normalized variance compares to the predicted value for each scale $n$, the mean $\mu_{2} \langle N \rangle$ is calculated:
 \begin{equation} \label{eq:mean_nvar_n}
- \overline{\mu_{2}\langle N \rangle}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \mu_{2 j,n}\langle N \rangle_{j,n}.
+ \overline{\mu_{2}\langle N \rangle}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \mu_{2\,j,n}\langle N \rangle_{j,n}.
 \end{equation}
-According to theory this value should be 2. 
+According to theory this value should be 2. This value along with the distribution in the scatter plots can be used to test \textbf{RQ1}. 
 
-Following \cite{Davoudi2010}, we calculate $\alpha = \frac{\langle (\delta N)^2 \rangle}{\langle M \rangle}$ as a measure of the clustering, or deviation from a Poisson distribution:
+Following \cite{Davoudi2010}, we calculate $\alpha = \frac{\langle (\delta N)^2 \rangle}{\langle N \rangle}$ as a measure of the clustering, or deviation from a Poisson distribution:
 \begin{equation} \label{eq:mean_alpha}
- \overline{\alpha}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle M \rangle_{j,n}}.
+ \bar{\alpha}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}.
 \end{equation}
 
 To include the effects of $\alpha \neq 1$ for $\mu_2$, we derive an adjusted equation from the theory of random sums (see above), which states:
 \begin{equation} \label{eq:derivation_1}
  \langle (\delta M)^2 \rangle = \langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
 \end{equation}
-Here we assume an exponential distribution for $m$, so that $\langle (\delta m)^2 \rangle = \langle m \rangle^2$, but do not assume a Poisson distribution for $N$, which ouwl give $\langle (\delta N)^2 \rangle = \langle N \rangle$ and lead to Eq. \ref{eq:M_var}. Together with $\langle NM \rangle = \langle m \rangle \langle N \rangle$ we can write:
+Here we assume an exponential distribution for $m$, so that $\langle (\delta m)^2 \rangle = \langle m \rangle^2$. To test this assumption the ratio
+\begin{equation} \label{eq:m_exp_test}
+ \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}
+\end{equation}
+is calculated for every $n$. We do not assume a Poisson distribution for $N$, which would give $\langle (\delta N)^2 \rangle = \langle N \rangle$ and lead to Eq. \ref{eq:M_var}. Together with $\langle M \rangle = \langle m \rangle \langle N \rangle$ we can write:
 \begin{equation} \label{eq:derivation_2}
  \langle (\delta M)^2 \rangle = \frac{\langle M \rangle^2}{\langle N \rangle^2} (\langle N \rangle + \langle (\delta N)^2 \rangle)
 \end{equation}
@@ -176,12 +202,12 @@ And therefore,
 \end{equation}
 If N follows a Poisson distribution, this equation is equivalent to Eq. \ref{eq:M_var}. For increased clustering $\alpha>1$, so therefore $\tilde{\mu}_2 > \mu_2$. With this adjusted equation for the normalized mass flux variance, the clustering which has an effect on $N$ is accounted for. If the clustering explains all of the diviations of $\mu_2$ from theory, then 
 \begin{equation} \label{eq:adjusted_M_var}
- \overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n = \frac{1}{N_{box, n}} \sum_{j}^{N_{box}} \frac{\mu_{2 j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}
+ \overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}
 \end{equation} 
 should be 1, which can be tested directly from the data to answer \textbf{RQ1.1}.
 
 \subsubsection{Calculation of the convective adjustment timescale}
-The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. 
+The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. Furthermore, a minimum precipitation threshold of 0.2 mm h$^{-1}$ is used, which leads to the timescale not being calculated for regions only a few small cells. Therefore, not every variance value can be matched with a timescale value. 
 
 \section{Results}
 
