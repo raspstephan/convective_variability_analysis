@@ -1,7 +1,8 @@
-\documentclass[a4paper, 12pt, draft]{article}
-% \documentclass[a4paper, 12pt]{article}
+% \documentclass[a4paper, 12pt, draft]{article}
+\documentclass[a4paper, 12pt]{article}
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{tikz}   % For the for loop
 \usepackage[top=3cm, bottom=3cm, left=2.5cm, right=2.5cm]{geometry}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
 
@@ -209,10 +210,14 @@ should be 1, which can be tested directly from the data to answer \textbf{RQ1.1}
 \subsubsection{Calculation of the convective adjustment timescale}
 The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. Furthermore, a minimum precipitation threshold of 0.2 mm h$^{-1}$ is used, which leads to the timescale not being calculated for regions only a few small cells. Therefore, not every variance value can be matched with a timescale value. 
 
+\subsection{Composites}
+Composites were computed by averaging over the days in the simulation period. 
+
 \section{Results}
 
-\subsection{Case 1: 2009070100}
+\subsection{Case 2016052800}
 \subsubsection{Case description}
+
 
 \subsection{Cloud statistics}
 Fig.\ref{fig:case1_stats} shows histograms of the cloud size $\sigma_i$ and mass flux $m_i$ or precipitation per cloud $p_i$ alongside the radial distribution function for one time step. 
@@ -239,110 +244,113 @@ Fig.\ref{fig:case1_timeseries}
 
 \newpage
 \section{Figures}
+All plots for level 30 (about 3000m above ground)
 
-%%%%%%%%%%%%%%%%%%%%%
-% CASE 1
-%%%%%%%%%%%%%%%%%%%%%
+\foreach \x in {2016052800,2016053000,2016053100}
+{
+\subsection{\x}
+
+% Prec and W stamps
+\begin{figure}[ht] \label{fig:stamps_w}
+\noindent \centering
+\includegraphics[width=\textwidth]{\x/m/stamps_w/stamps_w_\x_ana-m_wat-True_lev-34_nens-20_time-00140000.png}\\
+\caption{(Top left) Ensemble mean precipitation, (remaining plots) vertical velocity field for the first three ensemble members}
+\end{figure}
+
 
 % Cloud statistics
-\begin{figure}[ht] \label{fig:case1_stats}
+\begin{figure}[ht] \label{fig:cloud_stats}
 \noindent \centering
-2009070100 14UTC m water
-\includegraphics[width=\textwidth]{2009070100/m/cloud_stats/stats_00140000.png}\\
-2009070100 14UTC m nowater
-\includegraphics[width=\textwidth]{2009070100/m_nowater/cloud_stats/stats_00140000.png}\\
-2009070100 14UTC p water
-\includegraphics[width=\textwidth]{2009070100/p/cloud_stats/stats_00140000.png}\\
-2009070100 14UTC p nowater
-\includegraphics[width=\textwidth]{2009070100/p_nowater/cloud_stats/stats_00140000.png}\\
-\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bins = 15 with bin width = 0.1e8/0.67e8) and $m_i$/$p_i$(bins = 15 with bin width = 0.33e8/0.067). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
+\includegraphics[width=\textwidth]{\x/m/cloud_stats/cloud_stats_\x_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
+\caption{Cloud statistics for one time step (14UTC): (left) Histogram of cloud size (15 bins with width 0.13e8 m$^2$) (right) histogram of $m$ (15 bins with width 0.5e8 kg/s). Red lines show the mean value.}
 \end{figure}
 
-% Variance fields
-\begin{figure}[ht] \label{fig:case1_var_fields}
+% RDF
+\begin{figure}[ht] \label{fig:rdf}
 \noindent \centering
-2009070100 14UTC m water
-\includegraphics[width=\textwidth]{2009070100/m/var/var_00140000_064.png}\\
-\caption{Variance fields:  The top left picture shows the vertical velocity field at 2500m height. All blue regions are clouds (given that the cloud water content is positive, not shown). The top right picture shows the ensemble mean total mass flux $M_{j,n}$ for one coarsening scale. The bottom right picture shows the ensemble mean $m_{j,n}$. The bottom right picture shows the Normalized variance divided by the mean cloud number, which the theory predicts to be 2.}
+\includegraphics[width=\textwidth]{\x/m/rdf/rdf_\x_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Radial distribution function for each analysis time step}
 \end{figure}
 
-% Variance scatter
-\begin{figure}[ht] \label{fig:case1_var_scatter}
+% Var stamps
+\begin{figure}[ht] \label{fig:stamps_var}
 \noindent \centering
-2009070100 14UTC m water
-\includegraphics[width=\textwidth]{2009070100/m/var_scatter/scatter_00140000.png}\\
+\includegraphics[width=\textwidth]{\x/m/stamps_var/stamps_var_\x_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
+\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$}
+\end{figure}
+
+% Scatter
+\begin{figure}[ht] \label{fig:scatter}
+\noindent \centering
+\includegraphics[width=\textwidth]{\x/m/scatter/scatter_\x_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
 \caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
 \end{figure}
 
-% Variance scatter
-\begin{figure}[ht] \label{fig:case1_tau_c}
+% Summary stats
+\begin{figure}[ht] \label{fig:summary_stats}
 \noindent \centering
-2009070100 14UTC m water
-\includegraphics[width=\textwidth]{2009070100/m/tauc/tauc_00140000.png}\\
-\caption{Ensemble mean convective adjustment timescale}
+\includegraphics[width=\textwidth]{\x/m/summary_stats/summary_stats_\x_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale}
 \end{figure}
 
-% Timeseries
-\begin{figure}[ht] \label{fig:case1_timeseries}
+% Summary var
+\begin{figure}[ht] \label{fig:summary_var}
 \noindent \centering
-2009070100 m water
-\includegraphics[width=\textwidth]{2009070100/m/timeseries.png}\\
-2009070100 p water
-\includegraphics[width=\textwidth]{2009070100/p/timeseries.png}\\
-\caption{Timeseries of several values}
+\includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 24 (about 5000m)}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 34 (about 2000m)}
 \end{figure}
 
+\clearpage
+}
 
-%%%%%%%%%%%%%%%%%%%%%
-% CASE 2
-%%%%%%%%%%%%%%%%%%%%%
+\subsection{Composite 2016052800 2016053000 2016053100}
 
-% Cloud statistics
-\begin{figure}[ht] \label{fig:case1_stats}
+% Scatter
+\begin{figure}[ht] \label{fig:scatter}
 \noindent \centering
-2016060200 14UTC m water
-\includegraphics[width=\textwidth]{2016060200/m/cloud_stats/stats_00140000.png}\\
-2016060200 14UTC m nowater
-\includegraphics[width=\textwidth]{2016060200/m_nowater/cloud_stats/stats_00140000.png}\\
-2016060200 14UTC p water
-\includegraphics[width=\textwidth]{2016060200/p/cloud_stats/stats_00140000.png}\\
-2016060200 14UTC p nowater
-\includegraphics[width=\textwidth]{2016060200/p_nowater/cloud_stats/stats_00140000.png}\\
-\caption{Cloud statistics: The left and middle plots are histograms of cloud size (bins = 15 with bin width = 0.1e8/0.67e8) and $m_i$/$p_i$(bins = 15 with bin width = 0.33e8/0.067). The red line represents the mean value. On the right plot, the RDF is shown. The red line shows the evaluated clustering radius $r_c$.}
-\end{figure}
-
-% Variance fields
-\begin{figure}[ht] \label{fig:case1_var_fields}
-\noindent \centering
-2016060200 14UTC m water
-\includegraphics[width=\textwidth]{2016060200/m/var/var_00140000_064.png}\\
-\caption{Variance fields:  The top left picture shows the vertical velocity field at 2500m height. All blue regions are clouds (given that the cloud water content is positive, not shown). The top right picture shows the ensemble mean total mass flux $M_{j,n}$ for one coarsening scale. The bottom right picture shows the ensemble mean $m_{j,n}$. The bottom right picture shows the Normalized variance divided by the mean cloud number, which the theory predicts to be 2.}
-\end{figure}
-
-% Variance scatter
-\begin{figure}[ht] \label{fig:case1_var_scatter}
-\noindent \centering
-2016060200 14UTC m water
-\includegraphics[width=\textwidth]{2016060200/m/var_scatter/scatter_00140000.png}\\
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/scatter/scatter_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
 \caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
 \end{figure}
 
-% Variance scatter
-\begin{figure}[ht] \label{fig:case1_tau_c}
+% Var stamps
+\begin{figure}[ht] \label{fig:stamps_var}
 \noindent \centering
-2016060200 14UTC m water
-\includegraphics[width=\textwidth]{2016060200/m/tauc/tauc_00140000.png}\\
-\caption{Ensemble mean convective adjustment timescale}
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/stamps_var/stamps_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
+\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$}
 \end{figure}
 
-% Timeseries
-\begin{figure}[ht] \label{fig:case1_timeseries}
+% Summary stats
+\begin{figure}[ht] \label{fig:summary_stats}
 \noindent \centering
-2016060200 m water
-\includegraphics[width=\textwidth]{2016060200/m/timeseries.png}\\
-2016060200 p water
-\includegraphics[width=\textwidth]{2016060200/p/timeseries.png}\\
-\caption{Timeseries of several values}
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_stats/summary_stats_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale}
+\end{figure}
+
+% Summary var
+\begin{figure}[ht] \label{fig:summary_var}
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 24 (about 5000m)}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 34 (about 2000m)}
 \end{figure}
 
 

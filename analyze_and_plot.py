@@ -71,6 +71,7 @@ ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens
 # Now comes the plotting
 ################################################################################
 if 'cloud_stats' in args.plot:
+    print 'Plotting cloud_stats'
     if len(datasetlist) > 1:
         raise Exception, 'More than one date is not implemented'
     dataset = datasetlist[0]
@@ -131,56 +132,69 @@ if 'cloud_stats' in args.plot:
                            '_wat-' + str(args.water) + '_lev-' + str(lev) +
                            '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
             fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+            plt.close('all')
 
 
 
 ################################################################################
 if 'rdf' in args.plot:
-    if len(datasetlist) > 1:
-        raise Exception, 'More than one date is not implemented'
-    dataset = datasetlist[0]
+    print 'Plotting rdf'
+
     plotdirsub = plotdir +  '/rdf/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
-    # Setup
-    ymax = 10.
+    rdf_list = []
+    for dataset in datasetlist:
+        rdf_list.append(dataset.variables['rdf'][:])
+    rdf = np.nanmean(rdf_list, axis = 0)
+                       
     
-    ############# Time loop ##############
-    for it, t in enumerate(timelist):
-        print 'time: ', t
+    # Setup
+    ymax = 7
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(timelist))]
+    
+    ######## Lev loop #####################
+    for iz, lev in enumerate(dataset.variables['levs']):
+        print 'lev: ', lev
         
-        ######## Lev loop #####################
-        for iz, lev in enumerate(dataset.variables['levs']):
-            print 'lev: ', lev
-            
-            # Get the data
-            rdf = dataset.variables['rdf'][it, iz, :]
-            r =   dataset.variables['dr'][:]
-            
-            fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 3.7))
-            
-            ax.plot(r/1000., rdf, c = 'g')
-            ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-            ax.set_xlabel('Distance [km]')
-            ax.set_ylabel('Normalized RDF')
-            ax.set_title('Radial distribution function')
-            ax.set_ylim(0, ymax)
-            ax.set_xlim(0, np.max(r)/1000.)
-            
-            titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
-                        ',\nwater=' + str(args.water) + ', lev= ' + str(lev) + 
-                        ', nens=' + str(args.nens))
-            fig.suptitle(titlestr, fontsize='x-large')
-            plt.tight_layout(rect=[0, 0.0, 1, 0.85])
-            
-            plotsavestr = ('rdf_' + args.date[0] + '_ana-' + args.ana + 
-                           '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                           '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
-            fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        # Get the data
+        r =   dataset.variables['dr'][:]
+        
+        fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+        
+        ############# Time loop ##############
+        for it, t in enumerate(timelist):
+            print 'time: ', t
+            ax.plot(r/1000., rdf[it, iz, :], c = cyc[it], label = str(t))
+        
+        ax.legend(loc = 1, ncol = 2, prop={'size':6})
+        ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+        ax.set_xlabel('Distance [km]')
+        ax.set_ylabel('Normalized RDF')
+        ax.set_title('Radial distribution function')
+        ax.set_ylim(0, ymax)
+        ax.set_xlim(0, np.max(r)/1000.)
+        
+        titlestr = (alldatestr + ', ' + args.ana + 
+                    ',\nwater=' + str(args.water) + ', lev= ' + str(lev) + 
+                    ', nens=' + str(args.nens))
+        fig.suptitle(titlestr, fontsize='x-large')
+        plt.tight_layout(rect=[0, 0.0, 1, 0.85])
+        
+        plotsavestr = ('rdf_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens) + '_tstart-' + 
+                        str(args.tstart) + '_tend-' + str(args.tend) + 
+                        '_tinc-' + str(args.tinc))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        plt.close('all')
+        
+        
             
             
 ################################################################################
 if 'scatter' in args.plot:
+    print 'Plotting scatter'
     if len(datasetlist) > 1:
         raise Exception, 'More than one date is not implemented'
     dataset = datasetlist[0]
@@ -225,24 +239,28 @@ if 'scatter' in args.plot:
                 ymean = np.sqrt(np.nanmean(NvarMN[it,iz,i_n,:,:]) /
                                 np.nanmean(meanN[it,iz,i_n,:,:]))
                 xmean = np.sqrt((1/np.nanmean(meanN_tmp)))
+                if np.isnan(xmean):
+                    ymean = np.nan   # Some ugly fix, since ymean is masked for some rare cases
 
                 # Scatterplots
                 axarr[0].scatter(x, y, marker = 'o', c = clist[i_n], 
                                  s = 4, zorder = 0.2, linewidth = 0, 
                                  alpha = 0.8, label = str(n*2.8)+'km')
                 
-                axarr[0].scatter(xmean, ymean, marker = 'x', c = clist[i_n], 
-                                s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
+                axarr[0].scatter(xmean, ymean, marker = 'o', c = clist[i_n], 
+                                s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
                 
                 ypercent_mean = (np.nanmean(NvarMN[it,iz,i_n,:,:]) / np.nanmean(meanN[it,iz,i_n,:,:])/
                          (2./np.nanmean(meanN[it,iz,i_n,:,:]))) * 100.
                 ypercent = (varM_tmp/(meanM_tmp**2))/(2./meanN_tmp) * 100.
+                if np.isnan(xmean):
+                    ypercent_mean = np.nan   # Some ugly fix, since ymean is masked for some rare cases
                 axarr[1].scatter(x, ypercent, marker = 'o', c = clist[i_n], 
                                  s = 4, zorder = 0.2, linewidth = 0, 
                                  alpha = 0.8, label = str(n*2.8)+'km')
                 
-                axarr[1].scatter(xmean, ypercent_mean, marker = 'x', c = clist[i_n], 
-                                s = 18, zorder = 0.5, linewidth = 2, alpha = 1)
+                axarr[1].scatter(xmean, ypercent_mean, marker = 'o', c = clist[i_n], 
+                                s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
                 
             
             # Complete the figure
@@ -278,10 +296,11 @@ if 'scatter' in args.plot:
                            '_wat-' + str(args.water) + '_lev-' + str(lev) +
                            '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
             fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-            
+            plt.close('all')
 
 ################################################################################
 if 'summary_stats' in args.plot:
+    print 'Plotting summary_stats'
     plotdirsub = plotdir +  '/summary_stats/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     # Setup
@@ -343,15 +362,16 @@ if 'summary_stats' in args.plot:
         
         plotsavestr = ('summary_stats_' + alldatestr + '_ana-' + args.ana + 
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens)+ '_tstart-' + 
+                        '_nens-' + str(args.nens) + '_tstart-' + 
                         str(args.tstart) + '_tend-' + str(args.tend) + 
                         '_tinc-' + str(args.tinc))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-
+        plt.close('all')
             
             
 ################################################################################
 if 'summary_var' in args.plot:
+    print 'Plotting summary_var'
     plotdirsub = plotdir +  '/summary_var/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     # Setup
@@ -473,31 +493,45 @@ if 'summary_var' in args.plot:
                         str(args.tstart) + '_tend-' + str(args.tend) + 
                         '_tinc-' + str(args.tinc))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-                
+        plt.close('all')
             
 
 ################################################################################
 if 'stamps_var' in args.plot:
-    if len(datasetlist) > 1:
-        raise Exception, 'More than one date is not implemented'
-    dataset = datasetlist[0]
+    print 'Plotting stamps_var'
+
     plotdirsub = plotdir +  '/stamps_var/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
-    # Load the data
-    varM = dataset.variables['varM'][:]
-    varN = dataset.variables['varN'][:]
-    varm = dataset.variables['varm'][:]
-    meanM = dataset.variables['meanM'][:]
-    meanN = dataset.variables['meanN'][:]
-    meanm = dataset.variables['meanm'][:]
-    # Calculate the statistics
-    NvarMN = varM / (meanM**2) * meanN
-    varNoN = varN / meanN
-    NvarMN_adj = NvarMN / (1 + varNoN)
-    varmomm = varm / (meanm**2)
     
-    enstauc = dataset.variables['enstauc'][:]
+    # Load the data
+    # dataset loop
+    varNoN_list = []
+    NvarMN_adj_list = []
+    varmomm_list = []
+    enstauc_list = []
+    for dataset in datasetlist:
+        varM = dataset.variables['varM'][:]
+        varN = dataset.variables['varN'][:]
+        varm = dataset.variables['varm'][:]
+        meanM = dataset.variables['meanM'][:]
+        meanN = dataset.variables['meanN'][:]
+        meanm = dataset.variables['meanm'][:]
+        # Calculate the statistics
+        NvarMN = varM / (meanM**2) * meanN
+        varNoN = varN / meanN
+        varNoN_list.append(varNoN.filled(np.nan))
+        NvarMN_adj_list.append((NvarMN / (1 + varNoN)).filled(np.nan))
+        varmomm_list.append((varm / (meanm**2)).filled(np.nan))
+    
+        enstauc_list.append(dataset.variables['enstauc'][:])
+    
+    # Get dataset mean
+    varNoN = np.nanmean(varNoN_list, axis = 0)
+    NvarMN_adj = np.nanmean(NvarMN_adj_list, axis = 0)
+    varmomm = np.nanmean(varmomm_list, axis = 0)
+    enstauc = np.nanmean(enstauc_list, axis = 0)
+
     
     # Plot setup
     cmM = ("#0030C4","#3F5BB6","#7380C0","#A0A7CE","#CCCEDC","#DDCACD",
@@ -560,6 +594,9 @@ if 'stamps_var' in args.plot:
                 varNoN_map[NvarMN_map == 0.] = np.nan
                 NvarMN_adj_map[NvarMN_map == 0.] = np.nan
                 NvarMN_map[NvarMN_map == 0.] = np.nan
+                
+                #print varNoN_map
+                #print np.nanmean(varNoN_map)
                 
                 # 2. NvarMN
                 NvarMNobj = fieldobj(data = NvarMN_map/2.,
@@ -643,21 +680,23 @@ if 'stamps_var' in args.plot:
                 cb = fig.colorbar(cf)
                 cb.set_label(NvarMN_adjobj.unit)
                 
-                titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                titlestr = (alldatestr + '+' + ddhhmmss(t) + ', ' + args.ana + 
                             ', water=' + str(args.water) + ', lev= ' + str(lev) + 
                             ', nens=' + str(args.nens) +  ',  n=' + str(n))
                 fig.suptitle(titlestr, fontsize='x-large')
                 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
                 
-                plotsavestr = ('stamps_var_' + args.date[0] + '_ana-' + args.ana + 
+                plotsavestr = ('stamps_var_' + alldatestr + '_ana-' + args.ana + 
                             '_wat-' + str(args.water) + '_lev-' + str(lev) +
                             '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) +
                             '_n-' + str(n))
                 fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+                plt.close('all')
             
 
 ################################################################################
 if 'stamps_w' in args.plot:
+    print 'Plotting stamps_w'
     if len(datasetlist) > 1:
         raise Exception, 'More than one date is not implemented'
     dataset = datasetlist[0]
@@ -765,6 +804,7 @@ if 'stamps_w' in args.plot:
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
                         '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
             fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+            plt.close('all')
 
 
 
