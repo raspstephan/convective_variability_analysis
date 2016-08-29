@@ -432,10 +432,10 @@ if 'summary_var' in args.plot:
             compNvarMN_adj.append(NvarMN_adj_nlist)
         
         # Calculate composits
-        compNvarMN = np.mean(compNvarMN, axis = 0) / 2.
-        compvarNoN = np.mean(compvarNoN, axis = 0)
-        compvarmomm = np.mean(compvarmomm, axis = 0)
-        compNvarMN_adj = np.mean(compNvarMN_adj, axis = 0)
+        compNvarMN = np.nanmean(compNvarMN, axis = 0) / 2.
+        compvarNoN = np.nanmean(compvarNoN, axis = 0)
+        compvarmomm = np.nanmean(compvarmomm, axis = 0)
+        compNvarMN_adj = np.nanmean(compNvarMN_adj, axis = 0)
         
         # Create the figure
         fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
@@ -595,8 +595,8 @@ if 'stamps_var' in args.plot:
                 NvarMN_adj_map[NvarMN_map == 0.] = np.nan
                 NvarMN_map[NvarMN_map == 0.] = np.nan
                 
-                #print varNoN_map
-                #print np.nanmean(varNoN_map)
+                print varNoN_map
+                print np.nanmean(varNoN_map)
                 
                 # 2. NvarMN
                 NvarMNobj = fieldobj(data = NvarMN_map/2.,

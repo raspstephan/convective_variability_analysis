@@ -1,21 +1,20 @@
 import os
+import sys
 
-dates = ['2016052800', '2016053000', '2016053100']
-ana = ['p', 'm']
-water = ['', 'nowater']
+#dates = ['2016052800', '2016052900', '2016053000', '2016053100', '2016060100', '2016060200',
+         #'2016060300', '2016060400', '2016060500', '2016060600', '2016060700', '2016060800']
+# 0, 1, 2, 3, 4, 5
+# 6, 7, 8, 9,10,11
 
-for d in dates:
-    for a in ana:
-        for w in water:
-            os.system('python variance.py ' + a + ' ' + d + ' ' + w + '&')
-                      #'&> /dev/null &')   # No output to console
-"""            
-python compute_and_save.py --ana m --date 2016052800 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000
-python analyze_and_plot.py --ana m --date 2016052800 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000 --plot all 
+#dates = ['2016060500', '2016060600', '2016060700', '2016060800']
 
-python compute_and_save.py --ana m --date 2016053000 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000
-python analyze_and_plot.py --ana m --date 2016053000 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000 --plot all 
-
-python compute_and_save.py --ana m --date 2016053100 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000
-python analyze_and_plot.py --ana m --date 2016053100 --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000 --plot all 
-"""
+typ = sys.argv[1]
+dates = [sys.argv[2]]
+for date in dates:
+    if typ in ['compute', 'all']:
+        os.system('python compute_and_save.py --ana m --date ' + date + 
+                    ' --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000')
+    if typ in ['plot', 'all']:
+        os.system('python analyze_and_plot.py --ana m --date ' + date + 
+                    ' --nens 20 --tstart 1 --tend 24 --height 2000 3000 5000 --plot all')
+        

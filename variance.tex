@@ -18,7 +18,11 @@
 Physical processes which occur on scales smaller than the grid spacing of a numerical model typically have to be parameterized. One such process is convection, which acts to restore stability in the atmosphere and is also the cause of significant amounts of precipitation. Parameterizations represent the effect of these sub-grid scale processes on the resolved scales is represented. Traditionally, this is done in a deterministic way, where the average, most likely, sub-grid effect given a certain large-scale forcing is described. If the sampling size of the unresolved features is large enough, the fluctuations about this mean are indeed small and negligible. So, for example, a grid box of a climate model with several hundreds of kilometers in size contains many convective features, typically 1-10 km in size. Global weather models nowadays, however, have grid spacings on the order of 10 km. Here the sampling size becomes insufficient and the fluctuation about a mean state are significant. Ignoring these fluctuations can lead to systematic biases in the non-linear atmosphere \citep[e.g.][]{Berner2016} and can also lead to an under-representation of extreme events. Furthermore, in an ensemble system, completely deterministic models are severely underdispersive and, therefore, unreliable. 
 
 % Stochastic parameterizations
-Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an ad hoc manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1999, Berner2009a}. These ad hoc methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of a parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. One attempt do formulate such a physically-based stochastic parameterization for convection is described now. 
+Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an ad hoc manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1999, Berner2009a}. These ad hoc methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of a parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. 
+% Other approaches
+Several approaches to get a physical model of the underlying uncertainty of convection have been tried. \cite{Dorrestijn2015} and \cite{Gottwald2016} used conditional Markov chains to describe the transition from one cloud-state to another for several micro-nodes in a GCM grid box. The transition probabilities are dependent on some large scale indicator, in their case the large scale vertical velocity, and the exact values are calculated from observations. This approach allows them to calculate a fraction of deep convective clouds for each grid-box, which can then be used to estimate mass flux for use in a convective parameterization. The advantage of using conditional Markov chains is that they inherently have memory. Application in a simple GCM shows improvements in the distribution of precipitation, and some improvements for equatorial waves \citep{Dorrestijn2016}. 
+
+One attempt do formulate such a physically-based stochastic parameterization for convection is described now. 
 
 \subsection{The \cite{Craig2006} theory and its application in \cite{Plant2008}} 
 % CC06 theory (following Davoudi2010)
@@ -43,10 +47,12 @@ Always note that $\langle M \rangle = \langle N \rangle \langle m \rangle$. Eq. 
 Assume $X=\xi_1 + ... + \xi_N$ where $\xi_k$ and $N$ have the finite moments $E[\xi_k]=\mu$, $Var[\xi_k]=\sigma^2$ and $E[N]=\nu$, $Var[N]=\tau^2$. Then the first and second moment of $X$ are $E[X]=\mu\nu$, $Var[X]=\nu\sigma^2 + \mu^2\tau^2$.
 
 % Numerical experiments in CC06b
-The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory. The error in $\mu_2$ is around 10\%, with $\mu_2 \langle N \rangle \approx 1.6$. Other studies introduced time-varying forcings andlooked at the differences in mass flux statistics as described below.
+The theoretical predictions above were tested against numerical simulations in radiative-convective equilibrium (RCE) by \cite{Cohen2006}. The results of these simulations agreed very well with the theory. The error in $\mu_2$ is around 10\%, with $\mu_2 \langle N \rangle \approx 1.6$. Other studies introduced time-varying forcings and looked at the differences in mass flux statistics as described below.
 
 % Plant Craig 2008 basics: What quantities that I want to look at later are important for a stochastic parameterization
 In the \cite[][PC08]{Plant2008} stochastic parameterization approach, the exponential $m$ distribution (Eq. \ref{eq:m_dist}) is used to create a random population of plumes for each grid-box consistent with a large scale $\langle M \rangle$. From this distribution the large-scale tendencies are then computed as the sum of the cloud model output for each plume. $\langle m \rangle = 2 \times 10^7$kg s$^{-1}$ is assumed to be a constant. This assumption is motivated by RCE simulations \citep[e.g.][]{Cohen2006}. The theoretical prediction for the variance of $M$ (Eq. \ref{eq:M_var}) is not explicitly used in PC08, but comes from the exponential $m$ distribution combined with the random initiation of new clouds. The cloud life time is set to 45 minutes for all clouds. 
+
+The PC08 scheme has been tested in a GCM study with some success, improving the precipitation patterns and equatorial waves \citep{Wang2016}.
 
 \subsection{Deviations from theory in other studies}
 Two studies looked at the deviations from the CC06 predictions in their simulations of convection with a time varying forcing: \cite{Davies2008} and \cite{Davoudi2010}.
@@ -215,6 +221,16 @@ Composites were computed by averaging over the days in the simulation period.
 
 \section{Results}
 
+\subsection{Weather situation 28 May - 8 June 2016}
+\paragraph{28 May} The synoptic forcing is weak. Over Southern Germany, high values of CAPE build up (around 1000 J/kg). Scattered diurnal convection develops.
+
+\paragraph{29 May} At night, some rain is advected from the South. Generally, the wind come from the South. During day, CAPE is high in Eastern Germany. There are both scattered convective cells and more stratiform regions.
+
+\paragraph{30 May - 5 June} A low pressure system is stationed over Southern Germany causing easterly advection over Northern Germany. This is coupled with diurnal convection.
+
+\paragraph{6 -- 8 June} The synoptic forcing is weaker with scattered convective cells.
+
+
 \subsection{Case 2016052800}
 \subsubsection{Case description}
 
@@ -246,7 +262,57 @@ Fig.\ref{fig:case1_timeseries}
 \section{Figures}
 All plots for level 30 (about 3000m above ground)
 
-\foreach \x in {2016052800,2016053000,2016053100}
+\subsection{Composite -2 Days}
+
+% % Scatter
+% \begin{figure}[ht] \label{fig:scatter}
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/scatter/scatter_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
+% \caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
+% \end{figure}
+
+% % Var stamps
+% \begin{figure}[ht] \label{fig:stamps_var}
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/stamps_var/stamps_var_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
+% \caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$}
+% \end{figure}
+
+% Summary stats
+\begin{figure}[ht] \label{fig:summary_stats}
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/summary_stats/summary_stats_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale}
+\end{figure}
+
+% Summary var
+\begin{figure}[ht] \label{fig:summary_var}
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/summary_var/summary_var_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/summary_var/summary_var_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 24 (about 5000m)}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/summary_var/summary_var_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Same as above but at level 34 (about 2000m)}
+\end{figure}
+
+
+% RDF
+\begin{figure}[ht] \label{fig:rdf}
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800/m/rdf/rdf_2016052800_2016052900_2016053000_2016053100_2016060200_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Radial distribution function for each analysis time step}
+\end{figure}
+\clearpage
+\newpage
+
+\foreach \x in {2016052800,2016052900,2016053000,2016053100,2016060200,2016060400,2016060500,2016060600,2016060700,2016060800}
 {
 \subsection{\x}
 
@@ -299,59 +365,21 @@ All plots for level 30 (about 3000m above ground)
 \includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
 \caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
 \end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Same as above but at level 24 (about 5000m)}
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Same as above but at level 34 (about 2000m)}
-\end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
+% \caption{Same as above but at level 24 (about 5000m)}
+% \end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{\x/m/summary_var/summary_var_\x_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
+% \caption{Same as above but at level 34 (about 2000m)}
+% \end{figure}
 
 \clearpage
 }
 
-\subsection{Composite 2016052800 2016053000 2016053100}
 
-% Scatter
-\begin{figure}[ht] \label{fig:scatter}
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/scatter/scatter_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
-\caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
-\end{figure}
-
-% Var stamps
-\begin{figure}[ht] \label{fig:stamps_var}
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/stamps_var/stamps_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
-\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$}
-\end{figure}
-
-% Summary stats
-\begin{figure}[ht] \label{fig:summary_stats}
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_stats/summary_stats_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale}
-\end{figure}
-
-% Summary var
-\begin{figure}[ht] \label{fig:summary_var}
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-24_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Same as above but at level 24 (about 5000m)}
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016052800_2016053000_2016053100/m/summary_var/summary_var_2016052800_2016053000_2016053100_ana-m_wat-True_lev-34_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Same as above but at level 34 (about 2000m)}
-\end{figure}
 
 
 \end{document}
