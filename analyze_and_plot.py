@@ -99,13 +99,13 @@ if 'cloud_stats' in args.plot:
     print 'Plotting cloud_stats'
     if len(datasetlist) > 1:
         raise Exception, 'More than one date is not implemented'
-    dataset = datasetlist[0]
+    dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
     plotdirsub = plotdir +  '/cloud_stats/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     # Setup
     sizemax = 2.e8
-    summax = 7.5e8
+    summax = 3e8
     
     ############# Time loop ##############
     for it, t in enumerate(timelist):
@@ -169,15 +169,25 @@ if 'rdf' in args.plot:
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     rdf_list = []
-    for dataset in datasetlist:
-        rdf_list.append(dataset.variables['rdf'][:])
+    for d in args.date:
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        rdf_tmp = dataset.variables['rdf'][:]
+        rdf_tmp[rdf_tmp > 1e20] = np.nan
+        rdf_list.append(rdf_tmp)
     rdf = np.nanmean(rdf_list, axis = 0)
-                       
     
     # Setup
     ymax = 7
-    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(timelist))]
     
+    # Get 3 hr averages
+    rdf_3hr = []
+    tlist_3hr = []
+    dt = 3
+    for i in range(len(timelist)/3):
+        rdf_3hr.append(np.nanmean(rdf[i*dt:(i+1)*dt], axis = 0))
+        tlist_3hr.append(i*dt+1)
+    rdf_3hr = np.array(rdf_3hr)
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
     ######## Lev loop #####################
     for iz, lev in enumerate(dataset.variables['levs']):
         print 'lev: ', lev
@@ -188,9 +198,9 @@ if 'rdf' in args.plot:
         fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
         
         ############# Time loop ##############
-        for it, t in enumerate(timelist):
-            print 'time: ', t
-            ax.plot(r/1000., rdf[it, iz, :], c = cyc[it], label = str(t))
+        for it, t in enumerate(tlist_3hr):
+            #print 'time: ', t
+            ax.plot(r/1000., rdf_3hr[it, iz, :], c = cyc[it], label = str(t))
         
         ax.legend(loc = 1, ncol = 2, prop={'size':6})
         ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)

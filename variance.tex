@@ -236,7 +236,7 @@ The correspondence of the computed variance and the theoretical predictions can 
 In the next step, we look at the correlation between the relative variance and the clustering parameter $\alpha$ (bottom left). There is a clear correlation, indicating that for larger $\alpha$, so increased clustering, the relative variance is higher. Using this information to calculate an adjusted relative variance (bottom right) gives us the chance to quantify this effect. The mean relative variances for small and large $n$ are relatively unchanged, but they are lower for $n$ around 100 km. The standard deviations are greatly reduced, particularly for larger $n$. With regards to \textbf{RQ1.1}, these results suggest that clustering, as measured by $\alpha$, can explain some of the deviations from the theoretical predictions, but not all of them. The theory seems to systematically predict larger variances. 
 
 \subsection{The diurnal cycle}
-Next we want to see whether there are significant diurnal cycle correlations in the variances. 
+Next we want to see whether there are significant diurnal cycle correlations in the variances. \ref{fig:comp_summary_var} shows the composite evolution of the mean values for the relative variance (top left). There is a diurnal cycle visible with a minimum variance during the day and increased variances in the evening. The diurnal variations are larger for larger $n$. This corresponds well with the diurnal variation of $\alpha$ (bottom right). The adjusted relative variance (top right) is much smoother, indicating that the clustering accounts for much of the diurnal variability of the relative variance. 
 
 
 \newpage
@@ -310,12 +310,12 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 \caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
 \end{figure}
 
-% % RDF
-% \begin{figure}[ht] \label{fig:comp_rdf}
-% \noindent \centering
-% \includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_2016060700_2016060800/m/rdf/rdf_2016052800_2016052900_2016053000_2016053100_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-% \caption{Radial distribution function for each analysis time step}
-% \end{figure}
+% RDF
+\begin{figure}[ht] \label{fig:comp_rdf}
+\noindent \centering
+\includegraphics[width=\textwidth]{2016052800_2016052900_2016053000_2016053100_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_2016060700_2016060800/m/rdf/rdf_2016052800_2016052900_2016053000_2016053100_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_2016060700_2016060800_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
+\caption{Radial distribution function for each analysis time step}
+\end{figure}
 
 % Summary stats
 \begin{figure}[ht] \label{fig:comp_summary_stats}
