@@ -142,8 +142,19 @@ for it, t in enumerate(timelist):
         qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QC', 
                                   nfill=1, levs = levlist, return_arrays = True)
+        # Add QI and QS
+        qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'QI', 
+                                  nfill=1, levs = levlist, return_arrays = True)
+        qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'QS', 
+                                  nfill=1, levs = levlist, return_arrays = True)
         for i in range(len(qclist)):
-            qclist[i] = qclist[i][:, lx1:lx2, ly1:ly2]
+            qclist[i] = (qclist[i][:, lx1:lx2, ly1:ly2] + 
+                         qilist[i][:, lx1:lx2, ly1:ly2] + 
+                         qslist[i][:, lx1:lx2, ly1:ly2])
+        del qilist
+        del qslist
         ncdffn_rho = ncdffn + '_buoy'
         rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_rho, 
                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
