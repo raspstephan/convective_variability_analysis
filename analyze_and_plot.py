@@ -50,7 +50,7 @@ for d in args.date:
     alldatestr += d + '_'
     print 'Loading date: ', d
     # Create file str
-    savedir = '/home/s/S.Rasp/repositories/variance/results/'
+    savedir = '/home/scratch/users/stephan.rasp/results/'
     savesuf = ('_ana-' + args.ana + '_wat-' + str(args.water) + 
                '_height-' + heightstr +
                'nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
@@ -108,7 +108,7 @@ if 'cloud_stats' in args.plot:
     
     # Setup
     sizemax = 2.e8
-    summax = 2.e8
+    summax = 7.5e8
     
     ############# Time loop ##############
     for it, t in enumerate(timelist):
@@ -123,7 +123,7 @@ if 'cloud_stats' in args.plot:
                                                bins = 15, range = [0., sizemax])
             sizemean = np.mean(cld_size_tmp)
             cld_sum_tmp = dataset.variables['cld_sum'][it,iz, :]
-            cld_sum_tmp = cld_size_tmp[~cld_sum_tmp.mask]
+            cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask]
             sumhist, sumedges = np.histogram(cld_sum_tmp, 
                                              bins = 15, range = [0., summax])
             summean = np.mean(cld_sum_tmp)

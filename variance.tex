@@ -60,11 +60,11 @@ Two studies looked at the deviations from the CC06 predictions in their simulati
 \subsubsection{\cite{Davies2008}}
 She used a model with 1km resolution, a prescribed radiative cooling and time-varying surface fluxes or temperature. The domain size was 64\,km by 64\,km. For the reference RCE simulation she found $\mu_2 \langle N \rangle \approx 1.5$ at 3 km, a deviation of 10\% in $\mu_2$, which is in agreement with CC06. When looking at their time-varying simulations, they see that $\mu_2$ is increased (about 2.2) 1h after convection is first triggered and at around 15UTC. They find that at the triggering time and at 18UTC there is strong clustering at scales from 5--20 km.. At the time of maximum convection (12UTC), the RDF is almost uniform and $\mu_2 \approx 0.7$. She argues that the deviation from the predicted variance can be largely explained by clustering (see Fig.~\ref{fig:Davies2008}). 
 
-\begin{figure}[ht] \label{fig:Davies2008}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=0.49\textwidth]{Davies2008_Fig5_7.png}
 \includegraphics[width=0.49\textwidth]{Davies2008_Fig5_8.png}\\
-\caption{From \cite{Davies2008}: (left) $\mu_2$ from their 24\,h time-varying forcing simulation at a height of 3\,km (blue). The black line shows the domain total mass flux at that level. (right) The corresponding RDF for the times indicated (left).}
+\caption{From \cite{Davies2008}: (left) $\mu_2$ from their 24\,h time-varying forcing simulation at a height of 3\,km (blue). The black line shows the domain total mass flux at that level. (right) The corresponding RDF for the times indicated (left).} \label{fig:Davies2008}
 \end{figure}
 
 
@@ -73,11 +73,11 @@ They used a similar model setup to CC06, but with a diurnal cycle through intera
 
 They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle N \rangle}$ (their Fig.~14), where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
 
-\begin{figure}[ht] \label{fig:Davoudi2010}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=0.49\textwidth]{Davoudi2010_Fig13.jpeg}
 \includegraphics[width=0.49\textwidth]{Davoudi2010_Fig15.jpeg}\\
-\caption{From \cite{Davoudi2010}: (left) $\mu_2$ averaged over all times for their simulations at different heights on the top. In the bottom plot, the skewness is shown. (right) In the bottom plot $\langle N \rangle$ and $\sigma_N^2$ are shown for different heights.}
+\caption{From \cite{Davoudi2010}: (left) $\mu_2$ averaged over all times for their simulations at different heights on the top. In the bottom plot, the skewness is shown. (right) In the bottom plot $\langle N \rangle$ and $\sigma_N^2$ are shown for different heights.} \label{fig:Davoudi2010}
 \end{figure}
 
 \subsection{Research questions}
@@ -89,9 +89,9 @@ The simple theory of CC06 has been shown to predict the convective variability w
 
 If this hypothesis is true, a follow up research questions is:
 
-\textbf{RQ1.1} To what extent can the deviations from the predicted variability be quantitatively explained by clustering?
+\textbf{RQ1.1} To what extent can the deviations from the predicted variability be quantitatively explained by deviation from the underlying assumptions about the distributions of $N$ and $m$?
 
-\textbf{Hypothesis} Clustering can explain most of the deviations from the predicted variance.
+\textbf{Hypothesis} Clustering (a deviation in the distribution of $N$) can explain a large part of the deviations from the predicted variance.
 
 If this latest hypothesis is not true, then the next follow up research question is:
 
@@ -161,11 +161,11 @@ where $\rho$ is density.
 \subsection{Calculation of radial distribution functions}
 A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. A sketch of how the RDF is calculated is given in Fig.~\ref{fig:Scheufele2014} (right).
 
-\begin{figure}[ht] \label{fig:Scheufele2014}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=0.49\textwidth]{Scheufele2014_Fig4_18.jpeg}
 \includegraphics[width=0.49\textwidth]{Scheufele2014_Fig3_16.jpeg}\\
-\caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.}
+\caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.} \label{fig:Scheufele2014}
 \end{figure}
 
 % A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
@@ -240,7 +240,7 @@ This allows us to define an ``adjusted'' fraction (cf. Eq.~\ref{eq:normalized_va
 \begin{equation} \label{eq:adjusted_variance_fraction}
  \frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{\alpha_{j,n} + \beta_{j,n}},
 \end{equation}
-which should be 1 if the deviations in the distributions of $m$ and $N$ can account for all of the variance deviation. By setting either $\alpha$ or $\beta$ to 1, we can quantify the effect of each of the distributions individually. Additionally, a summary measure for $\alpha$ and $\beta$ for each $n$ is computed as
+which should be 1 if the deviations in the distributions of $m$ and $N$ can account for all of the variance deviation. By setting either $\alpha$ or $\beta$ to 1, we can quantify the effect of each of the distributions individually, thereby answering \textbf{RQ1.1}. Additionally, a summary measure for $\alpha$ and $\beta$ for each $n$ is computed as
 \begin{equation} \label{eq:mean_alpha}
  \bar{\alpha}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}
 \end{equation}
@@ -256,7 +256,7 @@ The convective timescale was calculated according to \cite{Flack2016}. To produc
 \subsection{Composites}
 Composites were computed by averaging over the 12 days in the simulation period. For the calculation of means (every overbar) and standard deviations (std), all coarse boxes at scale $n$ for all ensemble members were first combined, and then the means and standard deviations were calculated. This ensures that, since the number of coarse boxes with clouds will differ from case to case, every coarse box is weighted equally. 
 
-\section{Results}
+\section{Results (and some thoughts)}
 Results are going to be shown for one example day (4 June) and for the composite over all 12 days. For now all results are for model level 30 (corresponds to 3000\,m above sea level.)
 
 \subsection{Cloud field statistics}
@@ -271,16 +271,28 @@ Fig.~\ref{fig:ex_rdf} and \ref{fig:comp_rdf} show the RDF for several time inter
 Fig.~\ref{fig:ex_stamps_var} shows an example of how the field is upscaled and how the variance and mean values are computed. 
 
 \subsection{Comparison with prediction}
-% 
-% 
-% The normalized variance is then plotted against the RHS of Eq. \ref{eq:M_var} $\frac{2}{\langle N \rangle_{j,n}}$. The theory from Eq.\ref{eq:M_var} predicts a slope of 2 for the resulting scatter plot.
-% \subsection{Comparison with prediction}
-% The correspondence of the computed variance and the theoretical predictions can be seen in \ref{fig:ex_scatter} and \ref{fig:comp_scatter} (both agree well). (top left) shows $mu_2$ plotted against $2/N$. The gray line indicates perfect agreement between simulations and predictions. (top right) shows the fraction value of the predicted value. For all $n$, the mean simulated variance is below the predicted variance. for large and small $n$ the relative variances are lower with an error of around 30\%. For $n$ around 100 km, the simulations match the predictions well, with a deviation of 5--10\%. The standard deviations of the relative variances increase with $n$, which is most likely due to the smaller sample size for larger $n$. These plots allow us to answer \textbf{RQ1}. The variances from the numerical simulations deviate from the predictions. In particular the simulated variances are, on average, lower, which is in agreement with previous studies. 
-% 
-% In the next step, we look at the correlation between the relative variance and the clustering parameter $\alpha$ (bottom left). There is a clear correlation, indicating that for larger $\alpha$, so increased clustering, the relative variance is higher. Using this information to calculate an adjusted relative variance (bottom right) gives us the chance to quantify this effect. The mean relative variances for small and large $n$ are relatively unchanged, but they are lower for $n$ around 100 km. The standard deviations are greatly reduced, particularly for larger $n$. With regards to \textbf{RQ1.1}, these results suggest that clustering, as measured by $\alpha$, can explain some of the deviations from the theoretical predictions, but not all of them. The theory seems to systematically predict larger variances. 
-% 
-% \subsection{The diurnal cycle}
-% Next we want to see whether there are significant diurnal cycle correlations in the variances. \ref{fig:comp_summary_var} shows the composite evolution of the mean values for the relative variance (top left). There is a diurnal cycle visible with a minimum variance during the day and increased variances in the evening. The diurnal variations are larger for larger $n$. This corresponds well with the diurnal variation of $\alpha$ (bottom right). The adjusted relative variance (top right) is much smoother, indicating that the clustering accounts for much of the diurnal variability of the relative variance. 
+Fig.~\ref{fig:comp_scatter} shows how the simulated variances $\mu_2$ compare to predictions $2/\langle N \rangle$ (top row left). The top right plot shows the fraction of simulation variance to prediction $\frac{\mu_2 \langle N \rangle}{2}$. The results for the example case and the composite agree very well, which is why we will focus on the composite results. for all $n$ the simulated variance is below the prediction. For large and small $n$, the deviations are larger, while for $n$ around 100\,km, the simulated variance is very close to the prediction. The standard deviation is typically larger for larger $n$, which could be a results of the smaller sample size. 
+
+The temporal evolution of the means is shown in Fig.~\ref{fig:comp_summary_var}. The top left plot shows the diurnal variation of $\frac{\mu_2 \langle N \rangle}{2}$. The diurnal signal is larger for large $n$. After around 17UTC for $n>$44.8\,km the simulations show a variance which is greater than predicted by theory. 
+
+\paragraph{RQ1} These results enable us to answer the primary research question. The simulated variances show significant deviation fro the theoretical predictions of CC06. Typically, the predicted variances are larger than the simulated ones. There is a strong diurnal cycle for larger scales with increased variability in the evening. These results are generally in agreement with previous studies of idealized situations. In particular the diurnal signal seen here looks similar to the one in Fig.~\ref{fig:Davies2008} with a strong increase in convective variability in the evening, even though we do not observe an exceeded variance in the morning. Therefore, the first hypothesis can be confirmed. \\ \\
+
+On to the follow-up RQ1.1:
+
+The second row of Fig.~\ref{fig:comp_scatter} shows the correlation between $\frac{\mu_2 \langle N \rangle}{2}$ and the $\alpha$ parameter (left). For all $n$ there seems to be a good correlation between the deviation fro the observed variance and the clustering as measured by this parameter. The same applies for the temporal evolution shown in Fig.~\ref{fig:comp_summary_var} (bottom left). $\alpha$ shows a strong diurnal signal for larger $n$ which resembles the diurnal signal of the relative variance. Around the convective maximum at midday $\alpha$ is smaller than one, indicating a more regular distribution of cells than what would be expected from a Poisson process. 
+
+Accounting for $\alpha$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\alpha}$) (Fig.~\ref{fig:comp_scatter}, second row right), decreases the mean for medium $n$, while for large and small $n$ the mean is largely unaffected. The variability of the variance is greatly decreased for the medium and large $n$. This indicates that for the larger $n$, clustering as measured by $\alpha$ can explain a significant portion of the variability. This can also be seen in the adjusted time evolution (Fig.~\ref{fig:comp_summary_var}, second row left). The diurnal variability is greatly reduced. 
+
+The same can be dome for $\beta$ instead of $\alpha$. Here the correlation is less clear, particularly for larger $n$ ((Fig.~\ref{fig:comp_scatter}, third row left). There is a strong trend for smaller $\beta$ for smaller $n$, which can also be seen in the temporal means (Fig.~\ref{fig:comp_summary_var}, bottom row right). This could represent a sampling issue, where the very limited number of clouds sampled for small $n$ will most likely have a sharper distribution than the exponential distribution assumed by CC06. There is only a small diurnal signal in $\beta$.
+
+Accounting for $\beta$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\beta}$) (Fig.~\ref{fig:comp_scatter}, third row right) results in increased mean variance fractions for medium and small $n$. The variability is not changed significantly. In the temporal evolution plot (Fig.~\ref{fig:comp_summary_var}, second row right) a similar trend can be observed. The mean is changed significantly for small and medium $n$, while the diurnal variation is only reduced slightly. These results indicate that the deviations in $\beta$, most likely owing to sampling issues, are to a large part responsible for the reduced simulated variance for small $n$.
+
+Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \rangle}{\alpha + \beta}$) (Fig.~\ref{fig:comp_scatter}, bottom row right) shows that for small and medium $n$ the agreement with the theoretical prediction is very good, and the standard deviation is greatly reduced. For large $n$ there is still a significant deviation in the mean value, but the variability of the variance around mean is also reduced. The temporal means (Fig.~\ref{fig:comp_summary_var}, top row right) for small and medium $n$ basically show no diurnal signal any more and are very close to 1. For large $n$ some of the diurnal variability remains with a minimum during the convective maximum and a maximum in the evening. 
+
+\paragraph{RQ1.1} Deviations in the distributions of $N$ and $m$ can indeed explain a large portion of the deviations of the variances. The clustering as measured by $\alpha$ seems to be responsible for a large chunk of the variability of the simulated variances around their mean and the diurnal cycle for larger $n$. $\beta$, on the other hand, shows that for smaller $n$ the simulated $m$ distribution tends to be smaller than exponential. Accounting for $\beta$, therefore, explains, to a large part, the mean deviation of the variance for smaller $n$. By accounting for both, $\alpha$ and $\beta$, the adjusted simulated variance is very close to the prediction for small and medium $n$. For large $n$, there is still a general trend towards lower simulated variances and some of the diurnal signal remains. In summary, these results suggest that for large scales clustering is important, while for small scales the very limited number of sampled clouds leads to differences in the mass flux per cloud distribution. 
+
+
+\section{My questions}
 
 
 \newpage
@@ -294,73 +306,73 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 
 \subsection{Example case: June 4}
 % Prec and W stamps
-\begin{figure}[ht] \label{fig:ex_stamps_w}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=\textwidth]{2016060400/m/stamps_w/stamps_w_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000.png}\\
-\caption{(Top left) Ensemble mean precipitation, (remaining plots) vertical velocity field for the first three ensemble members}
+\caption{(Top left) Ensemble mean precipitation, (remaining plots) vertical velocity field for the first three ensemble members} \label{fig:ex_stamps_w}
 \end{figure}
 
 % Cloud statistics
-\begin{figure}[ht] \label{fig:ex_cloud_stats}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=\textwidth]{2016060400/m/cloud_stats/cloud_stats_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
-\caption{Cloud statistics for one time step (14UTC): (left) Histogram of cloud size (15 bins with width 0.13e8 m$^2$) (right) histogram of $m$ (15 bins with width 0.5e8 kg/s). Red lines show the mean value.}
+\caption{Cloud statistics for one time step (14UTC): (left) Histogram of cloud size (15 bins with width 0.13e8 m$^2$) (right) histogram of $m$ (15 bins with width 0.5e8 kg/s). Red lines show the mean value.} \label{fig:ex_cloud_stats}
 \end{figure}
 
 % Summary stats
-\begin{figure}[ht] \label{fig:comp_summary_stats}
+\begin{figure}[ht]
 \noindent \centering
-\includegraphics[width=\textwidth]{composite/m/summary_stats/summary_stats_composite_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale}
+\includegraphics[width=\textwidth]{composite/m/summary_stats/summary_stats_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale} \label{fig:comp_summary_stats}
 \end{figure}
 
 % RDF
-\begin{figure}[ht] \label{fig:ex_rdf}
+\begin{figure}[ht]
 \noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/rdf/rdf_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Radial distribution function for each analysis time step}
+\includegraphics[width=\textwidth]{2016060400/m/rdf/rdf_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Radial distribution function averaged for 3\,h intervals} \label{fig:ex_rdf}
 \end{figure}
 
 % RDF
-\begin{figure}[ht] \label{fig:comp_rdf}
+\begin{figure}[ht]
 \noindent \centering
-\includegraphics[width=\textwidth]{composite/m/rdf/rdf_composite_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Radial distribution function for each analysis time step}
+\includegraphics[width=\textwidth]{composite/m/rdf/rdf_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{As above but for the composite.} \label{fig:comp_rdf}
 \end{figure}
 
 % Var stamps
-\begin{figure}[ht] \label{fig:ex_stamps_var}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=\textwidth]{2016060400/m/stamps_var/stamps_var_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
-\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$}
+\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$} \label{fig:ex_stamps_var}
 \end{figure}
 
-% Scatter
-\begin{figure}[ht] \label{fig:ex_scatter}
-\noindent \centering
-\includegraphics[width=0.8\textwidth]{2016060400/m/scatter/scatter_2016060400_ana-m_wat-True_lev-30_nens-20.png}\\
-\caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
-\end{figure}
+% % Scatter
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=0.8\textwidth]{2016060400/m/scatter/scatter_2016060400_ana-m_wat-True_lev-30_nens-20.png}\\
+% \caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:ex_scatter}
+% \end{figure}
 
 % Scatter
-\begin{figure}[ht] \label{fig:comp_scatter}
+\begin{figure}[ht]
 \noindent \centering
 \includegraphics[width=0.8\textwidth]{composite/m/scatter/scatter_composite_ana-m_wat-True_lev-30_nens-20.png}\\
-\caption{Variance scatter plots: (left) the square root of the normalized variance is plotted against the square root of 1/N. The gray line represents the theoretical prediction. (right) Percentage fraction of theoretical prediction. Crosses represent the mean value for each scale. The mean is calculated in the log-space.}
+\caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:comp_scatter}
 \end{figure}
 
-% Summary var
-\begin{figure}[ht] \label{fig:ex_summary_var}
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/summary_var/summary_var_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
-\end{figure}
+% % Summary var
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/summary_var/summary_var_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{Time evolution for the mean of several variables.} \label{fig:ex_summary_var}
+% \end{figure}
 
 % Summary var
-\begin{figure}[ht] \label{fig:comp_summary_var}
+\begin{figure}[ht]
 \noindent \centering
-\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-1_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) $0.5 \times \overline{\mu_{2}\langle N \rangle}_n$ (see Eq. \ref{eq:mean_nvar_n}), (top right) $\overline{\frac{\tilde{\mu}_2 \langle N \rangle}{1+\alpha}}_n$ (see Eq. \ref{eq:adjusted_M_var}), (bottom left) $\frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}$ (see Eq. \ref{eq:m_exp_test}) and (bottom right) $\bar{\alpha}_n$ (see Eq. \ref{eq:mean_alpha})}
+\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time evolution for the mean of several variables.} \label{fig:comp_summary_var}
 \end{figure}
 
 

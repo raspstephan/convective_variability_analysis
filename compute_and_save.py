@@ -31,7 +31,7 @@ args = parser.parse_args()
 
 
 # Create file str
-savedir = '/home/s/S.Rasp/repositories/variance/results/'
+savedir = '/home/scratch/users/stephan.rasp/results/'
 heightstr = ''
 for h in args.height:
     heightstr += str(int(h)) + '_'
