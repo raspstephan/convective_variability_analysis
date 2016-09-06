@@ -291,6 +291,7 @@ Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \r
 
 \paragraph{RQ1.1} Deviations in the distributions of $N$ and $m$ can indeed explain a large portion of the deviations of the variances. The clustering as measured by $\alpha$ seems to be responsible for a large chunk of the variability of the relative variances around their mean and the diurnal cycle for larger $n$. $\beta$, on the other hand, shows that for smaller $n$ the simulated $m$ distribution tends to be smaller than exponential. Accounting for $\beta$, therefore, explains, to a large part, the mean deviation of the predicted variance for smaller $n$. By accounting for both, $\alpha$ and $\beta$, the adjusted predictions are very close to relative variance for small and medium $n$. For large $n$, there is still a general trend for the predictions to be higher and some of the diurnal signal remains. In summary, these results suggest that for large scales clustering is important, while for small scales the very limited number of sampled clouds leads to differences in the mass flux per cloud distribution. 
 
+\paragraph{Height dependence} All plots above are valid for 3000\,m asl. Figs.~\ref{fig:comp_height_var} (and below) show the dependence of the variance parameters on height, similar to the plots in \cite{Davoudi2010}, for several time intervals. The results resemble their results. $\frac{\mu_2 \langle N \rangle}{2}$ increases with height. At around 8\,km height the predicted variance agrees well with the simulation results during the convective maximum. the height dependence of $\alpha$ is weak, except for the boundary layer region. At later times (18--20UTC) the clustering for $n$ around 100\,km is clearly visible. $\beta$ has a strong height dependence at all times with lower values in the lower troposphere and higher values in the upper troposphere. This indicates that small clouds which make up the bulk of the distribution in the lower troposphere do not reach the upper parts of the troposphere. Looking at the adjusted predictions one can see that $\alpha$ mainly accounts for the bias between different $n$, while $\beta$ accounts for much of the height variability. 
 
 \section{My questions}
 Here are some of the questions I have regarding what I have done so far.
@@ -389,6 +390,28 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 \caption{Time evolution for the mean of several variables.} \label{fig:comp_summary_var}
 \end{figure}
 
+
+% Height var
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-6-9.png}\\
+\caption{Height evolution for the mean of several variables for the interval 9UTC--11UTC.} \label{fig:comp_height_var}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-9-12.png}\\
+\caption{Height evolution for the mean of several variables for the interval 12UTC--14UTC.} 
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-12-15.png}\\
+\caption{Height evolution for the mean of several variables for the interval 15UTC--17UTC.}
+\end{figure}
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-15-18.png}\\
+\caption{Height evolution for the mean of several variables for the interval 18UTC--20UTC.}
+\end{figure}
 
 % Loop
 % \foreach \x in {2016052800,2016052900,2016053000,2016053100,2016060200,2016060400,2016060500,2016060600,2016060700,2016060800}

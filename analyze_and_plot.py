@@ -32,11 +32,13 @@ parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
 parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
+parser.add_argument('--tplot', metavar = 'tplot', type=float, nargs = '+',
+                    default = [9,12])
 args = parser.parse_args()
 
 if 'all' in args.plot:
     args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
-                 'stamps_var', 'stamps_w']
+                 'stamps_var', 'stamps_w', 'height_var']
 
 ################################################################################
 # Load datatsets
@@ -1087,13 +1089,189 @@ if 'stamps_w' in args.plot:
             plt.close('all')
 
 
+################################################################################
+if 'height_var' in args.plot:
+    print 'Plotting height_var'
+    plotdirsub = plotdir +  '/height_var/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    # Setup
+    t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    UTCstart = timelist[t1]
+    UTCstop = timelist[t2-1]
+    print 'Summing from', UTCstart, 'to', UTCstop
+    # Clist for n
+    clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
+             "#ff00ff")
 
+    # ATTENTION: START COPY FROM SUMMARY_VAR
+    # Load the data 
+    # These lists have 4 dimensions [time, lev, n, N_box]
+    varM_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    meanM_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    varN_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    meanN_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    varm_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    meanm_list = create3Dlist(len(timelist), len(args.height), len(nlist))
+    
+    # loop over dates 
+    for d in args.date:
+        # Load dataset 
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        
+        # Load the required data and put it in list
+        for it, time in enumerate(timelist):
+            for iz, lev in enumerate(dataset.variables['levs']):
+                for i_n, n in enumerate(dataset.variables['n']):
+                    nmax = 265/n
+                    
+                    meanM = dataset.variables['meanM'][it,iz,i_n,:nmax,:nmax]
+                    varM = dataset.variables['varM'][it,iz,i_n,:nmax,:nmax]
+                    meanN = dataset.variables['meanN'][it,iz,i_n,:nmax,:nmax]
+                    varN = dataset.variables['varN'][it,iz,i_n,:nmax,:nmax]
+                    meanm = dataset.variables['meanm'][it,iz,i_n,:nmax,:nmax]
+                    varm = dataset.variables['varm'][it,iz,i_n,:nmax,:nmax]
+                    
+                    meanM_list[it][iz][i_n] += list(np.ravel(meanM))
+                    varM_list[it][iz][i_n] += list(np.ravel(varM))
+                    meanN_list[it][iz][i_n] += list(np.ravel(meanN))
+                    varN_list[it][iz][i_n] += list(np.ravel(varN))
+                    meanm_list[it][iz][i_n] += list(np.ravel(meanm))
+                    varm_list[it][iz][i_n] += list(np.ravel(varm))
+    
 
+    mu2N_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    mu2Nalpha_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    mu2Nbeta_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    mu2Nab_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    alpha_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    beta_list3d = create3Dlist(len(timelist), len(args.height), len(nlist))
+    
+    # Get means and convert to plotting arrays
+    for it, time in enumerate(timelist):
+        for iz, lev in enumerate(dataset.variables['levs']):
+            for i_n, n in enumerate(dataset.variables['n']):
+                # Extract the arrays
+                varM = np.array(varM_list[it][iz][i_n])
+                meanM = np.array(meanM_list[it][iz][i_n])
+                varN = np.array(varN_list[it][iz][i_n])
+                meanN = np.array(meanN_list[it][iz][i_n])
+                varm = np.array(varm_list[it][iz][i_n])
+                meanm = np.array(meanm_list[it][iz][i_n])
+                
+                mu2 = varM/(meanM**2)
+                alpha = varN/meanN
+                beta = varm/(meanm**2)
+                
+                mu2N_list3d[it][iz][i_n] = np.nanmean(mu2*meanN/2)
+                mu2Nalpha_list3d[it][iz][i_n] = np.nanmean(mu2*meanN/(1+alpha))
+                mu2Nbeta_list3d[it][iz][i_n] = np.nanmean(mu2*meanN/(1+beta))
+                mu2Nab_list3d[it][iz][i_n] = np.nanmean(mu2*meanN/(beta+alpha))
+                alpha_list3d[it][iz][i_n] = np.nanmean(alpha)
+                beta_list3d[it][iz][i_n] = np.nanmean(beta)
+    
+    mu2N_list3d =  np.array(mu2N_list3d)
+    mu2Nalpha_list3d =  np.array(mu2Nalpha_list3d)
+    mu2Nbeta_list3d =  np.array(mu2Nbeta_list3d)
+    mu2Nab_list3d =  np.array(mu2Nab_list3d)
+    alpha_list3d =  np.array(alpha_list3d)
+    beta_list3d =  np.array(beta_list3d)
+    # ATTENTION: STOP COPY FROM SUMMARY_VAR
+    
+    # Get the required time avarage
+    mu2N_list3d =  np.mean(mu2N_list3d[t1:t2], axis = 0)
+    mu2Nalpha_list3d =  np.mean(mu2Nalpha_list3d[t1:t2], axis = 0)
+    mu2Nbeta_list3d =  np.mean(mu2Nbeta_list3d[t1:t2], axis = 0)
+    mu2Nab_list3d =  np.mean(mu2Nab_list3d[t1:t2], axis = 0)
+    alpha_list3d =  np.mean(alpha_list3d[t1:t2], axis = 0)
+    beta_list3d =  np.mean(beta_list3d[t1:t2], axis = 0)
 
+    levs = dataset.variables['levs'][:]
 
-
-
-
+    # Create the figure
+    fig, axarr = plt.subplots(3, 2, figsize = (95./25.4*2, 10))
+    
+    for i_n, n in enumerate(nlist):
+        axarr[0,0].plot(mu2N_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        axarr[0,1].plot(mu2Nab_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        axarr[1,0].plot(mu2Nalpha_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        axarr[1,1].plot(mu2Nbeta_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        axarr[2,0].plot(alpha_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        axarr[2,1].plot(beta_list3d[:,i_n], args.height, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        
+    axarr[0,0].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[0,0].set_xlim(0, 2)
+    #axarr[0,0].set_yscale('log')
+    axarr[0,0].set_ylabel('height [m]')
+    axarr[0,0].set_xlabel(r'$\mu_2 \langle N \rangle/2$')
+    axarr[0,0].set_ylim(args.height[0], args.height[-1])
+    
+    axarr[0,1].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[0,1].set_xlim(0, 2)
+    #axarr[0,1].set_yscale('log')
+    axarr[0,1].set_ylabel('height [m]')
+    axarr[0,1].set_xlabel(r'$\mu_2 \langle N \rangle/(\alpha +\beta)$')
+    axarr[0,1].set_ylim(args.height[0], args.height[-1])
+    
+    axarr[1,0].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[1,0].set_xlim(0, 2)
+    #axarr[1,0].set_yscale('log')
+    axarr[1,0].set_ylabel('height [m]')
+    axarr[1,0].set_xlabel(r'$\mu_2 \langle N \rangle/(1+\alpha)$')
+    axarr[1,0].set_ylim(args.height[0], args.height[-1])
+    
+    axarr[1,1].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[1,1].set_xlim(0, 2)
+    #axarr[1,1].set_yscale('log')
+    axarr[1,1].set_ylabel('height [m]')
+    axarr[1,1].set_xlabel(r'$\mu_2 \langle N \rangle/(1+\beta)$')
+    axarr[1,1].set_ylim(args.height[0], args.height[-1])
+    
+    axarr[2,0].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[2,0].set_xlim(0, 2)
+    #axarr[2,0].set_yscale('log')
+    axarr[1,0].set_ylabel('height [m]')
+    axarr[2,0].set_xlabel(r'$\alpha$')
+    axarr[2,0].set_ylim(args.height[0], args.height[-1])
+    
+    axarr[2,1].plot([1.]*len(args.height), args.height, c = 'gray', 
+                    zorder = 0.1)
+    axarr[2,1].set_xlim(0, 2)
+    #axarr[2,1].set_yscale('log')
+    axarr[2,1].set_ylabel('height [m]')
+    axarr[2,1].set_xlabel(r'$\beta$')
+    axarr[2,1].set_ylim(args.height[0], args.height[-1])
+        
+    axarr[2,1].legend(loc =4, ncol = 1, prop={'size':6})
+            
+            
+    titlestr = (alldatestr + '\n' + args.ana + 
+                ', water=' + str(args.water) + 
+                ', nens=' + str(args.nens) + ', from ' + str(UTCstart) + 
+                ' to ' + str(UTCstop))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.93])
+    
+    plotsavestr = ('height_var_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) +
+                    '_nens-' + str(args.nens)+ '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc) + '_tplot-' + str(t1) + 
+                    '-' + str(t2))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
 
 
 
