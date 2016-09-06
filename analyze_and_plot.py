@@ -38,7 +38,7 @@ args = parser.parse_args()
 
 if 'all' in args.plot:
     args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
-                 'stamps_var', 'stamps_w', 'height_var']
+                 'stamps_var', 'stamps_w', 'height_var', 'std_v_mean']
 
 ################################################################################
 # Load datatsets
@@ -233,11 +233,15 @@ if 'rdf' in args.plot:
             
             
 ################################################################################
-if 'scatter' in args.plot:
+if 'scatter' in args.plot or 'std_v_mean' in args.plot:
+    # ATTENTION: std_v_mean is an add on, and will always also plot the scatter plot
     print 'Plotting scatter'
     plotdirsub = plotdir +  '/scatter/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
-    
+    if 'std_v_mean' in args.plot:
+        plotdirsub2 = plotdir +  '/std_v_mean/'
+        if not os.path.exists(plotdirsub2): os.makedirs(plotdirsub2)
+        dx = 2.8e3
     # Setup
     # Clist for n
     clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
@@ -250,6 +254,9 @@ if 'scatter' in args.plot:
     N_list = create2Dlist(len(args.height), len(nlist))
     alpha_list = create2Dlist(len(args.height), len(nlist))
     beta_list = create2Dlist(len(args.height), len(nlist))
+    if 'std_v_mean' in args.plot:
+        stdM_list = create2Dlist(len(args.height), len(nlist))
+        M_list = create2Dlist(len(args.height), len(nlist))
     
     # Loop over dates 
     for d in args.date:
@@ -275,6 +282,9 @@ if 'scatter' in args.plot:
                 N_list[iz][i_n] += list(np.ravel(meanN))
                 alpha_list[iz][i_n] += list(alpha)
                 beta_list[iz][i_n] += list(beta)
+                if 'std_v_mean' in args.plot:
+                    stdM_list[iz][i_n] += list(np.ravel(np.sqrt(varM)))
+                    M_list[iz][i_n] += list(np.ravel(meanM))
                 
     # now I have the lists I want in the scatter plot 
     
@@ -286,6 +296,9 @@ if 'scatter' in args.plot:
         # Set up the figure 
         fig, axarr = plt.subplots(4, 2, figsize = (95./25.4*2, 13))
         
+        if 'std_v_mean' in args.plot:
+            fig2, ax2 = plt.subplots(1, 1, figsize = (95./25.4, 4))
+        
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
             print 'n: ', n
@@ -296,6 +309,15 @@ if 'scatter' in args.plot:
             mu2 = np.array(mu2_list[iz][i_n])
             alpha = np.array(alpha_list[iz][i_n])
             beta = np.array(beta_list[iz][i_n])
+            
+            if 'std_v_mean' in args.plot:
+                stdM = np.array(stdM_list[iz][i_n])
+                M = np.array(M_list[iz][i_n])
+                ax2.scatter(M, stdM, marker = 'o', c = clist[i_n], 
+                                    s = 4, zorder = z_n, linewidth = 0, 
+                                    alpha = 0.8)
+            
+            
             
             # Scatterplots 1
             x = np.sqrt(2/N)
@@ -518,6 +540,31 @@ if 'scatter' in args.plot:
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
                         '_nens-' + str(args.nens))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        
+        
+        if 'std_v_mean' in args.plot:
+            # Complete the figure
+            #ax2.legend(loc =3, ncol = 2, prop={'size':6})
+            tmp = np.linspace(0,1e10, 1000)
+            ax2.plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
+                    zorder = 2)
+            ax2.plot(tmp,np.sqrt(tmp*5e7), c = 'gray', alpha = 1, linestyle = '-.',
+                    zorder = 2)
+            ax2.set_xlim(1e6,1e10)
+            ax2.set_ylim(1e6,1e10)
+            ax2.set_xscale('log')
+            ax2.set_yscale('log')
+            #ax2.invert_xaxis()
+            ax2.set_xlabel(r'$\langle M \rangle$')
+            ax2.set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
+
+            fig2.suptitle(titlestr)
+            plt.tight_layout(rect=[0, 0.0, 1, 0.90])
+            
+            plotsavestr2 = ('std_v_mean_' + alldatestr + '_ana-' + args.ana + 
+                            '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                            '_nens-' + str(args.nens))
+            fig2.savefig(plotdirsub2 + plotsavestr2, dpi = 300)
         plt.close('all')
 
 ################################################################################

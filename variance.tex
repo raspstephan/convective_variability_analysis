@@ -293,6 +293,9 @@ Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \r
 
 \paragraph{Height dependence} All plots above are valid for 3000\,m asl. Figs.~\ref{fig:comp_height_var} (and below) show the dependence of the variance parameters on height, similar to the plots in \cite{Davoudi2010}, for several time intervals. The results resemble their results. $\frac{\mu_2 \langle N \rangle}{2}$ increases with height. At around 8\,km height the predicted variance agrees well with the simulation results during the convective maximum. the height dependence of $\alpha$ is weak, except for the boundary layer region. At later times (18--20UTC) the clustering for $n$ around 100\,km is clearly visible. $\beta$ has a strong height dependence at all times with lower values in the lower troposphere and higher values in the upper troposphere. This indicates that small clouds which make up the bulk of the distribution in the lower troposphere do not reach the upper parts of the troposphere. Looking at the adjusted predictions one can see that $\alpha$ mainly accounts for the bias between different $n$, while $\beta$ accounts for much of the height variability. 
 
+\paragraph{CC06 vs. SPPT: a different view}
+Inspired by \cite{Shutts2007}, Fig.~\ref{fig:comp_std_v_mean} shows the correlation of $\langle M \rangle$ with $\langle (\delta M)^2 \rangle$. According to CC06 they should be in a square root dependence, while the SPPT rationale suggests a linear relation. As can be seen, for the data from the simulations here, the CC06 relation fits better. This suggests that, at least for $M$, the SPPT assumption does not hold. SPPT, however, perturbs the output of the parameterizations, which for convection would be the heating rate $Q$. Therefore, it would be interesting to look at the correlation between $M$ and $Q$. 
+
 \section{My questions}
 Here are some of the questions I have regarding what I have done so far.
 \begin{enumerate}
@@ -411,6 +414,13 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 \noindent \centering
 \includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-15-18.png}\\
 \caption{Height evolution for the mean of several variables for the interval 18UTC--20UTC.}
+\end{figure}
+
+% Std_v_mean
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/std_v_mean/std_v_mean_composite_ana-m_wat-True_lev-30_nens-20.png}\\
+\caption{Relation between $\sigma_M$ and $M$. The dashed line indicates a linear relationship, while the dash-dotted line indicates a square root relationship.} \label{fig:comp_std_v_mean}
 \end{figure}
 
 % Loop
