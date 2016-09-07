@@ -835,30 +835,33 @@ if 'stamps_var' in args.plot:
     
     # Load the data
     # dataset loop
-    varNoN_list = []
-    NvarMN_adj_list = []
-    varmomm_list = []
+    NvarMN_list = []
+    M_list = []
+    Mdiff_list = []
     enstauc_list = []
-    for dataset in datasetlist:
+    for d in args.date:
+        # Load dataset 
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
         varM = dataset.variables['varM'][:]
         varN = dataset.variables['varN'][:]
         varm = dataset.variables['varm'][:]
         meanM = dataset.variables['meanM'][:]
         meanN = dataset.variables['meanN'][:]
         meanm = dataset.variables['meanm'][:]
+        Mmem1 = dataset.variables['Mmem1'][:]
         # Calculate the statistics
         NvarMN = varM / (meanM**2) * meanN
         varNoN = varN / meanN
-        varNoN_list.append(varNoN.filled(np.nan))
-        NvarMN_adj_list.append((NvarMN / (1 + varNoN)).filled(np.nan))
-        varmomm_list.append((varm / (meanm**2)).filled(np.nan))
-    
+        M_list.append(meanM)
+        Mdiff_list.append((Mmem1-meanM)/meanM)
+        NvarMN_list.append(NvarMN)
         enstauc_list.append(dataset.variables['enstauc'][:])
     
     # Get dataset mean
-    varNoN = np.nanmean(varNoN_list, axis = 0)
-    NvarMN_adj = np.nanmean(NvarMN_adj_list, axis = 0)
-    varmomm = np.nanmean(varmomm_list, axis = 0)
+    NvarMN = np.nanmean(NvarMN_list, axis = 0)
+    M = np.nanmean(NvarMN_list, axis = 0)
+    Mdiff = np.nanmean(Mdiff_list, axis = 0)
     enstauc = np.nanmean(enstauc_list, axis = 0)
 
     
@@ -904,8 +907,8 @@ if 'stamps_var' in args.plot:
                 
                 # Map fields to original grid
                 NvarMN_map = np.empty((taucobj.ny, taucobj.nx))
-                varNoN_map = np.empty((taucobj.ny, taucobj.nx))
-                NvarMN_adj_map = np.empty((taucobj.ny, taucobj.nx))
+                M_map = np.empty((taucobj.ny, taucobj.nx))
+                Mdiff_map = np.empty((taucobj.ny, taucobj.nx))
                 for i in range(256/n):
                     for j in range(256/n):
                         # Get limits for each N box
@@ -916,16 +919,14 @@ if 'stamps_var' in args.plot:
                         
                         NvarMN_map[xmin:xmax, ymin:ymax] = NvarMN[it,iz,i_n,i,j]
                         #print NvarMN_map[xmin:xmax, ymin:ymax]
-                        varNoN_map[xmin:xmax, ymin:ymax] = varNoN[it,iz,i_n,i,j]
-                        NvarMN_adj_map[xmin:xmax, ymin:ymax] = NvarMN_adj[it,iz,i_n,i,j]
+                        Mdiff_map[xmin:xmax, ymin:ymax] = Mdiff[it,iz,i_n,i,j]
+                        M_map[xmin:xmax, ymin:ymax] = M[it,iz,i_n,i,j]
                 
                 # Set missing values to nans
-                varNoN_map[NvarMN_map == 0.] = np.nan
-                NvarMN_adj_map[NvarMN_map == 0.] = np.nan
+                M_map[M_map == 0.] = np.nan
+                Mdiff_map[Mdiff_map == 0.] = np.nan
                 NvarMN_map[NvarMN_map == 0.] = np.nan
                 
-                print varNoN_map
-                print np.nanmean(varNoN_map)
                 
                 # 2. NvarMN
                 NvarMNobj = fieldobj(data = NvarMN_map/2.,
@@ -938,8 +939,8 @@ if 'stamps_var' in args.plot:
                                    unit = '')
                 
                 # 2. varNoN
-                varNoNobj = fieldobj(data = varNoN_map,
-                                   fieldn = 'varNoN',
+                Mobj = fieldobj(data = M_map,
+                                   fieldn = 'meanM',
                                    rlats = rlats,
                                    rlons = rlons,
                                    polelat = tmpfobj.polelat,
@@ -948,8 +949,8 @@ if 'stamps_var' in args.plot:
                                    unit = '')
                 
                 # 3. NvarMN_adj
-                NvarMN_adjobj = fieldobj(data = NvarMN_adj_map,
-                                   fieldn = 'NvarMN_adj',
+                Mdiffobj = fieldobj(data = Mdiff_map,
+                                   fieldn = 'Mdiff',
                                    rlats = rlats,
                                    rlons = rlons,
                                    polelat = tmpfobj.polelat,
@@ -987,27 +988,27 @@ if 'stamps_var' in args.plot:
                 
                 # 3. varNoN
                 plt.sca(axarr[1,0])
-                cf, tmp = ax_contourf(axarr[1,0], varNoNobj, 
+                cf, tmp = ax_contourf(axarr[1,0], Mobj, 
                                       pllevels=levelsM,  colors = cmM,
-                                      sp_title=varNoNobj.fieldn,
+                                      sp_title=Mobj.fieldn,
                                       Basemap_drawrivers = False,
                                       Basemap_parallelslabels = [0,0,0,0],
                                       Basemap_meridiansslabels = [0,0,0,0],
                                       extend = 'both')
                 cb = fig.colorbar(cf)
-                cb.set_label(varNoNobj.unit)
+                cb.set_label(Mobj.unit)
                 
                 # 4. NvarMN_adj
                 plt.sca(axarr[1,1])
-                cf, tmp = ax_contourf(axarr[1,1], NvarMN_adjobj, 
-                                      pllevels=levelsM,  colors = cmM,
-                                      sp_title=NvarMN_adjobj.fieldn,
+                cf, tmp = ax_contourf(axarr[1,1], Mdiffobj, 
+                                      pllevels=np.arange(-1, 1.1, 0.2),  colors = cmM,
+                                      sp_title=Mdiffobj.fieldn,
                                       Basemap_drawrivers = False,
                                       Basemap_parallelslabels = [0,0,0,0],
                                       Basemap_meridiansslabels = [0,0,0,0],
                                       extend = 'both')
                 cb = fig.colorbar(cf)
-                cb.set_label(NvarMN_adjobj.unit)
+                cb.set_label(Mdiffobj.unit)
                 
                 titlestr = (alldatestr + '+' + ddhhmmss(t) + ', ' + args.ana + 
                             ', water=' + str(args.water) + ', lev= ' + str(lev) + 
@@ -1015,7 +1016,7 @@ if 'stamps_var' in args.plot:
                 fig.suptitle(titlestr, fontsize='x-large')
                 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
                 
-                plotsavestr = ('stamps_var_' + alldatestr + '_ana-' + args.ana + 
+                plotsavestr = ('new_stamps_var_' + alldatestr + '_ana-' + args.ana + 
                             '_wat-' + str(args.water) + '_lev-' + str(lev) +
                             '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) +
                             '_n-' + str(n))

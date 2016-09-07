@@ -296,6 +296,9 @@ Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \r
 \paragraph{CC06 vs. SPPT: a different view}
 Inspired by \cite{Shutts2007}, Fig.~\ref{fig:comp_std_v_mean} shows the correlation of $\langle M \rangle$ with $\langle (\delta M)^2 \rangle$. According to CC06 they should be in a square root dependence, while the SPPT rationale suggests a linear relation. As can be seen, for the data from the simulations here, the CC06 relation fits better. This suggests that, at least for $M$, the SPPT assumption does not hold. SPPT, however, perturbs the output of the parameterizations, which for convection would be the heating rate $Q$. Therefore, it would be interesting to look at the correlation between $M$ and $Q$. 
 
+\subsection{Spatial correlation}
+One question to ask is whether there is any correlation in the deviation in $M_i$ of a member. Specifically, what is the spatial auto-correlation of $M_{i}' = (M_i - \langle M \rangle)/\langle M \rangle$. Fig.~\ref{fig:ex_stamps_corr} shows one example of the field for the first member. As can be seen the field shows some signs of correlation but then also jumps from positive to negative values intermittently. An attempt at construcrting an auto-correlation function resulted invalues around zero for all distances. Therefore, I will put this inquiry on hold, maybe forever!.
+
 \section{My questions}
 Here are some of the questions I have regarding what I have done so far.
 \begin{enumerate}
@@ -303,12 +306,14 @@ Here are some of the questions I have regarding what I have done so far.
  \item Is the way I am computing $\langle (\delta m )^2 \rangle_{j,n}$ and $\langle m \rangle_{j,n}$ (Eqs.~\ref{eq:calc_varm} and \ref{eq:calc_meanm}) correct? 
  \item Correlation between $n$ and $\beta$: Is this simply a sampling issue? How is this represented in PC08? Is this intrinsically included in the method of randomly drawing cells?
  \item Are there any further diagnostics of this dataset which would be relevant and interesting?
+ \item How are $Q$ and $M$ related in a parameterization? Do SPPT and CC06 contradict each other as \cite{Shutts2007} suggest?
 \end{enumerate}
 
 \paragraph{Next steps} Provided that what I have so far is not totally wrong, here are some ideas for next steps:
 \begin{enumerate}
  \item How can we predict $\alpha$ from the large-scale environment? Has this already been tried? Or is it too difficult?
  \item How could $\alpha$ be included in PC08? Is this ``beyond the scope of this study''?
+ \item What are time and length correlation scales? 
 \end{enumerate}
 
 
@@ -421,6 +426,14 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 \noindent \centering
 \includegraphics[width=\textwidth]{composite/m/std_v_mean/std_v_mean_composite_ana-m_wat-True_lev-30_nens-20.png}\\
 \caption{Relation between $\sigma_M$ and $M$. The dashed line indicates a linear relationship, while the dash-dotted line indicates a square root relationship.} \label{fig:comp_std_v_mean}
+\end{figure}
+
+
+% Var stamps
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{2016060400/m/stamps_var/new_stamps_var_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000_n-32.png}\\
+\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) } \label{fig:ex_stamps_corr}
 \end{figure}
 
 % Loop

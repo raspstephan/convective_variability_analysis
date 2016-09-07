@@ -12,8 +12,9 @@ import numpy as np
 from datetime import timedelta
 from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf
 from cosmo_utils.helpers import make_timelist, ddhhmmss
-from cosmo_utils.diag import identify_clouds, calc_rdf
+from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d
 from scipy.ndimage.measurements import center_of_mass
+from scipy.signal import correlate
 
 
 # Setup
@@ -28,6 +29,18 @@ parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
 parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 args = parser.parse_args()
+
+
+# Functions
+def radial_profile(data, center):
+    y, x = np.indices((data.shape))
+    r = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+    r = r.astype(np.int)
+
+    tbin = np.bincount(r.ravel(), data.ravel())
+    nr = np.bincount(r.ravel())
+    radialprofile = tbin / nr
+    return radialprofile
 
 
 # Create file str
@@ -86,7 +99,8 @@ levdim = rootgrp.createDimension('levs', len(levlist))
 xdim = rootgrp.createDimension('x', nlist[0])
 ydim = rootgrp.createDimension('y', nlist[0])
 nclddim = rootgrp.createDimension('N_cld', 1e6)
-drdim = rootgrp.createDimension('dr', 30/2+1)
+drdim = rootgrp.createDimension('dr', 30/2+1) # For RDF
+drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
 
 
 # Create variables and add attributes 
@@ -106,12 +120,15 @@ enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
 cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','levs','N_cld'))
 cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','levs','N_cld'))
 rdf      = rootgrp.createVariable('rdf', 'f8', ('time','levs','dr'))
+acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
 varM     = rootgrp.createVariable('varM', 'f8', ('time','levs','n','x','y'))
 varN     = rootgrp.createVariable('varN', 'f8', ('time','levs','n','x','y'))
 varm     = rootgrp.createVariable('varm', 'f8', ('time','levs','n','x','y'))
 meanN    = rootgrp.createVariable('meanN', 'f8', ('time','levs','n','x','y'))
 meanM    = rootgrp.createVariable('meanM', 'f8', ('time','levs','n','x','y'))
 meanm    = rootgrp.createVariable('meanm', 'f8', ('time','levs','n','x','y'))
+
+Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
 # End allocation
 ################################################################################
@@ -257,10 +274,8 @@ for it, t in enumerate(timelist):
             
             # Loop over coarse grid boxes
             # Allocate coarse arrays
-            varm_coarse = np.empty((nx, ny))
-            m_coarse = np.empty((nx, ny))
-            M_coarse = np.empty((nx, ny))
-            N_coarse = np.empty((nx, ny))
+            nmem = len(fieldlist)
+            Mmem_coarse = np.empty((nmem, nx, ny))# These are for the ACF correlation without the nan filter
             for ico  in range(nx):
                 for jco in range(ny):
                     # Get limits for each N box
@@ -273,10 +288,11 @@ for it, t in enumerate(timelist):
                     tmp_Mlist = []
                     tmp_Nlist = []
                     # Loop over members
-                    for field, labels, com, cld_sum_mem in zip(fieldlist, 
+                    for field, labels, com, cld_sum_mem, imem in zip(fieldlist, 
                                                                labelslist,
                                                                comlist, 
-                                                               sumlist):
+                                                               sumlist,
+                                                               range(nmem)):
                         # Get the collapsed clouds for each box
                         bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
                                     (com[:,1]>=ymin)&(com[:,1]<ymax))
@@ -285,8 +301,10 @@ for it, t in enumerate(timelist):
                         tmp_cldlist += list(box_cld_sum)
                         if len(box_cld_sum) > 0:
                             tmp_Mlist.append(np.sum(box_cld_sum))
+                            Mmem_coarse[imem, ico, jco] = np.sum(box_cld_sum)
                         else:
                             tmp_Mlist.append(0.)
+                            Mmem_coarse[imem, ico, jco] = 0.
                         tmp_Nlist.append(box_cld_sum.shape[0])
                         # End member loop
                     
@@ -308,8 +326,29 @@ for it, t in enumerate(timelist):
                         meanM[it,iz,i_n,ico,jco] = np.nan
                         meanm[it,iz,i_n,ico,jco] = np.nan
                         meanN[it,iz,i_n,ico,jco] = np.nan
-                    
-
+            
+            Mmem1[it,iz,i_n,:nx,:ny] = Mmem_coarse[0]
+            
+            ## Calculate 2dACF 
+            #if n < nlist[1]:
+                #tmp_acflist = []
+                #for imem in range(nmem):
+                    #Mdiff = ((Mmem_coarse[imem] - np.mean(Mmem_coarse, axis = 0))/
+                            #1)
+                            ##np.mean(Mmem_coarse, axis = 0))
+                    #Mdiff[np.isnan(Mdiff)] = 0.
+                    #C = crosscor(Mdiff, Mdiff, minusmean = False)
+                    #tmp_acflist.append(C)
+                ##print Mdiff
+                #Cmean =  np.nanmean(tmp_acflist, axis = 0)
+                #tmp_acf2d = radial_profile(Cmean, (nx/2,ny/2))
+                #print Mdiff[nx/2-2:nx/2+2,nx/2-2:nx/2+2]
+                #print Cmean[nx/2-2:nx/2+2,nx/2-2:nx/2+2]
+                #print tmp_acf2d
+                #acf2d[it,iz,i_n,:tmp_acf2d.shape[0]] = tmp_acf2d
+            #else:
+                #acf2d[it,iz,i_n,0] = np.nan
+            
                     
   
                 
