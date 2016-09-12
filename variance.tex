@@ -297,7 +297,22 @@ Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \r
 Inspired by \cite{Shutts2007}, Fig.~\ref{fig:comp_std_v_mean} shows the correlation of $\langle M \rangle$ with $\langle (\delta M)^2 \rangle$. According to CC06 they should be in a square root dependence, while the SPPT rationale suggests a linear relation. As can be seen, for the data from the simulations here, the CC06 relation fits better. This suggests that, at least for $M$, the SPPT assumption does not hold. SPPT, however, perturbs the output of the parameterizations, which for convection would be the heating rate $Q$. Therefore, it would be interesting to look at the correlation between $M$ and $Q$. 
 
 \subsection{Spatial correlation}
-One question to ask is whether there is any correlation in the deviation in $M_i$ of a member. Specifically, what is the spatial auto-correlation of $M_{i}' = (M_i - \langle M \rangle)/\langle M \rangle$. Fig.~\ref{fig:ex_stamps_corr} shows one example of the field for the first member. As can be seen the field shows some signs of correlation but then also jumps from positive to negative values intermittently. An attempt at construcrting an auto-correlation function resulted invalues around zero for all distances. Therefore, I will put this inquiry on hold, maybe forever! Temporally, there could be some correlation, but I doubt that with the dataset and method I am using I could find something relevant. 
+One question to ask is whether there is any correlation in the deviation in $M_i$ of a member. Specifically, what is the spatial auto-correlation of $M_{i}' = (M_i - \langle M \rangle)/\langle M \rangle$. Fig.~\ref{fig:ex_stamps_corr} shows one example of the field for the first member. As can be seen the field shows some signs of correlation but then also jumps from positive to negative values intermittently. An attempt at constructing an auto-correlation function resulted in values around zero for all distances. Therefore, I will put this inquiry on hold, maybe forever! Temporally, there could be some correlation, but I doubt that with the dataset and method I am using I could find something relevant. 
+
+\subsection{Dependence on ensemble members}
+\paragraph{$\beta$-dependence on $n$} $\beta$ seems to depend heavily on $n$. This behavior does not change with the number of ensemble members which suggests one of the following: (a) An error in the computation or (b) an underlying statistical or physical reason for this behavior. A sampling issue whereby $N_{\mathrm{cld}}$ is low for small $n$ does not seem to be the reason as a simple iPython test suggests. To test whether (a) is the case, one option would be to feed the algorithm a ``perfect'' field which fulfills all the assumptions, i.e. a random distribution of clouds with an exponential $m$ distribution. Should $\beta$ be one for all $n$ for this perfect field, this would imply that there is indeed a physical reason. Should a similar $n$ dependence be found, this would hint at a computing error or a statistical reason. 
+
+\subsection{Test with hypothetical fields}
+To test whether (a) my algorithm does the right thing and (b) where the deviations in $\alpha$ and $\beta$ come from a hierarchy of idealized fields will be considered.
+
+\subsubsection{Ideal point clouds}
+The most idealized test consists of fields with point clouds. The total number of clouds for each ensemble member is drawn from a Poisson distribution with a certain mean. Each cloud is then randomly placed in space with a mass flux drawn from an exponential distribution. The grid is the same as used for the real simulations. The results can be seen in Fig.???. $\alpha$ seems to be smaller 1 at around 0.8, while $\beta$ is basically 1 for all scales. This indicates that the computation of $\beta$ is correct and that the deviations seen in the real simulations have a statistical or physical basis.
+
+\subsubsection{Randomly distributed clouds with a size distributions}
+This experiment has circular clouds instead of point clouds.
+
+\subsection{Clustered clouds}
+This is Julia's model.
 
 \section{My questions}
 Here are some of the questions I have regarding what I have done so far.
@@ -398,6 +413,11 @@ All plots for level 30 (about 3000m above ground, unless noted otherwise)
 \caption{Time evolution for the mean of several variables.} \label{fig:comp_summary_var}
 \end{figure}
 
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{As above but with 50 ensemble members.}
+\end{figure}
 
 % Height var
 \begin{figure}[ht]

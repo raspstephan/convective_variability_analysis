@@ -82,6 +82,13 @@ if args.ana == 'm':
     sufx = '.nc_30m'
     fieldn = 'W'
     thresh = 1.
+if args.ana == 'hypo':
+    levlist = [0]
+    sufx = '.nc'
+    fieldn = 'm'
+    ensdir = ('/home/scratch/users/stephan.rasp/hypo_' + args.date + 
+              '/deout_ceu_pspens/')
+    thresh = 0.
 elif args.ana == 'p':
     levlist = [None]
     realhlist = ['surf']
@@ -183,12 +190,13 @@ for it, t in enumerate(timelist):
         rholist = [None]*len(fieldlist)
         
     # Load tau_c data
-    ncdffn_surf = ncdffn + '_surf'
-    tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                 dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
-                                 nfill=1, levs = levlist, return_arrays = True)
-    for i in range(len(tauclist)):
-        tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
+    if not args.ana == 'hypo':
+        ncdffn_surf = ncdffn + '_surf'
+        tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
+                                    nfill=1, levs = levlist, return_arrays = True)
+        for i in range(len(tauclist)):
+            tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
     
         
 
@@ -197,8 +205,9 @@ for it, t in enumerate(timelist):
     
     ############################################################################
     # Calculate mean tau_c and save
-    ditauc[it] = np.nanmean(tauclist)
-    enstauc[it] = np.nanmean(tauclist, axis = 0)
+    if not args.ana == 'hypo':
+        ditauc[it] = np.nanmean(tauclist)
+        enstauc[it] = np.nanmean(tauclist, axis = 0)
     # End calculate mean tau_c and save
     ############################################################################
 
@@ -225,7 +234,7 @@ for it, t in enumerate(timelist):
                 labels, cld_size_mem, cld_sum_mem = tmp
                 cld_sum_mem *= dx*dx  # Rho is now already included
             else:
-                tmp = identify_clouds(field[iz], thresh)
+                tmp = identify_clouds(field[iz], thresh, water = args.water)
                 labels, cld_size_mem, cld_sum_mem = tmp
             sizelist.append(cld_size_mem)
             sumlist.append(cld_sum_mem)

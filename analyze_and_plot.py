@@ -1029,7 +1029,7 @@ if 'stamps_w' in args.plot:
     print 'Plotting stamps_w'
     if len(datasetlist) > 1:
         raise Exception, 'More than one date is not implemented'
-    dataset = datasetlist[0]
+    dataset = Dataset(savedir + d + savesuf, 'r')
     plotdirsub = plotdir +  '/stamps_w/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
