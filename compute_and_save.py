@@ -82,7 +82,7 @@ if args.ana == 'm':
     sufx = '.nc_30m'
     fieldn = 'W'
     thresh = 1.
-if args.ana == 'hypo':
+elif args.ana == 'hypo':
     levlist = [0]
     sufx = '.nc'
     fieldn = 'm'
@@ -134,6 +134,10 @@ varm     = rootgrp.createVariable('varm', 'f8', ('time','levs','n','x','y'))
 meanN    = rootgrp.createVariable('meanN', 'f8', ('time','levs','n','x','y'))
 meanM    = rootgrp.createVariable('meanM', 'f8', ('time','levs','n','x','y'))
 meanm    = rootgrp.createVariable('meanm', 'f8', ('time','levs','n','x','y'))
+varQmp     = rootgrp.createVariable('varQmp', 'f8', ('time','levs','n','x','y'))
+meanQmp    = rootgrp.createVariable('meanQmp', 'f8', ('time','levs','n','x','y'))
+varQtot     = rootgrp.createVariable('varQtot', 'f8', ('time','levs','n','x','y'))
+meanQtot    = rootgrp.createVariable('meanQtot', 'f8', ('time','levs','n','x','y'))
 
 Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
@@ -179,15 +183,30 @@ for it, t in enumerate(timelist):
                          qslist[i][:, lx1:lx2, ly1:ly2])
         del qilist
         del qslist
-        ncdffn_rho = ncdffn + '_buoy'
-        rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_rho, 
+        ncdffn_buoy = ncdffn + '_buoy'
+        rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
                                    nfill=1, levs = levlist, return_arrays = True)
+        
         for i in range(len(rholist)):
             rholist[i] = rholist[i][:, lx1:lx2, ly1:ly2]
+            
+        # Get vertically integrated Q    
+        Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
+                                  nfill=1, return_arrays = True)
+        Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
+                                  nfill=1, return_arrays = True)
+        for i in range(len(Qmplist)):
+            Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+            Qtotlist[i] = np.mean(Qtotlist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+        
     else:   # Fill lists with None
         qclist = [None]*len(fieldlist)
         rholist = [None]*len(fieldlist)
+        Qmplist = [None]*len(fieldlist)
+        Qtotlist = [None]*len(fieldlist)
         
     # Load tau_c data
     if not args.ana == 'hypo':
@@ -296,12 +315,16 @@ for it, t in enumerate(timelist):
                     tmp_cldlist = []
                     tmp_Mlist = []
                     tmp_Nlist = []
+                    tmp_Qmplist = []
+                    tmp_Qtotlist = []
                     # Loop over members
-                    for field, labels, com, cld_sum_mem, imem in zip(fieldlist, 
+                    for field, labels, com, cld_sum_mem, imem, Qmpfield, Qtotfield in zip(fieldlist, 
                                                                labelslist,
                                                                comlist, 
                                                                sumlist,
-                                                               range(nmem)):
+                                                               range(nmem),
+                                                               Qmplist,
+                                                               Qtotlist):
                         # Get the collapsed clouds for each box
                         bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
                                     (com[:,1]>=ymin)&(com[:,1]<ymax))
@@ -315,6 +338,10 @@ for it, t in enumerate(timelist):
                             tmp_Mlist.append(0.)
                             Mmem_coarse[imem, ico, jco] = 0.
                         tmp_Nlist.append(box_cld_sum.shape[0])
+                        tmp_Qmplist.append(np.mean(Qmpfield[ico*n:(ico+1)*n, 
+                                                       jco*n:(jco+1)*n]))
+                        tmp_Qtotlist.append(np.mean(Qtotfield[ico*n:(ico+1)*n, 
+                                                       jco*n:(jco+1)*n]))
                         # End member loop
                     
                     tmp_cldlist = np.array(tmp_cldlist)
@@ -335,6 +362,10 @@ for it, t in enumerate(timelist):
                         meanM[it,iz,i_n,ico,jco] = np.nan
                         meanm[it,iz,i_n,ico,jco] = np.nan
                         meanN[it,iz,i_n,ico,jco] = np.nan
+                    varQmp[it,iz,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
+                    meanQmp[it,iz,i_n,ico,jco] = np.mean(tmp_Qmplist)
+                    varQtot[it,iz,i_n,ico,jco] = np.var(tmp_Qtotlist, ddof = 1)
+                    meanQtot[it,iz,i_n,ico,jco] = np.mean(tmp_Qtotlist)
             
             Mmem1[it,iz,i_n,:nx,:ny] = Mmem_coarse[0]
             

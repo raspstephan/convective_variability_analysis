@@ -18,6 +18,16 @@ from cosmo_utils.pywgrib import fieldobj
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.diag import mean_spread_fieldobjlist
 import matplotlib.pyplot as plt
+from scipy.optimize import leastsq
+
+# Define functions
+def residual(p, y, x):
+    
+    a,b,c = p
+    #err = y - (a + b*x**c)
+    err = y - (0 + b*x**c)
+    
+    return err
 
 
 # Setup: this needs to match the compute script!
@@ -233,15 +243,11 @@ if 'rdf' in args.plot:
             
             
 ################################################################################
-if 'scatter' in args.plot or 'std_v_mean' in args.plot:
-    # ATTENTION: std_v_mean is an add on, and will always also plot the scatter plot
+if 'scatter' in args.plot:
     print 'Plotting scatter'
     plotdirsub = plotdir +  '/scatter/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
-    if 'std_v_mean' in args.plot:
-        plotdirsub2 = plotdir +  '/std_v_mean/'
-        if not os.path.exists(plotdirsub2): os.makedirs(plotdirsub2)
-        dx = 2.8e3
+
     # Setup
     # Clist for n
     clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
@@ -254,9 +260,7 @@ if 'scatter' in args.plot or 'std_v_mean' in args.plot:
     N_list = create2Dlist(len(args.height), len(nlist))
     alpha_list = create2Dlist(len(args.height), len(nlist))
     beta_list = create2Dlist(len(args.height), len(nlist))
-    if 'std_v_mean' in args.plot:
-        stdM_list = create2Dlist(len(args.height), len(nlist))
-        M_list = create2Dlist(len(args.height), len(nlist))
+
     
     # Loop over dates 
     for d in args.date:
@@ -282,9 +286,7 @@ if 'scatter' in args.plot or 'std_v_mean' in args.plot:
                 N_list[iz][i_n] += list(np.ravel(meanN))
                 alpha_list[iz][i_n] += list(alpha)
                 beta_list[iz][i_n] += list(beta)
-                if 'std_v_mean' in args.plot:
-                    stdM_list[iz][i_n] += list(np.ravel(np.sqrt(varM)))
-                    M_list[iz][i_n] += list(np.ravel(meanM))
+
                 
     # now I have the lists I want in the scatter plot 
     
@@ -295,9 +297,7 @@ if 'scatter' in args.plot or 'std_v_mean' in args.plot:
         
         # Set up the figure 
         fig, axarr = plt.subplots(4, 2, figsize = (95./25.4*2, 13))
-        
-        if 'std_v_mean' in args.plot:
-            fig2, ax2 = plt.subplots(1, 1, figsize = (95./25.4, 4))
+
         
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
@@ -309,13 +309,7 @@ if 'scatter' in args.plot or 'std_v_mean' in args.plot:
             mu2 = np.array(mu2_list[iz][i_n])
             alpha = np.array(alpha_list[iz][i_n])
             beta = np.array(beta_list[iz][i_n])
-            
-            if 'std_v_mean' in args.plot:
-                stdM = np.array(stdM_list[iz][i_n])
-                M = np.array(M_list[iz][i_n])
-                ax2.scatter(M, stdM, marker = 'o', c = clist[i_n], 
-                                    s = 4, zorder = z_n, linewidth = 0, 
-                                    alpha = 0.8)
+
             
             
             
@@ -540,32 +534,144 @@ if 'scatter' in args.plot or 'std_v_mean' in args.plot:
                         '_wat-' + str(args.water) + '_lev-' + str(lev) +
                         '_nens-' + str(args.nens))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-        
-        
-        if 'std_v_mean' in args.plot:
-            # Complete the figure
-            #ax2.legend(loc =3, ncol = 2, prop={'size':6})
-            tmp = np.linspace(0,1e10, 1000)
-            ax2.plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
-                    zorder = 2)
-            ax2.plot(tmp,np.sqrt(tmp*5e7), c = 'gray', alpha = 1, linestyle = '-.',
-                    zorder = 2)
-            ax2.set_xlim(1e6,1e10)
-            ax2.set_ylim(1e6,1e10)
-            ax2.set_xscale('log')
-            ax2.set_yscale('log')
-            #ax2.invert_xaxis()
-            ax2.set_xlabel(r'$\langle M \rangle$')
-            ax2.set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
 
-            fig2.suptitle(titlestr)
-            plt.tight_layout(rect=[0, 0.0, 1, 0.90])
-            
-            plotsavestr2 = ('std_v_mean_' + alldatestr + '_ana-' + args.ana + 
-                            '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                            '_nens-' + str(args.nens))
-            fig2.savefig(plotdirsub2 + plotsavestr2, dpi = 300)
         plt.close('all')
+
+
+################################################################################
+if 'std_v_mean' in args.plot:
+    print 'Plotting std_v_mean'
+
+    plotdirsub = plotdir +  '/std_v_mean/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    dx = 2.8e3
+    # Setup
+    # Clist for n
+    clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
+             "#ff00ff")
+    
+    
+    # Load the data: I want to plot mu_2, N, alpha
+    # These list have 3 dims [lev, n, N_box]
+
+    stdM_list = create2Dlist(len(args.height), len(nlist))
+    M_list = create2Dlist(len(args.height), len(nlist))
+    stdQmp_list = create2Dlist(len(args.height), len(nlist))
+    Qmp_list = create2Dlist(len(args.height), len(nlist))
+    stdQtot_list = create2Dlist(len(args.height), len(nlist))
+    Qtot_list = create2Dlist(len(args.height), len(nlist))
+    
+    # Loop over dates 
+    for d in args.date:
+        # Load dataset 
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        
+        # Load the required data and put it in list
+        for iz, lev in enumerate(dataset.variables['levs']):
+            for i_n, n in enumerate(dataset.variables['n']):
+                nmax = 265/n
+                meanM = dataset.variables['meanM'][:,iz,i_n,:nmax,:nmax]
+                varM = dataset.variables['varM'][:,iz,i_n,:nmax,:nmax]
+                meanQmp = dataset.variables['meanQmp'][:,iz,i_n,:nmax,:nmax]
+                varQmp = dataset.variables['varQmp'][:,iz,i_n,:nmax,:nmax]
+                meanQtot = dataset.variables['meanQtot'][:,iz,i_n,:nmax,:nmax]
+                varQtot = dataset.variables['varQtot'][:,iz,i_n,:nmax,:nmax]
+                
+                stdM_list[iz][i_n] += list(np.ravel(np.sqrt(varM)))
+                M_list[iz][i_n] += list(np.ravel(meanM))
+                stdQmp_list[iz][i_n] += list(np.ravel(np.sqrt(varQmp)))
+                Qmp_list[iz][i_n] += list(np.ravel(meanQmp))
+                stdQtot_list[iz][i_n] += list(np.ravel(np.sqrt(varQtot)))
+                Qtot_list[iz][i_n] += list(np.ravel(meanQtot))
+                
+    # now I have the lists I want in the scatter plot 
+    
+
+    ######## Lev loop #####################
+    for iz, lev in enumerate(dataset.variables['levs']):
+        print 'lev: ', lev
+        
+        # Set up the figure 
+
+        fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*3, 4))
+        
+        allstdM = []
+        allM = []
+        ####### n loop #######################
+        for i_n, n in enumerate(dataset.variables['n']):
+            print 'n: ', n
+            z_n = 0.1 + (n/256.)*0.1   # for z_order
+            
+
+            stdM = np.array(stdM_list[iz][i_n])
+            M = np.array(M_list[iz][i_n])
+            allstdM += list(np.ravel(stdM))
+            allM += list(np.ravel(M))
+            axarr[0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
+                                s = 4, zorder = z_n, linewidth = 0, 
+                                alpha = 0.8)
+            
+            stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24.
+            Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24.
+            axarr[1].scatter(Qmp, stdQmp, marker = 'o', c = clist[i_n], 
+                                s = 4, zorder = z_n, linewidth = 0, 
+                                alpha = 0.8)
+            
+            stdQtot = np.array(stdQtot_list[iz][i_n]) * 3600. * 24.
+            Qtot = np.array(Qtot_list[iz][i_n]) * 3600. * 24.
+            axarr[2].scatter(Qtot, stdQtot, marker = 'o', c = clist[i_n], 
+                                s = 4, zorder = z_n, linewidth = 0, 
+                                alpha = 0.8)
+            
+        
+        # Fit the line
+        p0 = [1,1,1]
+        y = np.array(allstdM)
+        x = np.array(allM)
+        mask = np.isfinite(y)
+        result = leastsq(residual, p0, args = (y[mask], x[mask]))
+        a,b,c = result[0]
+        print a, b, c
+        
+        # Complete the figure
+        #ax2.legend(loc =3, ncol = 2, prop={'size':6})
+        tmp = np.linspace(0,1e10, 100000)
+        axarr[0].plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
+                zorder = 2)
+        axarr[0].plot(tmp,np.sqrt(tmp*5e7), c = 'gray', alpha = 1, linestyle = '-.',
+                zorder = 2)
+        axarr[0].plot(tmp,a+b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
+                zorder = 2)
+        axarr[0].set_xlim(1e6,1e10)
+        axarr[0].set_ylim(1e6,1e10)
+        axarr[0].set_xscale('log')
+        axarr[0].set_yscale('log')
+        #ax2.invert_xaxis()
+        axarr[0].set_xlabel(r'$\langle M \rangle$')
+        axarr[0].set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
+        
+        axarr[1].set_xlabel(r'$\langle Q_{\mathrm{mphy}} \rangle$')
+        axarr[1].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{mphy}})^2 \rangle}$')
+        
+        axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
+        axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
+        
+        
+        titlestr = (alldatestr + '\n' + args.ana + 
+                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                    ', nens=' + str(args.nens))
+        fig.suptitle(titlestr)
+        plt.tight_layout(rect=[0, 0.0, 1, 0.90])
+        
+        plotsavestr = ('std_v_mean_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        plt.close('all')
+
+
+
 
 ################################################################################
 if 'summary_stats' in args.plot:
