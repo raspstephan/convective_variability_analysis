@@ -6,23 +6,30 @@
 \usepackage[top=3cm, bottom=3cm, left=2.5cm, right=2.5cm]{geometry}
 \graphicspath{{/home/s/S.Rasp/Dropbox/figures/PhD/variance/}}
 
-\title{Convective variability in real mid-latitude weather}
+\title{Convective variability in real mid-latitude weather: Which model best explains it?}
 
 \begin{document}
-\maketitle
+\maketitle\
+
+\tableofcontents
 	
 \section{Introduction}
 
-\subsection{Motivation}
-% parameterizations explained and problems of deterministic parameterizations
-Physical processes which occur on scales smaller than the grid spacing of a numerical model typically have to be parameterized. One such process is convection, which acts to restore stability in the atmosphere and is also the cause of significant amounts of precipitation. Parameterizations represent the effect of these sub-grid scale processes on the resolved scales. Traditionally, this is done in a deterministic way, where the mean, most likely, sub-grid effect given a certain large-scale forcing is described. If the sampling size of the unresolved features is large enough, the fluctuations about this mean are indeed small and negligible. For example, a grid box of a climate model with several hundreds of kilometers in size contains many convective features, typically 1-10 km in size. Global weather models nowadays, however, have grid spacings on the order of 10 km. Here the sampling size becomes insufficient and the fluctuation about a mean state are significant. Ignoring these fluctuations can lead to systematic biases in the non-linear atmosphere \citep[e.g.][]{Berner2016} and can also lead to an under-representation of extreme events. Furthermore, in an ensemble system, completely deterministic models are severely underdispersive and, therefore, unreliable. 
+\subsection{The cumulus parameterization problem}
 
-% Stochastic parameterizations
-Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an \textit{ad hoc} manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1999, Berner2009a}. These \textit{ad hoc} methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of the parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. 
-% Other approaches
-Several approaches to get a physical model of the underlying uncertainty of convection have been tried. \cite{Dorrestijn2015} and \cite{Gottwald2016} used conditional Markov chains to describe the transition of cloud states. \cite{Bengtsson2013} used cellular automata. One attempt do formulate such a physically-based stochastic parameterization for convection based on statistical mechanics is described now. 
+Effect of unresolved scales on the resolved scales is described by finding a simple model of what the unresolved scales do given some resolved parameters. In mass flux schemes typically a closure assumption is used to determine the mean mass flux, which is then used in a cloud model to determine the heating rate, etc.
 
-% \cite{Dorrestijn2015} and \cite{Gottwald2016} used conditional Markov chains to describe the transition from one cloud-state to another for several micro-nodes in a GCM grid box. The transition probabilities are dependent on some large scale indicator, in their case the large scale vertical velocity, and the exact values are calculated from observations. This approach allows them to calculate a fraction of deep convective clouds for each grid-box, which can then be used to estimate mass flux for use in a convective parameterization. The advantage of using conditional Markov chains is that they inherently have memory. Application in a simple GCM shows improvements in the distribution of precipitation, and some improvements for equatorial waves \citep{Dorrestijn2016}. 
+If many small scale features are in the LS box, this approximation can be done almost deterministically, but as the grid sizes get smaller, the sampling issue and therefore the fluctuations around the mean state become significant (when is mean eq std?). In these cases deterministic parameterizations can lead to systematic biases and under-representations of extremes. Stochastic parameterizations aim to randomly chose one small scale state compatible with the large scale. The goal is to find a model for the variability around the mean response. 
+
+Schematic diagram.
+
+% % parameterizations explained and problems of deterministic parameterizations
+% Physical processes which occur on scales smaller than the grid spacing of a numerical model typically have to be parameterized. One such process is convection, which acts to restore stability in the atmosphere and is also the cause of significant amounts of precipitation. Parameterizations represent the effect of these sub-grid scale processes on the resolved scales. Traditionally, this is done in a deterministic way, where the mean, most likely, sub-grid effect given a certain large-scale forcing is described. If the sampling size of the unresolved features is large enough, the fluctuations about this mean are indeed small and negligible. For example, a grid box of a climate model with several hundreds of kilometers in size contains many convective features, typically 1-10 km in size. Global weather models nowadays, however, have grid spacings on the order of 10 km. Here the sampling size becomes insufficient and the fluctuation about a mean state are significant. Ignoring these fluctuations can lead to systematic biases in the non-linear atmosphere \citep[e.g.][]{Berner2016} and can also lead to an under-representation of extreme events. Furthermore, in an ensemble system, completely deterministic models are severely underdispersive and, therefore, unreliable. 
+% 
+% % Stochastic parameterizations
+% Stochastic parameterizations aim to solve the problems outlined above. Here, randomness is introduced to represent the variability associated with sub-grid processes. In an \textit{ad hoc} manner this has been done successfully in medium-range weather prediction for almost two decades \citep{Buizza1999, Berner2009a}. These \textit{ad hoc} methods, however, are finely tuned to give the appropriate spread-skill relation, and do not actually represent the variability associated with a certain physical process. A more physical way of constructing a stochastic parameterization is to explicitly include a physical model of the uncertainty in the formulation of the parameterization. To get a full representation of the complete model uncertainty this has to be done for every parameterized process individually. 
+% % Other approaches
+
 
 \subsection{The \cite{Craig2006} theory and its application in \cite{Plant2008}} 
 % CC06 theory (following Davoudi2010)
@@ -54,10 +61,10 @@ In the \cite{Plant2008}(PC08) stochastic parameterization approach, the exponent
 
 The PC08 scheme has been tested in a GCM study with some success, improving the precipitation patterns and equatorial waves \citep{Wang2016}.
 
-\subsection{Deviations from theory in other studies}
+\subsubsection{Deviations from theory in other studies}
 Two studies looked at the deviations from the CC06 predictions in their simulations of convection with a time varying forcing: \cite{Davies2008} and \cite{Davoudi2010}. A quick definition of clustering for this text: Clustering describes the increased probability of occurrence of clouds near already existing clouds. So basically a spike in an RDF. 
 
-\subsubsection{\cite{Davies2008}}
+\paragraph{\cite{Davies2008}}
 She used a model with 1km resolution, a prescribed radiative cooling and time-varying surface fluxes or temperature. The domain size was 64\,km by 64\,km. For the reference RCE simulation she found $\mu_2 \langle N \rangle \approx 1.5$ at 3 km, a deviation of 10\% in $\mu_2$, which is in agreement with CC06. When looking at their time-varying simulations, they see that $\mu_2$ is increased (about 2.2) 1h after convection is first triggered and at around 15UTC. They find that at the triggering time and at 18UTC there is strong clustering at scales from 5--20 km. At the time of maximum convection (12UTC), the RDF is almost uniform and $\mu_2 \approx 0.7$. She argues that the deviation from the predicted variance can be largely explained by clustering (see Fig.~\ref{fig:Davies2008}). 
 
 \begin{figure}[ht]
@@ -68,7 +75,7 @@ She used a model with 1km resolution, a prescribed radiative cooling and time-va
 \end{figure}
 
 
-\subsubsection{\cite{Davoudi2010}}
+\paragraph{\cite{Davoudi2010}}
 They used a similar model setup to CC06, but with a diurnal cycle through interactive radiation with fixed SST. In their Fig. 13, they show their values of $\mu_2 \langle N \rangle$ for different heights. They find that for $z <$8 km, this value is less than two. Additionally, in their Fig. 12. they plot histograms of $P(M)$ from their data. They then fit Eq. \ref{eq:M_dist} with $\langle M \rangle$ and $\langle N \rangle$ as free parameters. When they compare these fitted values to the calculated values of $\langle M \rangle$ and $\langle N \rangle$ from their data, they find that $\langle M \rangle$  is similar but the fitted $\langle N \rangle$ is larger than the observed $\langle N \rangle$. They state that ``Therefore, predictions of $\mu_2$ are smaller than the corresponding normalized variance from the data. Figure 13 demonstrates that the variance, as well as skewness, is underestimated by the theory close to the cloud base and for the range of altitudes in $z \in$  [2, 8] km.'' \textit{This statement seems wrong. Shouldn't it be the other way around? I sent them an email.}
 
 They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle N \rangle}$ (their Fig.~14), where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
@@ -80,26 +87,21 @@ They then look at two clustering metrics. First, the radial distribution functio
 \caption{From \cite{Davoudi2010}: (left) $\mu_2$ averaged over all times for their simulations at different heights. (right) $\langle N \rangle$ and $\sigma_N^2$ are shown for different heights.} \label{fig:Davoudi2010}
 \end{figure}
 
-\subsection{Research questions}
-The simple theory of CC06 has been shown to predict the convective variability well in highly idealized simulations and has been used as the basis for the PC08 stochastic convection scheme with some success. Other studies have looked at the influence of a time varying forcing and clustering on convective variability, but these studies also used highly idealized setups. So far, there has been no estimate of the convective variability of a ``real'' weather situation. Particularly the mid-latitudes deviate from RCE simulations in many important ways. The goal of this study is to quantitatively investigate the convective variability in ``real'' mid-latitude weather and compare the results to the theoretical predictions of CC06. More specifically, the research question is:
 
-\textbf{RQ1} How does the convective variability of ``real'' mid-latitude weather situations compare to the predictions of CC06?
+\subsection{SPPT}
 
-\textbf{Hypothesis} There will be some deviations from the theoretical predictions similar to what \cite{Cohen2006}, \cite{Davies2008} and \cite{Davoudi2010} found.
+SPPT acts on the output of all parameterizations in the model on the assumption that the standard deviation is proportional to the mean tendencies, in case of convection this would be the heating rate (and moisture?) (cite Christensen). 
 
-If this hypothesis is true, a follow up research questions is:
+\subsection{Other approaches}
+Several approaches to get a physical model of the underlying uncertainty of convection have been tried. \cite{Dorrestijn2015} and \cite{Gottwald2016} used conditional Markov chains to describe the transition of cloud states. \cite{Bengtsson2013} used cellular automata.
 
-\textbf{RQ1.1} To what extent can the deviations of the predicted variability be quantitatively explained by deviation from the underlying assumptions about the distributions of $N$ and $m$?
+\cite{Dorrestijn2015} and \cite{Gottwald2016} used conditional Markov chains to describe the transition from one cloud-state to another for several micro-nodes in a GCM grid box. The transition probabilities are dependent on some large scale indicator, in their case the large scale vertical velocity, and the exact values are calculated from observations. This approach allows them to calculate a fraction of deep convective clouds for each grid-box, which can then be used to estimate mass flux for use in a convective parameterization. The advantage of using conditional Markov chains is that they inherently have memory. Application in a simple GCM shows improvements in the distribution of precipitation, and some improvements for equatorial waves \citep{Dorrestijn2016}. 
 
-\textbf{Hypothesis} Clustering (a deviation in the distribution of $N$) can explain a large part of the deviations of the predicted variance.
 
-If this latest hypothesis is not true, then the next follow up research question is:
+\subsection{Research question / Aim of this study}
 
-\textbf{RQ1.2} Can other parameters be found to explain the remaining deviations?
+The primary goal of this paper is to use a novel technique to characterize the relationship between convective variability and the mean state in real mid-latitude weather situations. How this was achieved is outlined in Section ???. The results from these numerical experiments will then be compared to the simple models of CC06 and SPPT, and we will try to find explanations for the deviations. Based on these findings we will try to use a more appropriate model and lastly investigate how this could be used to improve parameterizations.
 
-\textbf{Hypothesis} \textit{I don't really have one yet.}.
-
-The hope is that by finding factors which impact the convective variability, stochastic parameterizations can be constructed which include a better representation of the real variability of convection. 
 
 \section{Numerical experiments and case studies}
 
@@ -131,10 +133,15 @@ The case studies are all from a recent, convectively active period over Central 
 \paragraph{30 May - 5 June} A low pressure system is stationed over Southern Germany causing easterly advection over Northern Germany. This is coupled with diurnal convection.
 \paragraph{6 -- 8 June} The synoptic forcing is weaker with scattered convective cells.
 
-\section{Analyses}
+At least one plot with the characteristics of the weather situations, eg. a diprec plot. Probably in combination with all other non-var diurnal plots. 
 
-\paragraph{Heigh level of analyses}
+\section{Calculation of statistics}
+This section includes the details on how the statistics presented in Section ??? are computed.
+
+\paragraph{Height level of analyses}
 Since the height above sea level is not constant for our simulations, the questions arises which level to take for domain averages. Height above sea level would not be a good choice since the vertical location of the statistics since the boundary layer depends on the height above ground level, which would also not be a good choice since the tropopause level is largely unaffected by the height above ground level. A logical choice is to use model levels. In the COSMO model the model levels are terrain-following. In the lower troposphere, they are largely parallel to the ground, but at around 10 km, they are largely parallel to sea level. To pick certain levels, we look at a column above the ocean and search for the closes model level to a height above sea level. 
+
+Maybe show mass flux profile and get that issue done with...
 
 \subsection{Identification of clouds and calculation of cloud statistics}
 To identify clouds, first the fields are converted to binary fields by applying a threshold: Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}
@@ -158,15 +165,7 @@ where $\rho$ is density.
 % \end{equation}
 % Statistics of these variables, such as the mean and the distribution are then calculated (see results).
 
-\subsection{Calculation of radial distribution functions}
-A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. A sketch of how the RDF is calculated is given in Fig.~\ref{fig:Scheufele2014} (right).
 
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig4_18.jpeg}
-\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig3_16.jpeg}\\
-\caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.} \label{fig:Scheufele2014}
-\end{figure}
 
 % A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
 
@@ -197,6 +196,47 @@ where the mean is
 
 \paragraph{Sampling issues}
 Since we are sampling a distribution with a limited number of data points $N_{\mathrm{ens}}$, sampling issues arise when $\langle N \rangle$ becomes small ($\approx \frac{1}{N_{\mathrm{ens}}}$). In particular, if only one member contains a cloud chances are that the real $\langle N \rangle < \frac{1}{N_{\mathrm{ens}}}$ and we therefore overestimate the mean mass flux $\langle M \rangle$. To avoid this issue, a criterion is introduced where at least 5 out of 20 ensemble members must contain at least one cloud. \textit{This threshold is a quick fix and should be determined statistically.}
+
+\subsection{Composites}
+Composites were computed by averaging over the 12 days in the simulation period. For the calculation of means (every overbar) and standard deviations (std), all coarse boxes at scale $n$ for all ensemble members were first combined, and then the means and standard deviations were calculated. This ensures that, since the number of coarse boxes with clouds will differ from case to case, every coarse box is weighted equally.
+
+
+\section{Standard deviation versus mean}
+
+M and Q std vs mean with line for CC06, SPPT and best fit function for all times. 
+
+Some diurnal cycle plot. with alpha I guess, maybe beta, not sure what to do about it...
+
+Here probably also RDF.
+
+A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. A sketch of how the RDF is calculated is given in Fig.~\ref{fig:Scheufele2014} (right).
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig4_18.jpeg}
+\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig3_16.jpeg}\\
+\caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.} \label{fig:Scheufele2014}
+\end{figure}
+
+
+\section{A simple clustering model}
+
+As we have seen from the results so far clustering of clouds is the biggest factor for modulating convective variability. In this section a simple cloud model will be used with the goal to explain most of the deviations.
+
+Explain Julia's model.
+
+For each time, get the crs which fits best given M and m as an input and var(M) as the output. Then show the diurnal cycle of crs.
+
+\section{Can we find a large-scale predictor for crs.}
+
+HPBL, dtM
+
+
+\section{Conclusion}
+
+
+
+
 
 \subsection{Comparison with prediction}
 To compare the obtained values to the theoretical predictions (\textbf{RQ1}), the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
@@ -250,11 +290,15 @@ and
 \end{equation}
 
 
+
+
+
+
+
 \subsection{Calculation of the convective adjustment timescale}
 The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. Furthermore, a minimum precipitation threshold of 0.2 mm h$^{-1}$ is used, which leads to the timescale not being calculated for regions only a few small cells. Therefore, not every variance value can be matched with a timescale value. 
 
-\subsection{Composites}
-Composites were computed by averaging over the 12 days in the simulation period. For the calculation of means (every overbar) and standard deviations (std), all coarse boxes at scale $n$ for all ensemble members were first combined, and then the means and standard deviations were calculated. This ensures that, since the number of coarse boxes with clouds will differ from case to case, every coarse box is weighted equally. 
+ 
 
 \section{Results (and some thoughts)}
 Results are going to be shown for one example day (4 June) and for the composite over all 12 days. For now all results are for model level 30 (corresponds to 3000\,m above sea level.)
