@@ -1428,5 +1428,78 @@ if 'height_var' in args.plot:
     plt.close('all')
 
 
+################################################################################
+if 'M_vert' in args.plot:
+    print 'Plotting M_vert'
+    plotdirsub = plotdir +  '/M_vert/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    # Setup
+    t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    UTCstart = timelist[t1]
+    UTCstop = timelist[t2-1]
+    print 'Summing from', UTCstart, 'to', UTCstop
+    
+    # loop over dates 
+    Mtotlist = []
+    Msouthlist = []
+    Mnorthlist = []
+    for d in args.date:
+        # Load dataset 
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        
+        Mtotlist.append(dataset.variables['Mtot'][:])
+        Msouthlist.append(dataset.variables['Msouth'][:])
+        Mnorthlist.append(dataset.variables['Mnorth'][:])
+    
 
+    
+    Mtotlist =  np.mean(Mtotlist, axis = 0)
+    Msouthlist =  np.mean(Msouthlist, axis = 0)
+    Mnorthlist =  np.mean(Mnorthlist, axis = 0)
+    
+    # Get the required time avarage
+    Mtotlist =  np.mean(Mtotlist[t1:t2], axis = 0)
+    Msouthlist =  np.mean(Msouthlist[t1:t2], axis = 0)
+    Mnorthlist =  np.mean(Mnorthlist[t1:t2], axis = 0)
+
+    levs = dataset.variables['levs'][:]
+
+    # Create the figure
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1, 4))
+    
+
+    ax.plot(Mtotlist, args.height, c = 'r', 
+                    label = 'all', linewidth = 1.5)
+    ax.plot(Msouthlist, args.height, c = 'g', 
+                    label = 'south', linewidth = 1.5)
+    ax.plot(Mnorthlist, args.height, c = 'b', 
+                    label = 'north', linewidth = 1.5)
+
+    #ax.set_xlim(0, 2)
+    #axarr[0,0].set_yscale('log')
+    ax.set_ylabel('height [m]')
+    ax.set_xlabel(r'$M$')
+    ax.set_ylim(args.height[0], args.height[-1])
+    
+
+    ax.legend(loc =4, ncol = 1, prop={'size':6})
+            
+            
+    titlestr = (alldatestr + '\n' + args.ana + 
+                ', water=' + str(args.water) + 
+                ', nens=' + str(args.nens) + ', from ' + str(UTCstart) + 
+                ' to ' + str(UTCstop))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.93])
+    
+    plotsavestr = ('M_vert_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) +
+                    '_nens-' + str(args.nens)+ '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc) + '_tplot-' + str(t1) + 
+                    '-' + str(t2))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
 

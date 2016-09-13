@@ -82,6 +82,11 @@ if args.ana == 'm':
     sufx = '.nc_30m'
     fieldn = 'W'
     thresh = 1.
+    HHcropped = HH.data[-1,50:-51, 50:-51]
+    HH50tot = np.mean(HHcropped[:,:])
+    HH50south = np.mean(HHcropped[:256/2, :])
+    HH50north = np.mean(HHcropped[256/2:, :])
+    print 'tot', HH50tot, 'south', HH50south, 'north', HH50north
 elif args.ana == 'hypo':
     levlist = [0]
     sufx = '.nc'
@@ -134,10 +139,13 @@ varm     = rootgrp.createVariable('varm', 'f8', ('time','levs','n','x','y'))
 meanN    = rootgrp.createVariable('meanN', 'f8', ('time','levs','n','x','y'))
 meanM    = rootgrp.createVariable('meanM', 'f8', ('time','levs','n','x','y'))
 meanm    = rootgrp.createVariable('meanm', 'f8', ('time','levs','n','x','y'))
-varQmp     = rootgrp.createVariable('varQmp', 'f8', ('time','levs','n','x','y'))
-meanQmp    = rootgrp.createVariable('meanQmp', 'f8', ('time','levs','n','x','y'))
-varQtot     = rootgrp.createVariable('varQtot', 'f8', ('time','levs','n','x','y'))
-meanQtot    = rootgrp.createVariable('meanQtot', 'f8', ('time','levs','n','x','y'))
+varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','levs','n','x','y'))
+meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','levs','n','x','y'))
+varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','levs','n','x','y'))
+meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','levs','n','x','y'))
+Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time','levs'))
+Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time','levs'))
+Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time','levs'))
 
 Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
@@ -368,6 +376,13 @@ for it, t in enumerate(timelist):
                     meanQtot[it,iz,i_n,ico,jco] = np.mean(tmp_Qtotlist)
             
             Mmem1[it,iz,i_n,:nx,:ny] = Mmem_coarse[0]
+            if n == 4:
+                Mmem_mean = np.mean(Mmem_coarse, axis = 0)[:nx,:ny]
+                Mmem_south = np.mean(Mmem_coarse, axis = 0)[:nx/2,:ny]
+                Mtot[it,iz] = np.sum(Mmem_mean)
+                Msouth[it,iz] = np.sum(Mmem_south)
+                Mnorth[it,iz] = np.sum(Mmem_mean) - np.sum(Mmem_south)
+                
             
             ## Calculate 2dACF 
             #if n < nlist[1]:
@@ -399,7 +414,7 @@ for it, t in enumerate(timelist):
 # Close ncdf file
 rootgrp.close()
             
-        
+
         
         
         
