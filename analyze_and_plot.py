@@ -112,67 +112,76 @@ def create3Dlist(s_i, s_j, s_k):
 ################################################################################
 if 'cloud_stats' in args.plot:
     print 'Plotting cloud_stats'
-    if len(datasetlist) > 1:
-        raise Exception, 'More than one date is not implemented'
     dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
     plotdirsub = plotdir +  '/cloud_stats/'
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     # Setup
-    sizemax = 2.e8
-    summax = 7.5e8
-    
-    ############# Time loop ##############
-    for it, t in enumerate(timelist):
-        print 'time: ', t
-        ######## Lev loop #####################
-        for iz, lev in enumerate(dataset.variables['levs']):
-            # Get the data
-            print 'lev: ', lev
-            cld_size_tmp = dataset.variables['cld_size'][it,iz, :]
+    sizemax = 4e8
+    summax = 10e8
+    totlist1 = []
+    totlist2 = []
+    for iz, lev in enumerate(dataset.variables['levs']):
+        tmplist1 = []
+        tmplist2 = []
+        for d in args.date:
+            dataset = Dataset(savedir + d + savesuf, 'r')
+            cld_size_tmp = dataset.variables['cld_size'][:,iz, :]
             cld_size_tmp = cld_size_tmp[~cld_size_tmp.mask].data
-            sizehist, sizeedges = np.histogram(cld_size_tmp, 
-                                               bins = 15, range = [0., sizemax])
-            sizemean = np.mean(cld_size_tmp)
-            cld_sum_tmp = dataset.variables['cld_sum'][it,iz, :]
-            cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask]
-            sumhist, sumedges = np.histogram(cld_sum_tmp, 
-                                             bins = 15, range = [0., summax])
-            summean = np.mean(cld_sum_tmp)
-            
-            # Plot the histograms
-            fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2.5, 4.2))
-            axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
-            axarr[0].plot([sizemean, sizemean], [0.1, 1e4], c = 'red', 
-                        alpha = 0.5)
-            axarr[0].set_xlabel('Cloud size [m^2]')
-            axarr[0].set_ylabel('Number of clouds')
-            axarr[0].set_title('Cloud size distribution')
-            axarr[0].set_xlim([0., sizemax])
-            axarr[0].set_ylim([0.1, 1e4])
-            axarr[0].set_yscale('log')
-            
-            axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
-            axarr[1].plot([summean, summean], [0.1, 1e4], c = 'red', 
-                        alpha = 0.5)
-            axarr[1].set_ylabel('Number of clouds')
-            axarr[1].set_xlim([0., summax])
-            axarr[1].set_ylim([0.1, 1e4])
-            axarr[1].set_yscale('log')
-            axarr[1].set_xlabel('Cloud mass flux [kg/s]')
-            axarr[1].set_title('Cloud mass flux distribution')
-            
-            titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
-                        ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                        ', nens=' + str(args.nens))
-            fig.suptitle(titlestr, fontsize='x-large')
-            plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-            
-            plotsavestr = ('cloud_stats_' + args.date[0] + '_ana-' + args.ana + 
-                           '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                           '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
-            fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-            plt.close('all')
+            cld_sum_tmp = dataset.variables['cld_sum'][:,iz, :]
+            cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
+            tmplist1 += list(cld_size_tmp)
+            tmplist2 += list(cld_sum_tmp)
+        totlist1.append(tmplist1)
+        totlist2.append(tmplist2)
+    
+
+    ######## Lev loop #####################
+    for iz, lev in enumerate(dataset.variables['levs']):
+        # Get the data
+        print 'lev: ', lev
+
+        sizehist, sizeedges = np.histogram(totlist1[iz], 
+                                            bins = 15, range = [0., sizemax])
+        sizemean = np.mean(totlist1[iz])
+
+        sumhist, sumedges = np.histogram(totlist2[iz], 
+                                            bins = 15, range = [0., summax])
+        summean = np.mean(totlist2[iz])
+        
+        # Plot the histograms
+        fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2.5, 4.2))
+        axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
+        axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
+                    alpha = 0.5)
+        axarr[0].set_xlabel('Cloud size [m^2]')
+        axarr[0].set_ylabel('Number of clouds')
+        axarr[0].set_title('Cloud size distribution')
+        axarr[0].set_xlim([0., sizemax])
+        axarr[0].set_ylim([1, 1e6])
+        axarr[0].set_yscale('log')
+        
+        axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
+        axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
+                    alpha = 0.5)
+        axarr[1].set_ylabel('Number of clouds')
+        axarr[1].set_xlim([0., summax])
+        axarr[1].set_ylim([1, 1e6])
+        axarr[1].set_yscale('log')
+        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+        axarr[1].set_title('Cloud mass flux distribution')
+        
+        titlestr = (alldatestr  + ', ' + args.ana + 
+                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                    ', nens=' + str(args.nens))
+        fig.suptitle(titlestr, fontsize='x-large')
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        
+        plotsavestr = ('cloud_stats_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        plt.close('all')
 
 
 
@@ -689,7 +698,8 @@ if 'summary_stats' in args.plot:
         compM_list = []
         compm_list = []
         compsize_list = []
-        comptauc_list = []
+        compN_list = []
+        compQ_list = []
         for d in args.date:
             print 'Loading date: ', d
             dataset = Dataset(savedir + d + savesuf, 'r')
@@ -700,21 +710,25 @@ if 'summary_stats' in args.plot:
             compm_list.append(np.mean(tmp2, axis = 1))
             compM_list.append(np.sum(tmp2, axis = 1))
             
-            tauc_tmp = dataset.variables['ditauc'][:]
-            tauc_tmp[tauc_tmp > 1e10] = np.nan
-            comptauc_list.append(tauc_tmp)
+            tmp3 = dataset.variables['meanQmp'][:,iz,0,0,0]
+            compQ_list.append(tmp3)
+            
+            tmp4 = dataset.variables['meanN'][:,iz,0,0,0]
+            compN_list.append(tmp4)
+
         
         # Get the composite means
         compsize = np.nanmean(np.array(compsize_list), axis = 0)
         compm = np.nanmean(np.array(compm_list), axis = 0)
         compM = np.nanmean(np.array(compM_list), axis = 0)
-        comptauc = np.nanmean(np.array(comptauc_list), axis = 0)
+        compQ = np.nanmean(np.array(compQ_list), axis = 0)
+        compN = np.nanmean(np.array(compN_list), axis = 0)
         
         lev = dataset.variables['levs'][iz]
         timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
         timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
         # Create the figure
-        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
+        fig, axarr = plt.subplots(3, 2, figsize = (95./25.4*3, 11))
         
         axarr[0,0].plot(timelist_plot, compM, c = 'orangered', linewidth = 2)
         for ic, yplot in enumerate(compM_list):
@@ -737,12 +751,19 @@ if 'summary_stats' in args.plot:
         axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
         axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
         
-        axarr[1,1].plot(timelist_plot, comptauc, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(comptauc_list):
+        axarr[1,1].plot(timelist_plot, compQ, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compQ_list):
             axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
         axarr[1,1].set_xlabel('time [h/UTC]')
         axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,1].set_ylabel('Mean tau_c [h]')
+        axarr[1,1].set_ylabel('Mean Q [h]')
+        
+        axarr[2,1].plot(timelist_plot, compN, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compN_list):
+            axarr[2,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        axarr[2,1].set_xlabel('time [h/UTC]')
+        axarr[2,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[2,1].set_ylabel('Mean N [h]')
         
         titlestr = (alldatestr + ', ' + args.ana + 
                     ', water=' + str(args.water) + ', lev= ' + str(lev) + 
@@ -929,7 +950,96 @@ if 'summary_var' in args.plot:
                         '_tinc-' + str(args.tinc))
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
         plt.close('all')
+
+
+################################################################################
+if 'summary_weather' in args.plot:
+    print 'Plotting summary_weather'
+    plotdirsub = plotdir +  '/summary_weather/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    # Setup
+    cyc = [plt.cm.bone(i) for i in np.linspace(0.1, 0.9, len(args.date))]
+
+    ######## Lev loop #####################
+    for iz in range(len(args.height)):
+        print 'lev: ', iz
+        
+        ####### date loop #######################
+        comphpbl_list = []
+        compcape_list = []
+        compprec_list = []
+        comptauc_list = []
+        for d in args.date:
+            print 'Loading date: ', d
+            dataset = Dataset(savedir + d + savesuf, 'r')
             
+            hpbl_tmp = dataset.variables['dihpbl'][:]
+            cape_tmp = dataset.variables['dicape'][:]
+            prec_tmp = dataset.variables['diprec'][:]
+            comphpbl_list.append(hpbl_tmp)
+            compcape_list.append(cape_tmp)
+            compprec_list.append(prec_tmp)
+            
+            tauc_tmp = dataset.variables['ditauc'][:]
+            tauc_tmp[tauc_tmp > 1e10] = np.nan
+            comptauc_list.append(tauc_tmp)
+        
+        # Get the composite means
+        comphpbl = np.nanmean(np.array(comphpbl_list), axis = 0)
+        compcape = np.nanmean(np.array(compcape_list), axis = 0)
+        compprec = np.nanmean(np.array(compprec_list), axis = 0)
+        comptauc = np.nanmean(np.array(comptauc_list), axis = 0)
+        
+        lev = dataset.variables['levs'][iz]
+        timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
+        timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+        # Create the figure
+        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
+        
+        axarr[0,0].plot(timelist_plot, compprec, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compprec_list):
+            axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        axarr[0,0].set_xlabel('time [h/UTC]')
+        axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[0,0].set_ylabel('Domain average precipitation [mm/h]')
+        
+        axarr[0,1].plot(timelist_plot, compcape, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compcape_list):
+            axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        axarr[0,1].set_xlabel('time [h/UTC]')
+        axarr[0,1].set_ylabel('Domain average CAPE [J/kg]')
+        axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        
+        axarr[1,0].plot(timelist_plot, comptauc, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(comptauc_list):
+            axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        axarr[1,0].set_xlabel('time [h/UTC]')
+        axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[1,0].set_ylabel('Domain average tau_c [h]')
+        
+        axarr[1,1].plot(timelist_plot, comphpbl, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(comphpbl_list):
+            axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        axarr[1,1].set_xlabel('time [h/UTC]')
+        axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        axarr[1,1].set_ylabel('Domain average PBL height [m]')
+        
+        titlestr = (alldatestr + ', ' + args.ana + 
+                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                    ', nens=' + str(args.nens))
+        fig.suptitle(titlestr, fontsize='x-large')
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        
+        plotsavestr = ('summary_weather_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens) + '_tstart-' + 
+                        str(args.tstart) + '_tend-' + str(args.tend) + 
+                        '_tinc-' + str(args.tinc))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        plt.close('all')
+            
+
+
 
 ################################################################################
 if 'stamps_var' in args.plot:
