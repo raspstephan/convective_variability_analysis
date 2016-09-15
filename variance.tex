@@ -104,19 +104,15 @@ The primary goal of this paper is to use a novel technique to characterize the r
 
 
 \section{Numerical experiments and case studies}
+The aim is to create an ensemble of simulations of real mid-latitude weather in which the large-scale conditions are sufficiently similar, but the convective clouds have been completely displaced. The first condition is achieved by using the same initial and boundary condition for each ensemble member. To fulfill the second condition a stochastic boundary layer perturbation scheme is used. The model and the boundary layer scheme will be described now. 
 
-\subsection{General research strategy}
-We will use convection-permitting simulations of real weather situations over Germany. A stochastic boundary-layer scheme will be used to create an ensemble where the convection is displaced. We will then use these ensembles to calculate statistics similar to those in CC06 and compare the results to the theoretical prediction. To explain deviations from the theory, we will try to find meaningful measures to characterize the synoptic situation of the case studies and to correlate them with the deviations.  
+\subsection{Model description and set-up}
+The model used is the COSMO model \citep{???} with 2.8 km horizontal grid spacing $\Delta x$ and operational COSMO-DE settings \citep{???} with one exception, the stochastic boundary-layer scheme which will be described below. The model does not parameterize deep convection, but a parameterization for shallow convection is included. The domain size is 357 grid points in either direction with the domain centered at 10E and 50N. For the analysis a 256 by 256 grid point domain (roughly 717km) at the center of the simulation domain is considered. The 50 grid point gap to the boundary ensures that boundary effects are minimal. 
 
-\subsection{Numerical experiments}
-The model used is the COSMO model with 2.8 km horizontal grid spacing $\Delta x$ and operational COSMO-DE settings with one exception, the stochastic boundary-layer scheme which will be described below. The domain size is 357 grid points in either direction with the domain centered at 10E and 50N. For the analysis a 256 by 256 grid point domain (roughly 717km) at the center of the simulation domain is considered. The 50 grid point gap to the boundary ensures that boundary effects are minimal. 
+Initial and boundary conditions are taken from the operational COSMO-EU (7km) deterministic forecast \citep{???} with a boundary condition update frequency of 1 h. All runs are started at 00UTC with a lead time of 24 h. A 50 member ensemble is created by setting a different random number seed in the stochastic boundary-layer scheme for each member. The first three hours are excluded from all analyses to allow for spin up of the simulations and perturbations, so that the analysis starts at 03UTC and ends at 24UTC. The output was available every 30 minutes. To approximate the convective heating rate $Q$ the instantaneous microphysical temperature tendencies were used.
 
-Initial and boundary conditions are taken from the operational COSMO-EU (7km) deterministic forecast with a boundary condition update frequency of 1 h. All runs are started at 00UTC and are run for 24 h. A 20 member ensemble (\textit{another 30 are currently running}) is created by setting a different random number seed in the stochastic boundary-layer scheme for each member. Otherwise, all members are identical, making sure that the large-scale condition are the same and only the convection is shuffled around. The first three hours are excluded from the analysis to allow for spin up of the simulations and perturbations, so that the analysis starts at 03UTC and ends at 24UTC.
-
-\subsubsection{The PSPturb turbulence scheme}
-The physically-based stochastic perturbation boundary-layer scheme (PSPturb) is described and tested in \cite{Kober2016}(KC16). A brief outline is given here now. 
-
-The PSPturb scheme is additive:
+\subsection{The PSPturb turbulence scheme}
+The physically-based stochastic perturbation boundary-layer scheme (PSPturb) is described and tested in \cite{Kober2016}(KC16). A brief outline is given here now. The PSPturb scheme is an additive perturbation scheme:
 \begin{equation} \label{eq:PSPturb_additive}
 \left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{total}} = \left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{parameterized}} + \eta \sigma_{\left( \frac{\partial \Phi}{\partial t} \right)_{\mathrm{parameterized}}}
 \end{equation}
@@ -126,63 +122,77 @@ These perturbations (last term) are process-specific, so for each parameterized 
 \end{equation}
 where $\mathit{l_{\infty}} = 150$ m is the mixing length describing the average size of an eddy. The term $\sigma_{\Phi}$ is the sub-grid scale standard deviation. For the turbulence perturbations the considered variables are vertical velocity $w$, potential temperature $\theta$ and humidity $q$. The standard deviations are calculated in the turbulence parameterization (see KC06 for details). The factor $\frac{\mathit{l_{\infty}}}{5 \Delta x} \propto \frac{1}{\sqrt{N_{\mathrm{eddy}}}}$ scales the variability according to number of unresolved eddies similar to Eq. \ref{eq:M_var}. The factor $\frac{1}{dt}$  converts the term into a tendency term dependent on the time step. Finally, a scaling factor $\alpha_{\mathrm{const}, \Phi}$ is included for tuning purposes and should be of order one. It is set to 2 for these experiments. 
 
-\subsection{Case studies}
-The case studies are all from a recent, convectively active period over Central Europe in May/June 2016.  
-\paragraph{28 May} The synoptic forcing is weak. Over Southern Germany, high values of CAPE build up (around 1000 J/kg). Scattered diurnal convection develops.
-\paragraph{29 May} At night, some rain is advected from the South. Generally, the wind come from the South. During day, CAPE is high in Eastern Germany. There are both scattered convective cells and more stratiform regions.
-\paragraph{30 May - 5 June} A low pressure system is stationed over Southern Germany causing easterly advection over Northern Germany. This is coupled with diurnal convection.
-\paragraph{6 -- 8 June} The synoptic forcing is weaker with scattered convective cells.
+Fig.~\ref{fig:Fig2} shows the precipitation fields for three ensemble members. On the large scales the members agree on the location of the precipitation, but zooming in on the convection itself reveals no perceptible correlation.
 
-At least one plot with the characteristics of the weather situations, eg. a diprec plot. Probably in combination with all other non-var diurnal plots. 
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
+\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_zoom_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
+\caption{(a) Surface elevation of the analysis domain. (b--d) Precipitation fields of three ensemble members for DATE. Bottom plots show a zoom.} \label{fig:Fig2}
+\end{figure}
+
+
+\subsection{Simulation period}
+The simulations were run for a continuous 12 day period from 28 May -- 8 June 2016 which was characterized by strong convective rainfall over Central Europe (ask Christian for a review of this period). For a large portion of this period a low pressure system was stationed over the Central Alpine region causing South-Easterly advection over Germany. The precipitation largely followed a typical diurnal cycle (Fig.~\ref{fig:Fig3}), along with a build up of convective available potential energy (CAPE) in the morning and growing boundary layer. The convective adjustment time scale $\tau_c$, a measure of the synoptic forcing, shows intermediate values of around 5\,h indicating moderate synoptic forcing, typical for the scattered convection seen in most of the simulated days (for an introduction to $\tau_c$ see \cite{Done2006}, for a recent paper describing the calculation method used here see \cite{Flack2016}). Overall the days are very similar.
+
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.9\textwidth]{2016060400/m/summary_weather/summary_weather_2016060400_ana-m_wat-True_lev-30_nens-2_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time series of (a) hourly rainfall in mm/h, (b) CAPE in J/kg, (c) the convective adjustment time scale in h and (d) the perturbed boundary layer height in m. All values are domain and ensemble averages. Each gray line represents one simulation day. The red line is the mean over all simulation days.} \label{fig:Fig3}
+\end{figure}
 
 \section{Calculation of statistics}
-This section includes the details on how the statistics presented in Section ??? are computed.
+Using the output from the numerical simulations statistics of the of mass flux $M$ and heating rate $Q$ are computed. 
 
-\paragraph{Height level of analyses}
-Since the height above sea level is not constant for our simulations, the questions arises which level to take for domain averages. Height above sea level would not be a good choice since the vertical location of the statistics since the boundary layer depends on the height above ground level, which would also not be a good choice since the tropopause level is largely unaffected by the height above ground level. A logical choice is to use model levels. In the COSMO model the model levels are terrain-following. In the lower troposphere, they are largely parallel to the ground, but at around 10 km, they are largely parallel to sea level. To pick certain levels, we look at a column above the ocean and search for the closes model level to a height above sea level. 
+\subsection{Mass flux $M$}
+The vertical mass flux is defined as the mass of air crossing a certain horizontal area per unit time. Since our interest is in the convective mass flux, we first have to identify the convective clouds (for an illustration of the process see Fig.~\ref{fig:Fig4}). To do this we follow \cite{Cohen2006} and many other previous and subsequent studies by creating a binary cloud/no cloud field using a threshold for vertical velocity $w >$ 1 m s$^{-1}$ combined with a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. By doing this we aim to identify convective updrafts, ignoring downdrafts.
 
-Maybe show mass flux profile and get that issue done with...
+\textit{Parameterizations are based on an updraft $M_b$, right? So if we want to test the input for the parameterization, the updrafts are what we want to look at right?}
 
-\subsection{Identification of clouds and calculation of cloud statistics}
-To identify clouds, first the fields are converted to binary fields by applying a threshold: Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}
+As a next step, Contiguous areas are then identified as clouds using a 4-point segmentation algorithm so that only pixels which share an edge are considered as contiguous clouds. Additionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud \citep{???}.
 
-% Two different fields and thresholds are used for this study: (1) Vertical velocity $w >$ 1 m s$^{-1}$ plus a positive cloud water content $q_c >$ 0 kg kg$^{-1}$. The criterion is denoted by the letter $m$ (for mass flux). This criterion was also used by \cite{Cohen2006} and \cite{Davoudi2010}. (2) Instantaneous precipitation rate $pr >$ 0.001 mm h$^{-1}$. This is a surface variable. This criterion is denoted by the letter $p$. As of now, only criterion (1) is used!
-
-Contiguous areas are then identified as clouds using a 4-point segmentation algorithm so that only pixels which share an edge are considered as contiguous clouds. Additionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud (for an illustrations see Fig.~\ref{fig:Scheufele2014} (left)).
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.95\textwidth]{2016060400/m/identification/identification_2016060400_ana-m_wat-True_nens-2_time-00140000.png}\\
+\caption{Cloud identification algorithm. First, a binary field (c) is created by applying thresholds to the vertical velocity (a) and cloud water (b) fields. Then, the contiguous clouds are identified (d), followed by a separation using a local maximum and watershed method (e)} \label{fig:Fig4}
+\end{figure}
 
 For each identified cloud $k=1,...,N_{\mathrm{cld},i}$ in each ensemble member $i=1,...,N_{\mathrm{ens}}$ a cloud size $\sigma_k$ is determined as
 \begin{equation} \label{eq:cld_size}
  \sigma_k = N_{px} \Delta x^2,
 \end{equation}
-where $N_{\mathrm{px}}$ is the number of pixels for each cloud $k$. Furthermore, the mass flux per cloud $m_k$ is computed for criterion (1) as
+where $N_{\mathrm{px}}$ is the number of pixels for each cloud $k$. The mass flux per cloud $m_k$ is computed as
 \begin{equation} \label{eq:mass_flux_per_cloud}
  m_k = \Delta x^2 \sum_{l}^{N_{\mathrm{px}}} w_l \rho_l,
 \end{equation}
 where $\rho$ is density.
-% For criterion (2), the precipitation rate per cloud $p_k$ is calculated as
-% \begin{equation} \label{eq:pr_per_cloud}
-%  p_k = \sum_{px} pr,
-% \end{equation}
-% Statistics of these variables, such as the mean and the distribution are then calculated (see results).
 
+The identification of clouds and all subsequent calculations have to be done at a certain vertical level. Ideally, one would use the cloud base at the top of the boundary layer, since many convective parameterizations use the cloud base mass flux $M_b$ as the input for their cloud models. There are, however, some complications. First, shallow convective clouds also occur at this level. These are typically ignored in parameterizations of deep convection, which is the focus of this study. Therefore, it makes sense to do the analysis above the shallow convective layer. Second, in our simulations of real weather, the height of the boundary layer, and therefore also the cloud base, varies temporally and spatially in the domain. Thus, our reasoning is to make sure that our chosen height is always above the boundary layer. Third, our studies have orography meaning that the height above sea level is variable. Due to this we chose to do our analysis on the terrain following model levels of the COSMO model \citep{???}, which in the lower troposphere closely follows the distance to the ground, but is basically parallel to the sea level height at the tropopause and above. The vertical profile of the domain average convective updraft mass flux is shown in Fig.~\ref{fig:Fig5} for the entire analysis domain, but also separately for Northern and Southern Germany at the time where the boundary layer is highest. Based on the reasoning laid out in this paragraph we chose model level 30 for our mass flux analyses, but in the Appendix also show the dependence of certain diagnostics with height.
 
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.49\textwidth]{2016060400/m/M_vert/M_vert_2016060400_ana-m_wat-True_nens-2_tstart-12_tend-13_tinc-60_tplot-0-1.png}\\
+\caption{Vertical mass flux profile for the total domain (average surface height: 247\,m) and the Northern (79\,m) and Southern (415\,m) part of the domain.} \label{fig:Fig5}
+\end{figure}
 
-% A clustering radius $r_c$ is defined at the point where the RDF drops below 1 (ignoring the first minimum at small radii if present). 
+\subsection{Heating rate $Q$}
+To calculate statistics of the heating rate, the three dimensional field is summed in the vertical so that $Q$ represents the total heating due to microphysics in the column. 
 
 \subsection{Calculation of ensemble means and variances}
-For the variance calculations, a coarse-graining is applied to create coarse boxes $j=1,...,N_{\mathrm{box,n}}$ with edge lengths of $n=$ 256, 128, 64, 32, 16, 8 and 4$\Delta x$, where $N_{\mathrm{box,n}}=n^2$. No neighborhoods smaller are considered, since these would be significantly below the effective resolution of the model \citep{Bierdel2012}. Ensemble statistics are then calculated for each box $j$. The sample variance is computed as
-\begin{equation} \label{eq:calc_varM}
- \langle (\delta M )^2 \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}-1} \sum_{i=1}^{N_{\mathrm{ens}}} (M_{i,j,n} - \langle M \rangle_{j,n})^2,
-\end{equation}
-where the ensemble mean is
-\begin{equation} \label{eq:calc_meanM}
- \langle M \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}} \sum_{i=1}^{N_{\mathrm{ens}}} M_{i,j,n}.
-\end{equation}
-These calculations are done analogously for $N$. The total mass flux per box per member $M_{i,j,n}$ is given by
+For the variance calculations, a coarse-graining is applied to create coarse boxes $j=1,...,N_{\mathrm{box,n}}$ with edge lengths of $n=$ 256, 128, 64, 32, 16, 8 and 4$\Delta x$, where $N_{\mathrm{box,n}}=(256/n)^2$. No neighborhoods smaller are considered, since these would be significantly below the effective resolution of the model \citep{Skamarock2004}. The total mass flux per box per member $M_{i,j,n}$ is given by
 \begin{equation} \label{eq:calc_memM}
  M_{i,j,n} = \sum_{k=1}^{N_{\mathrm{cld}\,i,j,n}} m_{k,i,j,n}.
 \end{equation}
-To deal with clouds at the boundaries of the coarse-fields, the centers of mass for each cloud is first identified. Then the $m_k$ is attributed to that one point in space. Therefore, the coarse box which contains the center of mass also contains the entire cloud, while the other box does not contain any of the cloud. $N_{i,j,n}=N_{\mathrm{cld}\,i,j,n}$ is simply the number of clouds which fall into each box. This follows \cite{Cohen2006}.
+To deal with clouds at the boundaries of the coarse-fields, the centers of mass for each cloud is first identified. Then the $m_k$ is attributed to that one point in space. Therefore, the coarse box which contains the center of mass also contains the entire cloud, while the other box does not contain any of the cloud. $N_{i,j,n}=N_{\mathrm{cld}\,i,j,n}$ is simply the number of clouds which fall into each box. This follows \cite{Cohen2006}. The heating rate per box is simply the average of all grid points in the box
+
+Ensemble statistics of $\Phi = M, N, Q$ are then calculated for each box $j$. The sample variance is computed as
+\begin{equation} \label{eq:calc_varM}
+ \langle (\delta \Phi )^2 \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}-1} \sum_{i=1}^{N_{\mathrm{ens}}} (\Phi_{i,j,n} - \langle M \rangle_{j,n})^2,
+\end{equation}
+where the ensemble mean is
+\begin{equation} \label{eq:calc_meanM}
+ \langle \Phi \rangle_{j,n} = \frac{1}{N_{\mathrm{ens}}} \sum_{i=1}^{N_{\mathrm{ens}}} \Phi_{i,j,n}.
+\end{equation}
 
 To compute statistics for $m$ a different approach is taken. Here the clouds in all members for each box are considered together to calculate the variance and mean. The total number of clouds over all ensemble members is denoted by $N_{\mathrm{cldtot}} = \sum_{i=1}^{N_{\mathrm{ens}}} N_{\mathrm{cld}\,i,j,n}$.
 \begin{equation} \label{eq:calc_varm}
@@ -193,11 +203,8 @@ where the mean is
  \langle m \rangle_{j,n} = \frac{1}{N_{\mathrm{cldtot}}} \sum_{k=1}^{N_{\mathrm{cldtot}}} m_{k,j,n}.
 \end{equation}
 
-
-\paragraph{Sampling issues}
 Since we are sampling a distribution with a limited number of data points $N_{\mathrm{ens}}$, sampling issues arise when $\langle N \rangle$ becomes small ($\approx \frac{1}{N_{\mathrm{ens}}}$). In particular, if only one member contains a cloud chances are that the real $\langle N \rangle < \frac{1}{N_{\mathrm{ens}}}$ and we therefore overestimate the mean mass flux $\langle M \rangle$. To avoid this issue, a criterion is introduced where at least 5 out of 20 ensemble members must contain at least one cloud. \textit{This threshold is a quick fix and should be determined statistically.}
 
-\subsection{Composites}
 Composites were computed by averaging over the 12 days in the simulation period. For the calculation of means (every overbar) and standard deviations (std), all coarse boxes at scale $n$ for all ensemble members were first combined, and then the means and standard deviations were calculated. This ensures that, since the number of coarse boxes with clouds will differ from case to case, every coarse box is weighted equally.
 
 
@@ -383,122 +390,122 @@ Here are some of the questions I have regarding what I have done so far.
  \bibliography{library}}
 
 \newpage
-\section{Figures}
-All plots for level 30 (about 3000m above ground, unless noted otherwise)
-
-\subsection{Example case: June 4}
-% Prec and W stamps
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/stamps_w/stamps_w_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000.png}\\
-\caption{(Top left) Ensemble mean precipitation, (remaining plots) vertical velocity field for the first three ensemble members} \label{fig:ex_stamps_w}
-\end{figure}
-
-% Cloud statistics
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/cloud_stats/cloud_stats_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
-\caption{Cloud statistics for one time step (14UTC): (left) Histogram of cloud size (15 bins with width 0.13e8 m$^2$) (right) histogram of $m$ (15 bins with width 0.5e8 kg/s). Red lines show the mean value.} \label{fig:ex_cloud_stats}
-\end{figure}
-
-% Summary stats
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/summary_stats/summary_stats_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-\caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale} \label{fig:comp_summary_stats}
-\end{figure}
-
-% RDF
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/rdf/rdf_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-\caption{Radial distribution function averaged for 3\,h intervals} \label{fig:ex_rdf}
-\end{figure}
-
-% RDF
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/rdf/rdf_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-\caption{As above but for the composite.} \label{fig:comp_rdf}
-\end{figure}
-
-% Var stamps
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/stamps_var/stamps_var_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
-\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$} \label{fig:ex_stamps_var}
-\end{figure}
-
+% \section{Figures}
+% All plots for level 30 (about 3000m above ground, unless noted otherwise)
+% 
+% \subsection{Example case: June 4}
+% % Prec and W stamps
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/stamps_w/stamps_w_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000.png}\\
+% \caption{(Top left) Ensemble mean precipitation, (remaining plots) vertical velocity field for the first three ensemble members} \label{fig:ex_stamps_w}
+% \end{figure}
+% 
+% % Cloud statistics
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/cloud_stats/cloud_stats_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000.png}\\
+% \caption{Cloud statistics for one time step (14UTC): (left) Histogram of cloud size (15 bins with width 0.13e8 m$^2$) (right) histogram of $m$ (15 bins with width 0.5e8 kg/s). Red lines show the mean value.} \label{fig:ex_cloud_stats}
+% \end{figure}
+% 
+% % Summary stats
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/summary_stats/summary_stats_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{Time evolution of (top left) the total mass flux integrated over the analysis domain, (top right) the mean cloud size, (bottom left) the mean mass flux per cloud $\langle m \rangle$ and (bottom right) the domain mean convective time scale} \label{fig:comp_summary_stats}
+% \end{figure}
+% 
+% % RDF
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/rdf/rdf_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{Radial distribution function averaged for 3\,h intervals} \label{fig:ex_rdf}
+% \end{figure}
+% 
+% % RDF
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/rdf/rdf_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{As above but for the composite.} \label{fig:comp_rdf}
+% \end{figure}
+% 
+% % Var stamps
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/stamps_var/stamps_var_2016060400_ana-m_wat-True_lev-34_nens-20_time-00140000_n-64.png}\\
+% \caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) $\mu_{2\,j,n}\langle N \rangle_{j,n}$, (bottom left) $\frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}$ and (bottom right) $\frac{\mu_{2\,j,n}\langle N\rangle_{j,n}}{1 + \alpha_{j,n}}$} \label{fig:ex_stamps_var}
+% \end{figure}
+% 
+% % % Scatter
+% % \begin{figure}[ht]
+% % \noindent \centering
+% % \includegraphics[width=0.8\textwidth]{2016060400/m/scatter/scatter_2016060400_ana-m_wat-True_lev-30_nens-20.png}\\
+% % \caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:ex_scatter}
+% % \end{figure}
+% 
 % % Scatter
 % \begin{figure}[ht]
 % \noindent \centering
-% \includegraphics[width=0.8\textwidth]{2016060400/m/scatter/scatter_2016060400_ana-m_wat-True_lev-30_nens-20.png}\\
-% \caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:ex_scatter}
+% \includegraphics[width=0.8\textwidth]{composite/m/scatter/scatter_composite_ana-m_wat-True_lev-30_nens-20.png}\\
+% \caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:comp_scatter}
 % \end{figure}
-
-% Scatter
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.8\textwidth]{composite/m/scatter/scatter_composite_ana-m_wat-True_lev-30_nens-20.png}\\
-\caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:comp_scatter}
-\end{figure}
-
+% 
+% % % Summary var
+% % \begin{figure}[ht]
+% % \noindent \centering
+% % \includegraphics[width=\textwidth]{2016060400/m/summary_var/summary_var_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% % \caption{Time evolution for the mean of several variables.} \label{fig:ex_summary_var}
+% % \end{figure}
+% 
 % % Summary var
 % \begin{figure}[ht]
 % \noindent \centering
-% \includegraphics[width=\textwidth]{2016060400/m/summary_var/summary_var_2016060400_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-% \caption{Time evolution for the mean of several variables.} \label{fig:ex_summary_var}
+% \includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{Time evolution for the mean of several variables.} \label{fig:comp_summary_var}
 % \end{figure}
-
-% Summary var
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-\caption{Time evolution for the mean of several variables.} \label{fig:comp_summary_var}
-\end{figure}
-
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
-\caption{As above but with 50 ensemble members.}
-\end{figure}
-
-% Height var
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-6-9.png}\\
-\caption{Height evolution for the mean of several variables for the interval 9UTC--11UTC.} \label{fig:comp_height_var}
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-9-12.png}\\
-\caption{Height evolution for the mean of several variables for the interval 12UTC--14UTC.} 
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-12-15.png}\\
-\caption{Height evolution for the mean of several variables for the interval 15UTC--17UTC.}
-\end{figure}
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-15-18.png}\\
-\caption{Height evolution for the mean of several variables for the interval 18UTC--20UTC.}
-\end{figure}
-
-% Std_v_mean
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{composite/m/std_v_mean/std_v_mean_composite_ana-m_wat-True_lev-30_nens-20.png}\\
-\caption{Relation between $\sigma_M$ and $M$. The dashed line indicates a linear relationship, while the dash-dotted line indicates a square root relationship.} \label{fig:comp_std_v_mean}
-\end{figure}
-
-
-% Var stamps
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=\textwidth]{2016060400/m/stamps_var/new_stamps_var_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000_n-32.png}\\
-\caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) } \label{fig:ex_stamps_corr}
-\end{figure}
+% 
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+% \caption{As above but with 50 ensemble members.}
+% \end{figure}
+% 
+% % Height var
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-6-9.png}\\
+% \caption{Height evolution for the mean of several variables for the interval 9UTC--11UTC.} \label{fig:comp_height_var}
+% \end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-9-12.png}\\
+% \caption{Height evolution for the mean of several variables for the interval 12UTC--14UTC.} 
+% \end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-12-15.png}\\
+% \caption{Height evolution for the mean of several variables for the interval 15UTC--17UTC.}
+% \end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/height_var/height_var_composite_ana-m_wat-True_nens-20_tstart-3_tend-24_tinc-60_tplot-15-18.png}\\
+% \caption{Height evolution for the mean of several variables for the interval 18UTC--20UTC.}
+% \end{figure}
+% 
+% % Std_v_mean
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{composite/m/std_v_mean/std_v_mean_composite_ana-m_wat-True_lev-30_nens-20.png}\\
+% \caption{Relation between $\sigma_M$ and $M$. The dashed line indicates a linear relationship, while the dash-dotted line indicates a square root relationship.} \label{fig:comp_std_v_mean}
+% \end{figure}
+% 
+% 
+% % Var stamps
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=\textwidth]{2016060400/m/stamps_var/new_stamps_var_2016060400_ana-m_wat-True_lev-30_nens-20_time-00140000_n-32.png}\\
+% \caption{For one time (14UTC) and one $n=64$: (Top left) Ensemble mean convective timescale, (top right) } \label{fig:ex_stamps_corr}
+% \end{figure}
 
 % Loop
 % \foreach \x in {2016052800,2016052900,2016053000,2016053100,2016060200,2016060400,2016060500,2016060600,2016060700,2016060800}

@@ -48,7 +48,7 @@ args = parser.parse_args()
 
 if 'all' in args.plot:
     args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
-                 'stamps_var', 'stamps_w', 'height_var', 'std_v_mean']
+                 'stamps_var', 'stamps_w', 'height_var', 'std_v_mean', 'prec_stamps']
 
 ################################################################################
 # Load datatsets
@@ -1613,3 +1613,165 @@ if 'M_vert' in args.plot:
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
+
+################################################################################
+if 'prec_stamps' in args.plot:
+    print 'Plotting prec_stamps'
+    plotdirsub = plotdir +  '/prec_stamps/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    cmPrec = ((1    , 1     , 1    ), 
+            (0    , 0.627 , 1    ),
+            (0.137, 0.235 , 0.98 ),
+            (0.392, 0     , 0.627),
+            (0.784, 0     , 0.627))
+            #(0.1  , 0.1   , 0.784),
+    levelsPrec = [0, 1, 3, 10, 30, 100.]
+    
+    
+    ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens/'
+    t = timedelta(hours = args.tplot[0])
+    HHobj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
+    PREC1obj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff' + ddhhmmss(t) + 
+                            '.nc_30m_surf', 'PREC_ACCUM')
+    PREC2obj = getfobj_ncdf(ensdir + '/2/OUTPUT/lfff' + ddhhmmss(t) + 
+                            '.nc_30m_surf', 'PREC_ACCUM')
+    PREC3obj = getfobj_ncdf(ensdir + '/3/OUTPUT/lfff' + ddhhmmss(t) + 
+                            '.nc_30m_surf', 'PREC_ACCUM')
+    
+    # Set up the figure 
+    fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
+    plt.sca(axarr[0,0])   # This is necessary for some reason...
+    
+    cf, tmp = ax_contourf(axarr[0,0], HHobj,
+                          cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
+                            ji0=(50, 50),
+                            ji1=(357-51, 357-51),
+                            sp_title=HHobj.fieldn,
+                            Basemap_drawrivers = False,
+                            npars = 0, nmers = 0,
+                            lev = 50,
+                            extend = 'both')
+    cb = fig.colorbar(cf)
+    cb.set_label(HHobj.unit)
+    
+    for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), 
+                           [PREC1obj,PREC2obj, PREC3obj], range(1,4)):
+        
+        # 2. NvarMN
+        plt.sca(ax)
+        cf, tmp = ax_contourf(ax, fob, 
+                              colors = cmPrec, pllevels = levelsPrec,
+                              ji0=(50, 50),
+                            ji1=(357-51, 357-51),
+                            sp_title=fob.fieldn + str(i),
+                            Basemap_drawrivers = False,
+                            npars = 0, nmers = 0)
+        cb = fig.colorbar(cf)
+        cb.set_label(fob.unit)
+    
+    titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                ', water=' + str(args.water) + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('stamps_prec_' + args.date[0] + '_ana-' + args.ana + 
+                '_wat-' + str(args.water) +
+                '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+    
+    ####################################33
+    # Set up the figure 2
+    fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
+    plt.sca(axarr[0,0])   # This is necessary for some reason...
+     
+    tmpfield = np.ones((51, 357, 357), dtype = bool)
+    tmpfield[:,110:357-161,160:357-111] = 0
+    HHobj.data[tmpfield] = np.nan
+    
+    cf, tmp = ax_contourf(axarr[0,0], HHobj,
+                          cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
+                            ji0=(50, 50),
+                            ji1=(357-51, 357-51),
+                            sp_title=HHobj.fieldn,
+                            Basemap_drawrivers = False,
+                            npars = 0, nmers = 0,
+                            lev = 50,
+                            extend = 'both')
+    cb = fig.colorbar(cf)
+    cb.set_label(HHobj.unit)
+    
+    for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), 
+                           [PREC1obj,PREC2obj, PREC3obj], range(1,4)):
+        
+        # 2. NvarMN
+        plt.sca(ax)
+        cf, tmp = ax_contourf(ax, fob, 
+                              colors = cmPrec, pllevels = levelsPrec,
+                              ji0=(110, 160),
+                            ji1=(357-161, 357-111),
+                            sp_title=fob.fieldn + str(i),
+                            Basemap_drawrivers = False,
+                            npars = 0, nmers = 0)
+        cb = fig.colorbar(cf)
+        cb.set_label(fob.unit)
+    
+    titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                ', water=' + str(args.water) + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('stamps_prec_zoom_' + args.date[0] + '_ana-' + args.ana + 
+                '_wat-' + str(args.water) +
+                '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+    
+
+if 'identification' in args.plot:
+    print 'Plotting identification'
+    plotdirsub = plotdir +  '/identification/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
+    
+    # ATTENTION For now this just takes one level 
+    
+    y1 = 0; y2 = 70; x1 = 160; x2 = 230
+    exw = dataset.variables['exw'][args.tplot[0],0, x1:x2, y1:y2]
+    exq = dataset.variables['exq'][args.tplot[0],0, x1:x2, y1:y2]
+    excld = dataset.variables['excld'][args.tplot[0],0, x1:x2, y1:y2]
+    exwater = dataset.variables['exwater'][args.tplot[0],0, x1:x2, y1:y2]
+    excld[excld == 0] = np.nan
+    exwater[exwater == 0] = np.nan
+    exbin = (exw > 1.) * (exq > 0.)
+    
+    fig, axarr = plt.subplots(2, 3, figsize = (12, 7))
+    
+    for ax, field, cm, name in zip(list(np.ravel(axarr)), 
+                        [exw, exq, exbin, excld, exwater],
+                        ['bwr', 'Blues', 'Oranges', 'prism', 'prism'],
+                        ['w', 'q*', 'binary', 'before separation', 'after separation']):
+        C = ax.imshow(field, interpolation = 'nearest', origin = 'lower',
+                  cmap = cm)
+        cb = fig.colorbar(C, ax = ax)
+        ax.set_title(name)
+    axarr[1,2].axis('off')
+    t = timedelta(hours = args.tplot[0] + args.tstart)
+    titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
+                ', water=' + str(args.water) + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('identification_' + args.date[0] + '_ana-' + args.ana + 
+                '_wat-' + str(args.water) +
+                '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+    
+    
+    

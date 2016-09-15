@@ -153,6 +153,12 @@ Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time','levs'))
 
 Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
+exw      = rootgrp.createVariable('exw', 'f8', ('time', 'levs', 'x', 'y'))
+exq      = rootgrp.createVariable('exq', 'f8', ('time', 'levs', 'x', 'y'))
+#exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
+excld    = rootgrp.createVariable('excld', 'f8', ('time', 'levs', 'x', 'y'))
+exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'levs', 'x', 'y'))
+
 # End allocation
 ################################################################################
 
@@ -177,7 +183,6 @@ for it, t in enumerate(timelist):
     ly2 = -(ly1+1)
     for i in range(len(fieldlist)):
         fieldlist[i] = fieldlist[i][:, lx1:lx2, ly1:ly2]
-        
     if args.ana == 'm':   # Load some extra variables 
         qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QC', 
@@ -193,6 +198,7 @@ for it, t in enumerate(timelist):
             qclist[i] = (qclist[i][:, lx1:lx2, ly1:ly2] + 
                          qilist[i][:, lx1:lx2, ly1:ly2] + 
                          qslist[i][:, lx1:lx2, ly1:ly2])
+
         del qilist
         del qslist
         ncdffn_buoy = ncdffn + '_buoy'
@@ -274,13 +280,23 @@ for it, t in enumerate(timelist):
         rdflist = []
         labelslist = []   # Save for use later
         comlist = []      # Save for use later
-        for field, qc, rho in zip(fieldlist, qclist, rholist):
+        for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
+                                  range(len(fieldlist))):
             # Identify clouds
             if args.ana == 'm':
+                if imem == 0:
+                    exw[it,iz,:,:] = field[iz]
+                    exq[it,iz,:,:] = qc[iz]
+                    tmp = identify_clouds(field[iz], thresh, qc[iz],
+                                      opt_thresh = 0., water = False,
+                                      rho = rho[iz])
+                    excld[it,iz,:,:] = tmp[0]
                 tmp = identify_clouds(field[iz], thresh, qc[iz],
                                       opt_thresh = 0., water = args.water,
                                       rho = rho[iz])
                 labels, cld_size_mem, cld_sum_mem = tmp
+                if imem == 0:
+                    exwater[it,iz,:,:] = labels
                 cld_sum_mem *= dx*dx  # Rho is now already included
             else:
                 tmp = identify_clouds(field[iz], thresh, water = args.water)
