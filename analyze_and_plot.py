@@ -21,11 +21,16 @@ import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 
 # Define functions
-def residual(p, y, x):
+def residual_bc(p, y, x):
     
-    a,b,c = p
-    #err = y - (a + b*x**c)
-    err = y - (0 + b*x**c)
+    b,c = p
+    err = y - (b*x**c)
+    
+    return err
+
+def residual_ab(p, y, x):
+    a,b = p
+    err = np.abs(y - (a + b*x))
     
     return err
 
@@ -78,6 +83,7 @@ if alldatestr == '2016052800_2016052900_2016053000_2016053100_2016060100_2016060
 
 
 # Some preliminaries
+print savedir + args.date[0] + savesuf
 tmp_dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
 timelist = [timedelta(seconds=ts) for ts in tmp_dataset.variables['time']]
 timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
@@ -607,8 +613,11 @@ if 'std_v_mean' in args.plot:
         
         allstdM = []
         allM = []
+        allstdQmp = []
+        allQmp = []
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
+            #if n == 32:
             print 'n: ', n
             z_n = 0.1 + (n/256.)*0.1   # for z_order
             
@@ -620,28 +629,29 @@ if 'std_v_mean' in args.plot:
             axarr[0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
                                 alpha = 0.8)
+            axarr[0].scatter(np.nanmean(M), np.nanmean(stdM), marker = 'o', 
+                            c = clist[i_n], 
+                            s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+                            label = str(n*2.8)+'km')
             
-            stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24.
-            Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24.
+            stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24. * n**2
+            Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24. * n**2
+            allstdQmp += list(np.ravel(stdQmp))
+            allQmp += list(np.ravel(Qmp))
             axarr[1].scatter(Qmp, stdQmp, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
+                                s = 4, zorder = 1, linewidth = 0, 
                                 alpha = 0.8)
+            axarr[1].scatter(np.nanmean(Qmp), np.nanmean(stdQmp), marker = 'o', 
+                            c = clist[i_n], 
+                            s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+                            label = str(n*2.8)+'km')
             
-            stdQtot = np.array(stdQtot_list[iz][i_n]) * 3600. * 24.
-            Qtot = np.array(Qtot_list[iz][i_n]) * 3600. * 24.
-            axarr[2].scatter(Qtot, stdQtot, marker = 'o', c = clist[i_n], 
+
+            axarr[2].scatter(stdQmp, stdM, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
                                 alpha = 0.8)
             
         
-        # Fit the line
-        p0 = [1,1,1]
-        y = np.array(allstdM)
-        x = np.array(allM)
-        mask = np.isfinite(y)
-        result = leastsq(residual, p0, args = (y[mask], x[mask]))
-        a,b,c = result[0]
-        print a, b, c
         
         # Complete the figure
         #ax2.legend(loc =3, ncol = 2, prop={'size':6})
@@ -650,7 +660,15 @@ if 'std_v_mean' in args.plot:
                 zorder = 2)
         axarr[0].plot(tmp,np.sqrt(tmp*5e7), c = 'gray', alpha = 1, linestyle = '-.',
                 zorder = 2)
-        axarr[0].plot(tmp,a+b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
+        # Fit the line
+        p0 = [1,1]
+        y = np.array(allstdM)
+        x = np.array(allM)
+        mask = np.isfinite(y)
+        result = leastsq(residual_bc, p0, args = (y[mask], x[mask]))
+        b,c = result[0]
+        print b, c
+        axarr[0].plot(tmp,b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
                 zorder = 2)
         axarr[0].set_xlim(1e6,1e10)
         axarr[0].set_ylim(1e6,1e10)
@@ -660,11 +678,26 @@ if 'std_v_mean' in args.plot:
         axarr[0].set_xlabel(r'$\langle M \rangle$')
         axarr[0].set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
         
+        
+        # Fit the line
+        p0 = [1,1]
+        y = np.array(allstdQmp)
+        x = np.array(allQmp)
+
+        mask = np.isfinite(x) & np.isfinite(y)
+        print x[mask], y[mask]
+        print np.mean(y[mask]), np.mean(x[mask])
+        result = leastsq(residual_ab, p0, args = (y[mask], x[mask]))
+        a,b = result[0]
+        print a,b
+        axarr[1].plot(tmp,a+b*tmp, c = 'gray', alpha = 1, linestyle = '-',
+                zorder = 2)
         axarr[1].set_xlabel(r'$\langle Q_{\mathrm{mphy}} \rangle$')
         axarr[1].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{mphy}})^2 \rangle}$')
-        
-        axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
-        axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
+        axarr[1].set_xlim(-1,5)
+        axarr[1].set_ylim(0,1)
+        #axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
+        #axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
         
         
         titlestr = (alldatestr + '\n' + args.ana + 
