@@ -609,7 +609,7 @@ if 'std_v_mean' in args.plot:
         
         # Set up the figure 
 
-        fig, axarr = plt.subplots(1, 3, figsize = (95./25.4*3, 4))
+        fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 4))
         
         allstdM = []
         allM = []
@@ -617,87 +617,102 @@ if 'std_v_mean' in args.plot:
         allQmp = []
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
-            #if n == 32:
-            print 'n: ', n
-            z_n = 0.1 + (n/256.)*0.1   # for z_order
+            if True:
+                print 'n: ', n
+                z_n = 0.1 + (n/256.)*0.1   # for z_order
+                
+
+                stdM = np.array(stdM_list[iz][i_n])
+                M = np.array(M_list[iz][i_n])
+                print M.shape
+                # Now here I should do the binning.
+                nbins = 5 
+                binedges = np.logspace(6, 11, nbins+1)
+                bininds = np.digitize(M, binedges)
+                binmeans = []
+                binnum = []
+                for i in range(1,nbins+1):
+                    binmeans.append(np.mean(stdM[bininds==i]))
+                    num = (stdM[bininds==i]).shape[0]
+                    binnum.append(num / float((stdM[np.isfinite(stdM)]).shape[0]) * 50)
+                print binnum
+                axarr[0].scatter(np.arange(nbins)+i_n/7., binmeans, c = clist[i_n],
+                    s=binnum)
+                allstdM += list(np.ravel(stdM))
+                allM += list(np.ravel(M))
+                # axarr[0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
+                #                     s = 4, zorder = z_n, linewidth = 0, 
+                #                     alpha = 0.8)
+                # axarr[0].scatter(np.nanmean(M), np.nanmean(stdM), marker = 'o', 
+                #                 c = clist[i_n], 
+                #                 s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+                #                 label = str(n*2.8)+'km')
+            
+            # stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24. * n**2
+            # Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24. * n**2
+            # allstdQmp += list(np.ravel(stdQmp))
+            # allQmp += list(np.ravel(Qmp))
+            # axarr[1].scatter(Qmp, stdQmp, marker = 'o', c = clist[i_n], 
+            #                     s = 4, zorder = 1, linewidth = 0, 
+            #                     alpha = 0.8)
+            # axarr[1].scatter(np.nanmean(Qmp), np.nanmean(stdQmp), marker = 'o', 
+            #                 c = clist[i_n], 
+            #                 s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+            #                 label = str(n*2.8)+'km')
             
 
-            stdM = np.array(stdM_list[iz][i_n])
-            M = np.array(M_list[iz][i_n])
-            allstdM += list(np.ravel(stdM))
-            allM += list(np.ravel(M))
-            axarr[0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[0].scatter(np.nanmean(M), np.nanmean(stdM), marker = 'o', 
-                            c = clist[i_n], 
-                            s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
-                            label = str(n*2.8)+'km')
-            
-            stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24. * n**2
-            Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24. * n**2
-            allstdQmp += list(np.ravel(stdQmp))
-            allQmp += list(np.ravel(Qmp))
-            axarr[1].scatter(Qmp, stdQmp, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = 1, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[1].scatter(np.nanmean(Qmp), np.nanmean(stdQmp), marker = 'o', 
-                            c = clist[i_n], 
-                            s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
-                            label = str(n*2.8)+'km')
-            
-
-            axarr[2].scatter(stdQmp, stdM, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
+            # axarr[2].scatter(stdQmp, stdM, marker = 'o', c = clist[i_n], 
+            #                     s = 4, zorder = z_n, linewidth = 0, 
+            #                     alpha = 0.8)
             
         
         
         # Complete the figure
         #ax2.legend(loc =3, ncol = 2, prop={'size':6})
-        tmp = np.linspace(0,1e10, 100000)
-        axarr[0].plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
-                zorder = 2)
-        axarr[0].plot(tmp,np.sqrt(tmp*5e7), c = 'gray', alpha = 1, linestyle = '-.',
-                zorder = 2)
-        # Fit the line
-        p0 = [1,1]
-        y = np.array(allstdM)
-        x = np.array(allM)
-        mask = np.isfinite(y)
-        result = leastsq(residual_bc, p0, args = (y[mask], x[mask]))
-        b,c = result[0]
-        print b, c
-        axarr[0].plot(tmp,b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
-                zorder = 2)
-        axarr[0].set_xlim(1e6,1e10)
+        # tmp = np.linspace(0,1e10, 100000)
+        # axarr[0].plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
+        #         zorder = 2)
+        axarr[0].plot(np.arange(nbins+1),np.sqrt(binedges*5e7), c = 'gray', alpha = 1, linestyle = '-.',
+                 zorder = 2)
+        # # Fit the line
+        # p0 = [1,1]
+        # y = np.array(allstdM)
+        # x = np.array(allM)
+        # mask = np.isfinite(y)
+        # result = leastsq(residual_bc, p0, args = (y[mask], x[mask]))
+        # b,c = result[0]
+        # print b, c
+        # axarr[0].plot(tmp,b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
+        #         zorder = 2)
+        #axarr[0].set_xlim(1e6,1e11)
         axarr[0].set_ylim(1e6,1e10)
-        axarr[0].set_xscale('log')
+        #axarr[0].set_xscale('log')
         axarr[0].set_yscale('log')
+        axarr[0].xaxis.grid(True)
         #ax2.invert_xaxis()
         axarr[0].set_xlabel(r'$\langle M \rangle$')
         axarr[0].set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
         
         
-        # Fit the line
-        p0 = [1,1]
-        y = np.array(allstdQmp)
-        x = np.array(allQmp)
+        # # Fit the line
+        # p0 = [1,1]
+        # y = np.array(allstdQmp)
+        # x = np.array(allQmp)
 
-        mask = np.isfinite(x) & np.isfinite(y)
-        print x[mask], y[mask]
-        print np.mean(y[mask]), np.mean(x[mask])
-        result = leastsq(residual_ab, p0, args = (y[mask], x[mask]))
-        a,b = result[0]
-        print a,b
-        axarr[1].plot(tmp,a+b*tmp, c = 'gray', alpha = 1, linestyle = '-',
-                zorder = 2)
-        axarr[1].set_xlabel(r'$\langle Q_{\mathrm{mphy}} \rangle$')
-        axarr[1].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{mphy}})^2 \rangle}$')
-        axarr[1].set_xlim(-1,5)
-        axarr[1].set_ylim(0,1)
-        #axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
-        #axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
+        # mask = np.isfinite(x) & np.isfinite(y)
+        # print x[mask], y[mask]
+        # print np.mean(y[mask]), np.mean(x[mask])
+        # result = leastsq(residual_ab, p0, args = (y[mask], x[mask]))
+        # a,b = result[0]
+        # print a,b
+        # axarr[1].plot(tmp,a+b*tmp, c = 'gray', alpha = 1, linestyle = '-',
+        #         zorder = 2)
+        # axarr[1].set_xlabel(r'$\langle Q_{\mathrm{mphy}} \rangle$')
+        # axarr[1].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{mphy}})^2 \rangle}$')
+        # axarr[1].set_xlim(-1,5)
+        # axarr[1].set_ylim(0,1)
+        # #axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
+        # #axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
         
         
         titlestr = (alldatestr + '\n' + args.ana + 
