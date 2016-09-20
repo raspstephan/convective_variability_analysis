@@ -80,12 +80,12 @@ They used a similar model setup to CC06, but with a diurnal cycle through intera
 
 They then look at two clustering metrics. First, the radial distribution function (their Fig. 14), where they find strong clustering for 5-10 km. Second, $\alpha = \frac{\sigma_N^2}{\langle N \rangle}$ (their Fig.~14), where they find values of about 110\% at cloud base, which is in agreement with the findings by CC06 and \cite{Davies2008}. 
 
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.49\textwidth]{Davoudi2010_Fig13.jpeg}
-\includegraphics[width=0.49\textwidth]{Davoudi2010_Fig15.jpeg}\\
-\caption{From \cite{Davoudi2010}: (left) $\mu_2$ averaged over all times for their simulations at different heights. (right) $\langle N \rangle$ and $\sigma_N^2$ are shown for different heights.} \label{fig:Davoudi2010}
-\end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=0.49\textwidth]{Davoudi2010_Fig13.jpeg}
+% \includegraphics[width=0.49\textwidth]{Davoudi2010_Fig15.jpeg}\\
+% \caption{From \cite{Davoudi2010}: (left) $\mu_2$ averaged over all times for their simulations at different heights. (right) $\langle N \rangle$ and $\sigma_N^2$ are shown for different heights.} \label{fig:Davoudi2010}
+% \end{figure}
 
 
 \subsection{SPPT}
@@ -124,22 +124,13 @@ where $\mathit{l_{\infty}} = 150$ m is the mixing length describing the average 
 
 Fig.~\ref{fig:Fig2} shows the precipitation fields for three ensemble members. On the large scales the members agree on the location of the precipitation, but zooming in on the convection itself reveals no perceptible correlation.
 
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
-\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_zoom_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
-\caption{(a) Surface elevation of the analysis domain. (b--d) Precipitation fields of three ensemble members for DATE. Bottom plots show a zoom.} \label{fig:Fig2}
-\end{figure}
+
 
 
 \subsection{Simulation period}
 The simulations were run for a continuous 12 day period from 28 May -- 8 June 2016 which was characterized by strong convective rainfall over Central Europe (ask Christian for a review of this period). For a large portion of this period a low pressure system was stationed over the Central Alpine region causing South-Easterly advection over Germany. The precipitation largely followed a typical diurnal cycle (Fig.~\ref{fig:Fig3}), along with a build up of convective available potential energy (CAPE) in the morning and growing boundary layer. The convective adjustment time scale $\tau_c$, a measure of the synoptic forcing, shows intermediate values of around 5\,h indicating moderate synoptic forcing, typical for the scattered convection seen in most of the simulated days (for an introduction to $\tau_c$ see \cite{Done2006}, for a recent paper describing the calculation method used here see \cite{Flack2016}). Overall the days are very similar.
 
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[width=0.9\textwidth]{2016060400/m/summary_weather/summary_weather_2016060400_ana-m_wat-True_lev-30_nens-2_tstart-3_tend-24_tinc-60.png}\\
-\caption{Time series of (a) hourly rainfall in mm/h, (b) CAPE in J/kg, (c) the convective adjustment time scale in h and (d) the perturbed boundary layer height in m. All values are domain and ensemble averages. Each gray line represents one simulation day. The red line is the mean over all simulation days.} \label{fig:Fig3}
-\end{figure}
+
 
 \section{Calculation of statistics}
 Using the output from the numerical simulations statistics of the of mass flux $M$ and heating rate $Q$ are computed. 
@@ -151,11 +142,6 @@ The vertical mass flux is defined as the mass of air crossing a certain horizont
 
 As a next step, Contiguous areas are then identified as clouds using a 4-point segmentation algorithm so that only pixels which share an edge are considered as contiguous clouds. Additionally, ``overlapping'' clouds are identified with the local maximum method, followed by a watershed algorithm to find the extent of each separated cloud \citep{???}.
 
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.95\textwidth]{2016060400/m/identification/identification_2016060400_ana-m_wat-True_nens-2_time-00140000.png}\\
-\caption{Cloud identification algorithm. First, a binary field (c) is created by applying thresholds to the vertical velocity (a) and cloud water (b) fields. Then, the contiguous clouds are identified (d), followed by a separation using a local maximum and watershed method (e)} \label{fig:Fig4}
-\end{figure}
 
 For each identified cloud $k=1,...,N_{\mathrm{cld},i}$ in each ensemble member $i=1,...,N_{\mathrm{ens}}$ a cloud size $\sigma_k$ is determined as
 \begin{equation} \label{eq:cld_size}
@@ -169,11 +155,7 @@ where $\rho$ is density.
 
 The identification of clouds and all subsequent calculations have to be done at a certain vertical level. Ideally, one would use the cloud base at the top of the boundary layer, since many convective parameterizations use the cloud base mass flux $M_b$ as the input for their cloud models. There are, however, some complications. First, shallow convective clouds also occur at this level. These are typically ignored in parameterizations of deep convection, which is the focus of this study. Therefore, it makes sense to do the analysis above the shallow convective layer. Second, in our simulations of real weather, the height of the boundary layer, and therefore also the cloud base, varies temporally and spatially in the domain. Thus, our reasoning is to make sure that our chosen height is always above the boundary layer. Third, our studies have orography meaning that the height above sea level is variable. Due to this we chose to do our analysis on the terrain following model levels of the COSMO model \citep{???}, which in the lower troposphere closely follows the distance to the ground, but is basically parallel to the sea level height at the tropopause and above. The vertical profile of the domain average convective updraft mass flux is shown in Fig.~\ref{fig:Fig5} for the entire analysis domain, but also separately for Northern and Southern Germany at the time where the boundary layer is highest. Based on the reasoning laid out in this paragraph we chose model level 30 for our mass flux analyses, but in the Appendix also show the dependence of certain diagnostics with height.
 
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.49\textwidth]{2016060400/m/M_vert/M_vert_2016060400_ana-m_wat-True_nens-2_tstart-12_tend-13_tinc-60_tplot-0-1.png}\\
-\caption{Vertical mass flux profile for the total domain (average surface height: 247\,m) and the Northern (79\,m) and Southern (415\,m) part of the domain.} \label{fig:Fig5}
-\end{figure}
+
 
 \subsection{Heating rate $Q$}
 To calculate statistics of the heating rate, the three dimensional field is summed in the vertical so that $Q$ represents the total heating due to microphysics in the column. 
@@ -207,8 +189,35 @@ Since we are sampling a distribution with a limited number of data points $N_{\m
 
 Composites were computed by averaging over the 12 days in the simulation period. For the calculation of means (every overbar) and standard deviations (std), all coarse boxes at scale $n$ for all ensemble members were first combined, and then the means and standard deviations were calculated. This ensures that, since the number of coarse boxes with clouds will differ from case to case, every coarse box is weighted equally.
 
-
 \section{Standard deviation versus mean}
+We now have a dataset containing values of $\langle M \rangle$, $\langle (\delta M )^2 \rangle$, $\langle Q \rangle$, $\langle (\delta Q )^2 \rangle$ for each coarsening scale $n$, grid box $j$ and time $t$. The first goal of this study is to analyze the relation between the variability (in terms of the standard deviation or variance) and mean, and evaluate the theoretical predictions of CC06 and SPPT. Fig.~\ref{fig:Fig6}a shows the standard deviation of $M$ plotted against the mean for all times on a log-log plot. There seems to be a change in the relation somewhere between $10^7$ and $10^8$ kg/s, which is roughly the mean mass flux of an individual cloud $m$. This indicates that this change in the slope could be a sampling issue. To evaluate whether a linear relation between the standard deviation and the mean (SPPT) or a square root relation (CC06) fits our data better least square fits of $y = b*x$ and $y = \sqrt{b*x}$ were done, respectively. The corresponding fits are displayed as lines, while the fit parameter $b$ and the normalized root mean square error of the fit are shown in Fig.~\ref{fig:Fig6}b. What is immediately evident is the scale dependence of the fit parameter $b$ for the SPPT prediction, which drops from around 1.5 to 0.1 going towards larger scales. The fit parameter for the square root CC06 prediction, on the other hand, stays relatively constant with values ranging from 0.8--1.25x10$^8$. The quality of the fit as measured by the NRMSE is smaller for most $n$ for the CC06 predictions, particularly for medium $n$. These results suggest that for $M$, the relation between the variability and mean is better described by the CC06 theory than by the SPPT theory. In particular the CC06 theory is scale adaptive, while the random parameter for SPPT has to be adapted to the grid size.
+
+Do these findings also apply to $Q$. In other words, we are asking whether there is a clear correlation between the means and standard deviations of $Q$ and $M$. Since $M$ is a summed quantity while $Q$ is an average quantity, $Q$ is first multiplied by the area of the coarse box $A=n^2$ to make the two quantities comparable between scales. The correlation coefficient is shown in Fig.~\ref{fig:Fig6}d. For the standard deviation the correlation coefficient is greater 0.9 for all $n$ except the smallest scale. For the means the correlation is not as good, particularly for the largest scale where the correlation coefficient drops to 0.65. Still, the two quantities are related. One big difference between $M$ and $Q$, as they are used in this study, is that $\langle Q \rangle$ can be zero or negative, while there is a lower limit for $M$. 
+
+\textit{Where do negative values come from. Could they be related to non-zero $M$? Should I show or mention the fit quality for $Q$ as well?}
+
+\subsection{Testing the assumptions of CC06}
+While the CC06 theory seems to predict the variability of the convective mass flux and heating rates reasonably well, there are still significant fluctuations. We will now attempt to look at all the assumptions made in deriving EQ. In particular, (a) $m$ is constant, (b) the mass flux per cloud is distributed exponentially, (c) clouds are distributed randomly resulting in a Poisson distribution for $N$, and (d) the cloud number $N$ and cloud mass flux $m$ are uncorrelated.
+
+Assumption (a) is not an assumption made by CC06 where $\langle m \rangle$ is an input parameter for the prediction of the variance. It is however an assumption made in PC08. Fig.~\ref{fig:Fig7}a shows the temporal evolution of the mean mass flux $\langle m \rangle$. The composite mean is relatively constant at around 5x10$^7$ kg/s. This is around twice the value diagnosed by \cite{Cohen2006} and used in PC08. There are however significant day-to-day fluctuations and some days show a quite strong diurnal cycle with values ranging from 2--7x10$^7$ kg/s. 
+
+
+Assumption (b), namely the exponential distribution of $m$ is at the core of the CC06 theory and the PC08 parameterization. Fig.~\ref{fig:Fig7} shows histograms of cloud size and $m$ for all times and combined for all days. While both distributions largely follow an exponential distribution there are some deviations. One measure is the parameter $\beta = \langle (\delta m)^2 \rangle / \langle m \rangle^2$, which should be 1. For the cloud size distribution this parameters is 0.77 while for the mass flux distribution it is 1.20 indicating a broader distribution. \textit{Does it make sense to look at the correlation between $m$ and cloud size as another assumption?} Fig.~\ref{fig:Fig8}? shows the temporal evolution of $\beta$ evaluated for each scale $n$. $\beta$ depends significantly on scale with larger values, i.e. broader distributions, for larger scales. This issue will be explored later. The diurnal variation of $\beta$ is on the order of 10\% and corresponds with the diurnal variation of the mean cloud mass flux.
+
+Assumption (c), namely the random (Poisson) distribution of the cloud number $N$, can be tested by the parameter $\alpha = \langle (\delta N)^2 \rangle / \langle N \rangle$ which should be one. Larger values indicate a preferred occurrence of clouds near already existing clouds (we will call this process clustering), while values smaller than 1 indicate a more regular spatial distribution of clouds. Fig.~\ref{fig:Fig8}? shows the temporal evolution of $\alpha$ for each scale. A diurnal cycle is evident for all scales, which is strongest for the medium and large $n$. In particular, there seems to be a minimum in clustering during the convective peak at around 13UTC and then strongly increasing clustering from 15UTC to 20UTC. A different measure for clustering is the radial distribution function shown in Fig.~\ref{fig:Fig10}. For all times there seems to be clustering which is strongest at a distance of around 25\,km, crossing below 1 at around 100\,km. The diurnal variation of the RDF is in accordance with $\alpha$, particularly an increased clustering towards the evening hours. 
+
+To get a quantitative measure of how important the violations of the assumptions discussed in the two previous paragraphs are, the root mean square error of the relative deviation from the theory is calculated. Then $\alpha$ and $\beta$ are taken into account and the reduction of the error is considered (Fig.~\ref{fig:Fig11}). For the medium and large scales the clustering as indicated by $\alpha$ has the strongest effect and for medium $n$ explains almost half of the deviations. For the smallest $n$ the $\beta$ parameter is in fact very important. Accounting for both parameters around half of the deviations for small and medium $n$ can be explained, while a large portion of the error for large scales remains. 
+
+In particular, while for small and medium scales on average the adjusted prediction fits the simulation data very well, there is a significant bias for larger scales where the variability is overpredicted. The remaining assumption (d) is that the cloud mass flux and the number of cloud are uncorrelated. From Fig.~\ref{fig:Fig7} a temporal correlation between the two variables can be assumed. \textit{Is this enough of an explanation of should we look deeper into the correlation of the two?}
+
+In particular the large diurnal cycle of clustering can cause the variability estimates to have error on the order of 50\%. This suggest that in order to improve the estimates clustering should in some way be included in the theoretical model of convection. There are two main challenges which arise: (a) finding a simple model of convection with clustering and (b) finding some GCM grid-scale predictor for clustering which can then be passed as a parameter to the simple model. 
+
+
+
+
+---
+
+Fig. ??? shows the relation between the means and variances of $M$ and $Q$ and the correlation between the mass flux and heating rates. The correlation coefficient between $M$ and $Q$ is typically above 80\% except for large $n$, while for the standard deviations the correlation is always good. This indicates that even though $M$ only includes updrafts, these are still representative for most of the heating due to microphysics. In panels a) and b) two lines are drawn, representing the CC06 prediction using a value for $\langle m \rangle = 0.6e8$, which is close to the overall mean and using 1/12 as the slope for the SPPT prediction based on current settings at ECWMF. 
 
 M and Q std vs mean with line for CC06, SPPT and best fit function for all times. 
 
@@ -218,12 +227,12 @@ Here probably also RDF.
 
 A radial distribution function (RDF) is calculated at each time for each member separately. To do this, the center of mass for each cloud is identified. For these points a two-dimensional pair correlation is computed, where the step size of the search function is 2$\Delta x$ and the maximum search radius is 30$\Delta x$. The output is normalized, so that a completely randomly distributed field would give an RDF of 1 at all radii. The results are averaged over the ensemble members to give one RDF at each time. A sketch of how the RDF is calculated is given in Fig.~\ref{fig:Scheufele2014} (right).
 
-\begin{figure}[ht]
-\noindent \centering
-\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig4_18.jpeg}
-\includegraphics[width=0.49\textwidth]{Scheufele2014_Fig3_16.jpeg}\\
-\caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.} \label{fig:Scheufele2014}
-\end{figure}
+% \begin{figure}[ht]
+% \noindent \centering
+% \includegraphics[width=0.49\textwidth]{Scheufele2014_Fig4_18.jpeg}
+% \includegraphics[width=0.49\textwidth]{Scheufele2014_Fig3_16.jpeg}\\
+% \caption{From \cite{Scheufele2014}: (left) Schematic of local maximum method with subsequent watershed method for identifying individual clouds. (right) Schematic of annular regions used to compute mean cloud number density as a function of radius.} \label{fig:Scheufele2014}
+% \end{figure}
 
 
 \section{A simple clustering model}
@@ -244,143 +253,143 @@ HPBL, dtM
 
 
 
-
-\subsection{Comparison with prediction}
-To compare the obtained values to the theoretical predictions (\textbf{RQ1}), the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
-\begin{equation} \label{eq:normalized_variance}
- \mu_{2\,j, n} = \frac{\langle (\delta M )^2 \rangle_{j,n}}{\langle M \rangle_{j,n}^2}.
-\end{equation}
-To get a quantitative comparison of the simulation results and theory, the fraction is calculated as
-\begin{equation} \label{eq:normalized_variance_fraction}
- \frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{2}.
-\end{equation}
-
-To get a summary measure of how the normalized variance compares to the predicted value for each scale $n$, the mean $\frac{\mu_{2} \langle N \rangle}{2}$ is calculated:
-\begin{equation} \label{eq:mean_nvar_n}
- \overline{\frac{\mu_{2}\langle N \rangle}{2}}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\mu_{2\,j,n}\langle N \rangle_{j,n}}{2}.
-\end{equation}
-According to theory this value should be 1.
-Similarly the standard deviation is calculated as
-\begin{equation} \label{eq:std_nvar_n}
- \mathrm{std}\left(\frac{\mu_{2}\langle N \rangle}{2}\right)_n = \sqrt{\frac{1}{N_{\mathrm{box}\,n}-1} \sum_{j=1}^{N_{\mathrm{box}\,n}} \left(\frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{2} - \overline{\frac{\mu_{2}\langle N \rangle}{2}}_n \right)^2}.
-\end{equation}
-Coarse grid boxes without any clouds (or less that 5 members out of 20, see above) where excluded from these averages and standard deviation calculations. 
-
-To test whether the assumptions which lead to Eq.~\ref{eq:M_var} hold, we start from the theory of random sums (see above), which states:
-\begin{equation} \label{eq:derivation_1}
- \langle (\delta M)^2 \rangle = \langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
-\end{equation}
-Assuming an exponential distribution for $m$, so that $\langle (\delta m)^2 \rangle = \langle m \rangle^2$, and a Poisson distribution for $N$, so that $\langle (\delta 
-N)^2 \rangle = \langle N \rangle$ gives Eq.~\ref{eq:M_var}. If we do not make these assumptions, however, and divide Eq.~\ref{eq:derivation_1} by $\langle N \rangle \langle m \rangle^2$, we get
-\begin{equation} \label{eq:derivation_2}
- \mu_{2\,j,n} \langle N \rangle_{j,n} = \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2} + \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}},
-\end{equation}
-where we define 
-\begin{equation} \label{eq:alpha}
- \alpha_{j,n} = \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}
-\end{equation}
-following the definition of $\alpha$ from \cite{Davoudi2010} and 
-\begin{equation} \label{eq:beta}
- \beta_{j,n} = \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}.
-\end{equation}
-This allows us to define an ``adjusted'' fraction (cf. Eq.~\ref{eq:normalized_variance_fraction}) as
-\begin{equation} \label{eq:adjusted_variance_fraction}
- \frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{\alpha_{j,n} + \beta_{j,n}},
-\end{equation}
-which should be 1 if the deviations in the distributions of $m$ and $N$ can account for all of the variance deviation. By setting either $\alpha$ or $\beta$ to 1, we can quantify the effect of each of the distributions individually, thereby answering \textbf{RQ1.1}. Additionally, a summary measure for $\alpha$ and $\beta$ for each $n$ is computed as
-\begin{equation} \label{eq:mean_alpha}
- \bar{\alpha}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}
-\end{equation}
-and
-\begin{equation} \label{eq:mean_beta}
-  \bar{\beta}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}.
-\end{equation}
-
-
-
-
-
-
-
-\subsection{Calculation of the convective adjustment timescale}
-The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. Furthermore, a minimum precipitation threshold of 0.2 mm h$^{-1}$ is used, which leads to the timescale not being calculated for regions only a few small cells. Therefore, not every variance value can be matched with a timescale value. 
-
- 
-
-\section{Results (and some thoughts)}
-Results are going to be shown for one example day (4 June) and for the composite over all 12 days. For now all results are for model level 30 (corresponds to 3000\,m above sea level.)
-
-\subsection{Cloud field statistics}
-Fig.~\ref{fig:ex_stamps_w} shows the mean precipitation and the vertical velocity fields for the first three ensemble members for 14UTC on 4 June as an example. All blue regions in the vertical velocity plots are clouds, if there is a positive cloud water content. Fig.~\ref{fig:ex_cloud_stats} shows the distributions of cloud size and $m$ for the identified clouds at that time for the entire domain. Both distributions resemble an exponential distribution relatively well. For $m$ the distribution at that time for that day seems a little broader. 
-
-Fig.~\ref{fig:comp_summary_stats} shows the temporal evolution for the composite of the domain total mass flux, a measure of the total convective activity, the composite ensemble mean cloud size $\overline{\langle \sigma \rangle}$, the composite ensemble mean cloud mass flux $\overline{\langle m \rangle}$, and the mean convective time scale $\tau_c$. There is a strong diurnal cycle with little convective activity before 10UTC, a peak in the domain total mass flux at around 14UTC and a decrease towards the evening hours. Most of the individual cases follow this diurnal cycle well. Only a few have significant convective activity during the night. The mean cloud size and mass flux is relatively constant, with only a small diurnal signal in the composite, but varies significantly between cases. The convective timescale shows a typical diurnal signal with a build up in the morning hours and a peak around midday. The exact time of the maximum differs between cases. In particular, one case reaches much higher values than all others. In general, the values of $\tau_c$ are moderate (around 10\,h), suggesting that the weather situations are, on average, moderately forced. Looking at the spatial distribution of $\tau_c$ (see for an example Fig.~\ref{fig:ex_stamps_var}), it is evident that the field is very inhomogeneous with both large and small values occurring at the same time in different parts of the domain. 
-
-\subsection{Radial distribution functions}
-Fig.~\ref{fig:ex_rdf} and \ref{fig:comp_rdf} show the RDF for several time intervals for 4 June and for the composite, respectively. In both figures, there is increased clustering with a maximum at around 25\,km in the morning and evening hours. At around 100\,km the normalized RDF drops below 1. 
-
-\subsection{Example for upscaled ensemble mean and variance fields}
-Fig.~\ref{fig:ex_stamps_var} shows an example of how the field is upscaled and how the variance and mean values are computed. 
-
-\subsection{Comparison with prediction}
-Fig.~\ref{fig:comp_scatter} shows how the simulated variances $\mu_2$ compare to predictions $2/\langle N \rangle$ (top row left). The top right plot shows the fraction of simulation variance to prediction $\frac{\mu_2 \langle N \rangle}{2}$ (I will also call it the relative variance). The results for the example case and the composite agree very well, which is why we will focus on the composite results. For all $n$ the simulated variance is below the prediction. For large and small $n$, the deviations are larger, while for $n$ around 100\,km, the simulated variance is very close to the prediction. The standard deviation is typically larger for larger $n$, which could be a results of the smaller sample size. 
-
-The temporal evolution of the means is shown in Fig.~\ref{fig:comp_summary_var}. The top left plot shows the diurnal variation of $\frac{\mu_2 \langle N \rangle}{2}$. The diurnal signal is larger for large $n$. After around 17UTC for $n>$44.8\,km the simulations show a variance which is greater than predicted by theory. 
-
-\paragraph{RQ1} These results enable us to answer the primary research question. The simulated variances show significant deviation from the theoretical predictions of CC06. Typically, the predicted variances are larger than the simulated ones. There is a strong diurnal cycle for larger scales with increased variability in the evening. These results are generally in agreement with previous studies of idealized situations. In particular the diurnal signal seen here looks similar to the one in Fig.~\ref{fig:Davies2008} with a strong increase in convective variability in the evening, even though we do not observe an exceeded variance in the morning. Therefore, the first hypothesis can be confirmed. \\ \\
-
-On to the follow-up RQ1.1:
-
-The second row of Fig.~\ref{fig:comp_scatter} shows the correlation between $\frac{\mu_2 \langle N \rangle}{2}$ and the $\alpha$ parameter (left). For all $n$ there seems to be a good correlation between the deviation fro the observed variance and the clustering as measured by this parameter. The same applies for the temporal evolution shown in Fig.~\ref{fig:comp_summary_var} (bottom left). $\alpha$ shows a strong diurnal signal for larger $n$ which resembles the diurnal signal of the relative variance. Around the convective maximum at midday $\alpha$ is smaller than one, indicating a more regular distribution of cells than what would be expected from a Poisson process. 
-
-Accounting for $\alpha$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\alpha}$) (Fig.~\ref{fig:comp_scatter}, second row right) decreases the mean for medium $n$, while for large and small $n$ the mean is largely unaffected. The variability of the variance is greatly decreased for the medium and large $n$. This indicates that for the larger $n$, clustering as measured by $\alpha$ can explain a significant portion of the variability. This can also be seen in the adjusted time evolution (Fig.~\ref{fig:comp_summary_var}, second row left). The diurnal variability is greatly reduced. 
-
-The same can be done for $\beta$ instead of $\alpha$. Here the correlation is less clear, particularly for larger $n$ (Fig.~\ref{fig:comp_scatter}, third row left). There is a strong trend for smaller $\beta$ for smaller $n$, which can also be seen in the temporal means (Fig.~\ref{fig:comp_summary_var}, bottom row right). This could represent a sampling issue, where the very limited number of clouds sampled for small $n$ will most likely have a sharper distribution than the exponential distribution assumed by CC06. There is only a small diurnal signal in $\beta$.
-
-Accounting for $\beta$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\beta}$) (Fig.~\ref{fig:comp_scatter}, third row right) results in increased mean variance fractions for medium and small $n$. The variability is not changed significantly. In the temporal evolution plot (Fig.~\ref{fig:comp_summary_var}, second row right) a similar trend can be observed. The mean is changed significantly for small and medium $n$, while the diurnal variation is only reduced slightly. These results indicate that the deviations in $\beta$, most likely owing to sampling issues, are to a large part responsible for the reduced relative variance for small $n$.
-
-Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \rangle}{\alpha + \beta}$) (Fig.~\ref{fig:comp_scatter}, bottom row right) shows that for small and medium $n$ the agreement with the theoretical prediction is now very good, and the standard deviation is greatly reduced. For large $n$ there is still a significant deviation in the mean value, but the variability of the variance around mean is also reduced. The temporal means (Fig.~\ref{fig:comp_summary_var}, top row right) for small and medium $n$ basically show no diurnal signal any more and are very close to 1. For large $n$ some of the diurnal variability remains with a minimum during the convective maximum and a maximum in the evening. 
-
-\paragraph{RQ1.1} Deviations in the distributions of $N$ and $m$ can indeed explain a large portion of the deviations of the variances. The clustering as measured by $\alpha$ seems to be responsible for a large chunk of the variability of the relative variances around their mean and the diurnal cycle for larger $n$. $\beta$, on the other hand, shows that for smaller $n$ the simulated $m$ distribution tends to be smaller than exponential. Accounting for $\beta$, therefore, explains, to a large part, the mean deviation of the predicted variance for smaller $n$. By accounting for both, $\alpha$ and $\beta$, the adjusted predictions are very close to relative variance for small and medium $n$. For large $n$, there is still a general trend for the predictions to be higher and some of the diurnal signal remains. In summary, these results suggest that for large scales clustering is important, while for small scales the very limited number of sampled clouds leads to differences in the mass flux per cloud distribution. 
-
-\paragraph{Height dependence} All plots above are valid for 3000\,m asl. Figs.~\ref{fig:comp_height_var} (and below) show the dependence of the variance parameters on height, similar to the plots in \cite{Davoudi2010}, for several time intervals. The results resemble their results. $\frac{\mu_2 \langle N \rangle}{2}$ increases with height. At around 8\,km height the predicted variance agrees well with the simulation results during the convective maximum. the height dependence of $\alpha$ is weak, except for the boundary layer region. At later times (18--20UTC) the clustering for $n$ around 100\,km is clearly visible. $\beta$ has a strong height dependence at all times with lower values in the lower troposphere and higher values in the upper troposphere. This indicates that small clouds which make up the bulk of the distribution in the lower troposphere do not reach the upper parts of the troposphere. Looking at the adjusted predictions one can see that $\alpha$ mainly accounts for the bias between different $n$, while $\beta$ accounts for much of the height variability. 
-
-\paragraph{CC06 vs. SPPT: a different view}
-Inspired by \cite{Shutts2007}, Fig.~\ref{fig:comp_std_v_mean} shows the correlation of $\langle M \rangle$ with $\langle (\delta M)^2 \rangle$. According to CC06 they should be in a square root dependence, while the SPPT rationale suggests a linear relation. As can be seen, for the data from the simulations here, the CC06 relation fits better. This suggests that, at least for $M$, the SPPT assumption does not hold. SPPT, however, perturbs the output of the parameterizations, which for convection would be the heating rate $Q$. Therefore, it would be interesting to look at the correlation between $M$ and $Q$. 
-
-\subsection{Spatial correlation}
-One question to ask is whether there is any correlation in the deviation in $M_i$ of a member. Specifically, what is the spatial auto-correlation of $M_{i}' = (M_i - \langle M \rangle)/\langle M \rangle$. Fig.~\ref{fig:ex_stamps_corr} shows one example of the field for the first member. As can be seen the field shows some signs of correlation but then also jumps from positive to negative values intermittently. An attempt at constructing an auto-correlation function resulted in values around zero for all distances. Therefore, I will put this inquiry on hold, maybe forever! Temporally, there could be some correlation, but I doubt that with the dataset and method I am using I could find something relevant. 
-
-\subsection{Dependence on ensemble members}
-\paragraph{$\beta$-dependence on $n$} $\beta$ seems to depend heavily on $n$. This behavior does not change with the number of ensemble members which suggests one of the following: (a) An error in the computation or (b) an underlying statistical or physical reason for this behavior. A sampling issue whereby $N_{\mathrm{cld}}$ is low for small $n$ does not seem to be the reason as a simple iPython test suggests. To test whether (a) is the case, one option would be to feed the algorithm a ``perfect'' field which fulfills all the assumptions, i.e. a random distribution of clouds with an exponential $m$ distribution. Should $\beta$ be one for all $n$ for this perfect field, this would imply that there is indeed a physical reason. Should a similar $n$ dependence be found, this would hint at a computing error or a statistical reason. 
-
-\subsection{Test with hypothetical fields}
-To test whether (a) my algorithm does the right thing and (b) where the deviations in $\alpha$ and $\beta$ come from a hierarchy of idealized fields will be considered.
-
-\subsubsection{Ideal point clouds}
-The most idealized test consists of fields with point clouds. The total number of clouds for each ensemble member is drawn from a Poisson distribution with a certain mean. Each cloud is then randomly placed in space with a mass flux drawn from an exponential distribution. The grid is the same as used for the real simulations. The results can be seen in Fig.???. $\alpha$ seems to be smaller 1 at around 0.8, while $\beta$ is basically 1 for all scales. This indicates that the computation of $\beta$ is correct and that the deviations seen in the real simulations have a statistical or physical basis.
-
-\subsubsection{Randomly distributed clouds with a size distributions}
-This experiment has circular clouds instead of point clouds.
-
-\subsection{Clustered clouds}
-This is Julia's model.
-
-\section{My questions}
-Here are some of the questions I have regarding what I have done so far.
-\begin{enumerate}
- \item Is my methodology bulletproof or are there assumptions which are not clear?
- \item Is the way I am computing $\langle (\delta m )^2 \rangle_{j,n}$ and $\langle m \rangle_{j,n}$ (Eqs.~\ref{eq:calc_varm} and \ref{eq:calc_meanm}) correct? 
- \item Correlation between $n$ and $\beta$: Is this simply a sampling issue? How is this represented in PC08? Is this intrinsically included in the method of randomly drawing cells?
- \item Are there any further diagnostics of this dataset which would be relevant and interesting?
- \item How are $Q$ and $M$ related in a parameterization? Do SPPT and CC06 contradict each other as \cite{Shutts2007} suggest?
-\end{enumerate}
-
-\paragraph{Next steps} Provided that what I have so far is not totally wrong, here are some ideas for next steps:
-\begin{enumerate}
- \item How can we predict $\alpha$ from the large-scale environment? Has this already been tried? Or is it too difficult?
- \item How could $\alpha$ be included in PC08? Is this ``beyond the scope of this study''?
- \item What are time and length correlation scales? 
-\end{enumerate}
+% 
+% \subsection{Comparison with prediction}
+% To compare the obtained values to the theoretical predictions (\textbf{RQ1}), the normalized variance for each coarse box $j$ at each coarsening scale $n$ is calculated as 
+% \begin{equation} \label{eq:normalized_variance}
+%  \mu_{2\,j, n} = \frac{\langle (\delta M )^2 \rangle_{j,n}}{\langle M \rangle_{j,n}^2}.
+% \end{equation}
+% To get a quantitative comparison of the simulation results and theory, the fraction is calculated as
+% \begin{equation} \label{eq:normalized_variance_fraction}
+%  \frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{2}.
+% \end{equation}
+% 
+% To get a summary measure of how the normalized variance compares to the predicted value for each scale $n$, the mean $\frac{\mu_{2} \langle N \rangle}{2}$ is calculated:
+% \begin{equation} \label{eq:mean_nvar_n}
+%  \overline{\frac{\mu_{2}\langle N \rangle}{2}}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\mu_{2\,j,n}\langle N \rangle_{j,n}}{2}.
+% \end{equation}
+% According to theory this value should be 1.
+% Similarly the standard deviation is calculated as
+% \begin{equation} \label{eq:std_nvar_n}
+%  \mathrm{std}\left(\frac{\mu_{2}\langle N \rangle}{2}\right)_n = \sqrt{\frac{1}{N_{\mathrm{box}\,n}-1} \sum_{j=1}^{N_{\mathrm{box}\,n}} \left(\frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{2} - \overline{\frac{\mu_{2}\langle N \rangle}{2}}_n \right)^2}.
+% \end{equation}
+% Coarse grid boxes without any clouds (or less that 5 members out of 20, see above) where excluded from these averages and standard deviation calculations. 
+% 
+% To test whether the assumptions which lead to Eq.~\ref{eq:M_var} hold, we start from the theory of random sums (see above), which states:
+% \begin{equation} \label{eq:derivation_1}
+%  \langle (\delta M)^2 \rangle = \langle N \rangle \langle (\delta m)^2 \rangle + \langle m \rangle^2 \langle (\delta N)^2 \rangle
+% \end{equation}
+% Assuming an exponential distribution for $m$, so that $\langle (\delta m)^2 \rangle = \langle m \rangle^2$, and a Poisson distribution for $N$, so that $\langle (\delta 
+% N)^2 \rangle = \langle N \rangle$ gives Eq.~\ref{eq:M_var}. If we do not make these assumptions, however, and divide Eq.~\ref{eq:derivation_1} by $\langle N \rangle \langle m \rangle^2$, we get
+% \begin{equation} \label{eq:derivation_2}
+%  \mu_{2\,j,n} \langle N \rangle_{j,n} = \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2} + \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}},
+% \end{equation}
+% where we define 
+% \begin{equation} \label{eq:alpha}
+%  \alpha_{j,n} = \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}
+% \end{equation}
+% following the definition of $\alpha$ from \cite{Davoudi2010} and 
+% \begin{equation} \label{eq:beta}
+%  \beta_{j,n} = \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}.
+% \end{equation}
+% This allows us to define an ``adjusted'' fraction (cf. Eq.~\ref{eq:normalized_variance_fraction}) as
+% \begin{equation} \label{eq:adjusted_variance_fraction}
+%  \frac{\mu_{2\,j, n} \langle N \rangle_{j,n} }{\alpha_{j,n} + \beta_{j,n}},
+% \end{equation}
+% which should be 1 if the deviations in the distributions of $m$ and $N$ can account for all of the variance deviation. By setting either $\alpha$ or $\beta$ to 1, we can quantify the effect of each of the distributions individually, thereby answering \textbf{RQ1.1}. Additionally, a summary measure for $\alpha$ and $\beta$ for each $n$ is computed as
+% \begin{equation} \label{eq:mean_alpha}
+%  \bar{\alpha}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta N)^2 \rangle_{j,n}}{\langle N \rangle_{j,n}}
+% \end{equation}
+% and
+% \begin{equation} \label{eq:mean_beta}
+%   \bar{\beta}_n = \frac{1}{N_{\mathrm{box}\,n}} \sum_{j=1}^{N_{\mathrm{box}\,n}} \frac{\langle (\delta m)^2 \rangle_{j,n}}{\langle m \rangle_{j,n}^2}.
+% \end{equation}
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% \subsection{Calculation of the convective adjustment timescale}
+% The convective timescale was calculated according to \cite{Flack2016}. To produce ensemble mean plots of $\tau_c$ the fields are calculated for each ensemble member individually and then averaged. This leads to some not-smooth regions at the edges. Furthermore, a minimum precipitation threshold of 0.2 mm h$^{-1}$ is used, which leads to the timescale not being calculated for regions only a few small cells. Therefore, not every variance value can be matched with a timescale value. 
+% 
+%  
+% 
+% \section{Results (and some thoughts)}
+% Results are going to be shown for one example day (4 June) and for the composite over all 12 days. For now all results are for model level 30 (corresponds to 3000\,m above sea level.)
+% 
+% \subsection{Cloud field statistics}
+% Fig.~\ref{fig:ex_stamps_w} shows the mean precipitation and the vertical velocity fields for the first three ensemble members for 14UTC on 4 June as an example. All blue regions in the vertical velocity plots are clouds, if there is a positive cloud water content. Fig.~\ref{fig:ex_cloud_stats} shows the distributions of cloud size and $m$ for the identified clouds at that time for the entire domain. Both distributions resemble an exponential distribution relatively well. For $m$ the distribution at that time for that day seems a little broader. 
+% 
+% Fig.~\ref{fig:comp_summary_stats} shows the temporal evolution for the composite of the domain total mass flux, a measure of the total convective activity, the composite ensemble mean cloud size $\overline{\langle \sigma \rangle}$, the composite ensemble mean cloud mass flux $\overline{\langle m \rangle}$, and the mean convective time scale $\tau_c$. There is a strong diurnal cycle with little convective activity before 10UTC, a peak in the domain total mass flux at around 14UTC and a decrease towards the evening hours. Most of the individual cases follow this diurnal cycle well. Only a few have significant convective activity during the night. The mean cloud size and mass flux is relatively constant, with only a small diurnal signal in the composite, but varies significantly between cases. The convective timescale shows a typical diurnal signal with a build up in the morning hours and a peak around midday. The exact time of the maximum differs between cases. In particular, one case reaches much higher values than all others. In general, the values of $\tau_c$ are moderate (around 10\,h), suggesting that the weather situations are, on average, moderately forced. Looking at the spatial distribution of $\tau_c$ (see for an example Fig.~\ref{fig:ex_stamps_var}), it is evident that the field is very inhomogeneous with both large and small values occurring at the same time in different parts of the domain. 
+% 
+% \subsection{Radial distribution functions}
+% Fig.~\ref{fig:ex_rdf} and \ref{fig:comp_rdf} show the RDF for several time intervals for 4 June and for the composite, respectively. In both figures, there is increased clustering with a maximum at around 25\,km in the morning and evening hours. At around 100\,km the normalized RDF drops below 1. 
+% 
+% \subsection{Example for upscaled ensemble mean and variance fields}
+% Fig.~\ref{fig:ex_stamps_var} shows an example of how the field is upscaled and how the variance and mean values are computed. 
+% 
+% \subsection{Comparison with prediction}
+% Fig.~\ref{fig:comp_scatter} shows how the simulated variances $\mu_2$ compare to predictions $2/\langle N \rangle$ (top row left). The top right plot shows the fraction of simulation variance to prediction $\frac{\mu_2 \langle N \rangle}{2}$ (I will also call it the relative variance). The results for the example case and the composite agree very well, which is why we will focus on the composite results. For all $n$ the simulated variance is below the prediction. For large and small $n$, the deviations are larger, while for $n$ around 100\,km, the simulated variance is very close to the prediction. The standard deviation is typically larger for larger $n$, which could be a results of the smaller sample size. 
+% 
+% The temporal evolution of the means is shown in Fig.~\ref{fig:comp_summary_var}. The top left plot shows the diurnal variation of $\frac{\mu_2 \langle N \rangle}{2}$. The diurnal signal is larger for large $n$. After around 17UTC for $n>$44.8\,km the simulations show a variance which is greater than predicted by theory. 
+% 
+% \paragraph{RQ1} These results enable us to answer the primary research question. The simulated variances show significant deviation from the theoretical predictions of CC06. Typically, the predicted variances are larger than the simulated ones. There is a strong diurnal cycle for larger scales with increased variability in the evening. These results are generally in agreement with previous studies of idealized situations. In particular the diurnal signal seen here looks similar to the one in Fig.~\ref{fig:Davies2008} with a strong increase in convective variability in the evening, even though we do not observe an exceeded variance in the morning. Therefore, the first hypothesis can be confirmed. \\ \\
+% 
+% On to the follow-up RQ1.1:
+% 
+% The second row of Fig.~\ref{fig:comp_scatter} shows the correlation between $\frac{\mu_2 \langle N \rangle}{2}$ and the $\alpha$ parameter (left). For all $n$ there seems to be a good correlation between the deviation fro the observed variance and the clustering as measured by this parameter. The same applies for the temporal evolution shown in Fig.~\ref{fig:comp_summary_var} (bottom left). $\alpha$ shows a strong diurnal signal for larger $n$ which resembles the diurnal signal of the relative variance. Around the convective maximum at midday $\alpha$ is smaller than one, indicating a more regular distribution of cells than what would be expected from a Poisson process. 
+% 
+% Accounting for $\alpha$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\alpha}$) (Fig.~\ref{fig:comp_scatter}, second row right) decreases the mean for medium $n$, while for large and small $n$ the mean is largely unaffected. The variability of the variance is greatly decreased for the medium and large $n$. This indicates that for the larger $n$, clustering as measured by $\alpha$ can explain a significant portion of the variability. This can also be seen in the adjusted time evolution (Fig.~\ref{fig:comp_summary_var}, second row left). The diurnal variability is greatly reduced. 
+% 
+% The same can be done for $\beta$ instead of $\alpha$. Here the correlation is less clear, particularly for larger $n$ (Fig.~\ref{fig:comp_scatter}, third row left). There is a strong trend for smaller $\beta$ for smaller $n$, which can also be seen in the temporal means (Fig.~\ref{fig:comp_summary_var}, bottom row right). This could represent a sampling issue, where the very limited number of clouds sampled for small $n$ will most likely have a sharper distribution than the exponential distribution assumed by CC06. There is only a small diurnal signal in $\beta$.
+% 
+% Accounting for $\beta$ in the fraction ($\frac{\mu_2 \langle N \rangle}{1+\beta}$) (Fig.~\ref{fig:comp_scatter}, third row right) results in increased mean variance fractions for medium and small $n$. The variability is not changed significantly. In the temporal evolution plot (Fig.~\ref{fig:comp_summary_var}, second row right) a similar trend can be observed. The mean is changed significantly for small and medium $n$, while the diurnal variation is only reduced slightly. These results indicate that the deviations in $\beta$, most likely owing to sampling issues, are to a large part responsible for the reduced relative variance for small $n$.
+% 
+% Accounting for deviation in both $\alpha$ and $\beta$ ($\frac{\mu_2 \langle N \rangle}{\alpha + \beta}$) (Fig.~\ref{fig:comp_scatter}, bottom row right) shows that for small and medium $n$ the agreement with the theoretical prediction is now very good, and the standard deviation is greatly reduced. For large $n$ there is still a significant deviation in the mean value, but the variability of the variance around mean is also reduced. The temporal means (Fig.~\ref{fig:comp_summary_var}, top row right) for small and medium $n$ basically show no diurnal signal any more and are very close to 1. For large $n$ some of the diurnal variability remains with a minimum during the convective maximum and a maximum in the evening. 
+% 
+% \paragraph{RQ1.1} Deviations in the distributions of $N$ and $m$ can indeed explain a large portion of the deviations of the variances. The clustering as measured by $\alpha$ seems to be responsible for a large chunk of the variability of the relative variances around their mean and the diurnal cycle for larger $n$. $\beta$, on the other hand, shows that for smaller $n$ the simulated $m$ distribution tends to be smaller than exponential. Accounting for $\beta$, therefore, explains, to a large part, the mean deviation of the predicted variance for smaller $n$. By accounting for both, $\alpha$ and $\beta$, the adjusted predictions are very close to relative variance for small and medium $n$. For large $n$, there is still a general trend for the predictions to be higher and some of the diurnal signal remains. In summary, these results suggest that for large scales clustering is important, while for small scales the very limited number of sampled clouds leads to differences in the mass flux per cloud distribution. 
+% 
+% \paragraph{Height dependence} All plots above are valid for 3000\,m asl. Figs.~\ref{fig:comp_height_var} (and below) show the dependence of the variance parameters on height, similar to the plots in \cite{Davoudi2010}, for several time intervals. The results resemble their results. $\frac{\mu_2 \langle N \rangle}{2}$ increases with height. At around 8\,km height the predicted variance agrees well with the simulation results during the convective maximum. the height dependence of $\alpha$ is weak, except for the boundary layer region. At later times (18--20UTC) the clustering for $n$ around 100\,km is clearly visible. $\beta$ has a strong height dependence at all times with lower values in the lower troposphere and higher values in the upper troposphere. This indicates that small clouds which make up the bulk of the distribution in the lower troposphere do not reach the upper parts of the troposphere. Looking at the adjusted predictions one can see that $\alpha$ mainly accounts for the bias between different $n$, while $\beta$ accounts for much of the height variability. 
+% 
+% \paragraph{CC06 vs. SPPT: a different view}
+% Inspired by \cite{Shutts2007}, Fig.~\ref{fig:comp_std_v_mean} shows the correlation of $\langle M \rangle$ with $\langle (\delta M)^2 \rangle$. According to CC06 they should be in a square root dependence, while the SPPT rationale suggests a linear relation. As can be seen, for the data from the simulations here, the CC06 relation fits better. This suggests that, at least for $M$, the SPPT assumption does not hold. SPPT, however, perturbs the output of the parameterizations, which for convection would be the heating rate $Q$. Therefore, it would be interesting to look at the correlation between $M$ and $Q$. 
+% 
+% \subsection{Spatial correlation}
+% One question to ask is whether there is any correlation in the deviation in $M_i$ of a member. Specifically, what is the spatial auto-correlation of $M_{i}' = (M_i - \langle M \rangle)/\langle M \rangle$. Fig.~\ref{fig:ex_stamps_corr} shows one example of the field for the first member. As can be seen the field shows some signs of correlation but then also jumps from positive to negative values intermittently. An attempt at constructing an auto-correlation function resulted in values around zero for all distances. Therefore, I will put this inquiry on hold, maybe forever! Temporally, there could be some correlation, but I doubt that with the dataset and method I am using I could find something relevant. 
+% 
+% \subsection{Dependence on ensemble members}
+% \paragraph{$\beta$-dependence on $n$} $\beta$ seems to depend heavily on $n$. This behavior does not change with the number of ensemble members which suggests one of the following: (a) An error in the computation or (b) an underlying statistical or physical reason for this behavior. A sampling issue whereby $N_{\mathrm{cld}}$ is low for small $n$ does not seem to be the reason as a simple iPython test suggests. To test whether (a) is the case, one option would be to feed the algorithm a ``perfect'' field which fulfills all the assumptions, i.e. a random distribution of clouds with an exponential $m$ distribution. Should $\beta$ be one for all $n$ for this perfect field, this would imply that there is indeed a physical reason. Should a similar $n$ dependence be found, this would hint at a computing error or a statistical reason. 
+% 
+% \subsection{Test with hypothetical fields}
+% To test whether (a) my algorithm does the right thing and (b) where the deviations in $\alpha$ and $\beta$ come from a hierarchy of idealized fields will be considered.
+% 
+% \subsubsection{Ideal point clouds}
+% The most idealized test consists of fields with point clouds. The total number of clouds for each ensemble member is drawn from a Poisson distribution with a certain mean. Each cloud is then randomly placed in space with a mass flux drawn from an exponential distribution. The grid is the same as used for the real simulations. The results can be seen in Fig.???. $\alpha$ seems to be smaller 1 at around 0.8, while $\beta$ is basically 1 for all scales. This indicates that the computation of $\beta$ is correct and that the deviations seen in the real simulations have a statistical or physical basis.
+% 
+% \subsubsection{Randomly distributed clouds with a size distributions}
+% This experiment has circular clouds instead of point clouds.
+% 
+% \subsection{Clustered clouds}
+% This is Julia's model.
+% 
+% \section{My questions}
+% Here are some of the questions I have regarding what I have done so far.
+% \begin{enumerate}
+%  \item Is my methodology bulletproof or are there assumptions which are not clear?
+%  \item Is the way I am computing $\langle (\delta m )^2 \rangle_{j,n}$ and $\langle m \rangle_{j,n}$ (Eqs.~\ref{eq:calc_varm} and \ref{eq:calc_meanm}) correct? 
+%  \item Correlation between $n$ and $\beta$: Is this simply a sampling issue? How is this represented in PC08? Is this intrinsically included in the method of randomly drawing cells?
+%  \item Are there any further diagnostics of this dataset which would be relevant and interesting?
+%  \item How are $Q$ and $M$ related in a parameterization? Do SPPT and CC06 contradict each other as \cite{Shutts2007} suggest?
+% \end{enumerate}
+% 
+% \paragraph{Next steps} Provided that what I have so far is not totally wrong, here are some ideas for next steps:
+% \begin{enumerate}
+%  \item How can we predict $\alpha$ from the large-scale environment? Has this already been tried? Or is it too difficult?
+%  \item How could $\alpha$ be included in PC08? Is this ``beyond the scope of this study''?
+%  \item What are time and length correlation scales? 
+% \end{enumerate}
 
 
 
@@ -390,7 +399,72 @@ Here are some of the questions I have regarding what I have done so far.
  \bibliography{library}}
 
 \newpage
-% \section{Figures}
+\section{Figures}
+
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
+\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_zoom_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
+\caption{(a) Surface elevation of the analysis domain. (b--d) Precipitation fields of three ensemble members for DATE. Bottom plots show a zoom.} \label{fig:Fig2}
+\end{figure}
+
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.9\textwidth]{2016060400/m/summary_weather/summary_weather_2016060400_ana-m_wat-True_lev-30_nens-2_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time series of (a) hourly rainfall in mm/h, (b) CAPE in J/kg, (c) the convective adjustment time scale in h and (d) the perturbed boundary layer height in m. All values are domain and ensemble averages. Each gray line represents one simulation day. The red line is the mean over all simulation days.} \label{fig:Fig3}
+\end{figure}
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.95\textwidth]{2016060400/m/identification/identification_2016060400_ana-m_wat-True_nens-2_time-00140000.png}\\
+\caption{Cloud identification algorithm. First, a binary field (c) is created by applying thresholds to the vertical velocity (a) and cloud water (b) fields. Then, the contiguous clouds are identified (d), followed by a separation using a local maximum and watershed method (e)} \label{fig:Fig4}
+\end{figure}
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.49\textwidth]{2016060400/m/M_vert/M_vert_2016060400_ana-m_wat-True_nens-2_tstart-12_tend-13_tinc-60_tplot-0-1.png}\\
+\caption{Vertical mass flux profile for the total domain (average surface height: 247\,m) and the Northern (79\,m) and Southern (415\,m) part of the domain.} \label{fig:Fig5}
+\end{figure}
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.95\textwidth]{2016052800_2016053000/m/std_v_mean/std_v_mean_2016052800_2016053000_ana-m_wat-True_lev-30_nens-20.png}\\
+\caption{(a) Standard deviation of $M$ plotted against mean. (b) Fitting parameters for CC06 and SPPT along with normalized RMSE. (c) Standard deviation of $Q*A$ plotted against mean. (d) Correlation coefficient of means and standard deviations of $M$ and $Q$.} \label{fig:Fig6}
+\end{figure}
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.95\textwidth]{composite/m/summary_stats/summary_stats_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{(a) Temporal evolution of the domain mean $m$, (b) cloud size, (c) domain total mass flux $M$ and (d) cloud number $N$.} \label{fig:Fig7}
+\end{figure}
+
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.95\textwidth]{composite/m/cloud_stats/cloud_stats_composite_ana-m_wat-True_lev-30_nens-20.png}\\
+\caption{(a) Distribution of cloud size and (b) cloud mass flux. For all times and cases.} \label{fig:Fig8}
+\end{figure}
+
+% Summary var
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/summary_var/summary_var_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time evolution for the mean of several variables.} \label{fig:Fig9}
+\end{figure}
+
+% RDF
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=\textwidth]{composite/m/rdf/rdf_composite_ana-m_wat-True_lev-30_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{As above but for the composite.} \label{fig:Fig10}
+\end{figure}
+
+% Scatter
+\begin{figure}[ht]
+\noindent \centering
+\includegraphics[width=0.8\textwidth]{composite/m/scatter/rmse_composite_ana-m_wat-True_lev-30_nens-20.png}\\
+\caption{Scatter plots for several variables. Small dots for each $j$, $n$ is denoted by different colors. The large dots represent the mean values for each $n$.} \label{fig:Fig11}
+\end{figure}
+
 % All plots for level 30 (about 3000m above ground, unless noted otherwise)
 % 
 % \subsection{Example case: June 4}

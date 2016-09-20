@@ -34,6 +34,29 @@ def residual_ab(p, y, x):
     
     return err
 
+def residual_ab_exp(p, y, x):
+    a, b = p
+    err = np.abs(y - (a*np.exp(b*x)))
+    
+    return err
+
+def residual_abc(p, y, x):
+    a,b = p
+    err = np.abs(y - (a + (b*x**c)))
+    
+    return err
+
+def residual_b(p, y, x):
+    b = p
+    err = np.abs(y - (b*x))
+    
+    return err
+
+def residual_b_sqrt(p, y, x):
+    b = p
+    err = np.abs(y - np.sqrt(b*x))
+    
+    return err
 
 # Setup: this needs to match the compute script!
 parser = argparse.ArgumentParser(description = 'Process input')
@@ -150,16 +173,28 @@ if 'cloud_stats' in args.plot:
         sizehist, sizeedges = np.histogram(totlist1[iz], 
                                             bins = 15, range = [0., sizemax])
         sizemean = np.mean(totlist1[iz])
-
+        sizevar = np.var(totlist1[iz])
+        print 'size beta', sizevar/sizemean**2
         sumhist, sumedges = np.histogram(totlist2[iz], 
                                             bins = 15, range = [0., summax])
         summean = np.mean(totlist2[iz])
+        sumvar = np.var(totlist2[iz])
+        print 'beta', sumvar/summean**2
         
         # Plot the histograms
         fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2.5, 4.2))
         axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
         axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
                     alpha = 0.5)
+        # Fit line
+        p0 = [1e6, 1e-7]
+        result = leastsq(residual_ab_exp, p0, args = (sizeedges[:-1], sizehist))
+        a,b = result[0]
+        print a,b
+        a = 1e6
+        b = -0.4e-7
+        axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
+        print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
         axarr[0].set_xlabel('Cloud size [m^2]')
         axarr[0].set_ylabel('Number of clouds')
         axarr[0].set_title('Cloud size distribution')
@@ -313,7 +348,10 @@ if 'scatter' in args.plot:
         # Set up the figure 
         fig, axarr = plt.subplots(4, 2, figsize = (95./25.4*2, 13))
 
-        
+        rmselist1 = []
+        rmselist2 = []
+        rmselist3 = []
+        rmselist4 = []
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
             print 'n: ', n
@@ -338,6 +376,9 @@ if 'scatter' in args.plot:
             yfrac_std = np.nanstd(yfrac)
             ymean = yfrac_mean * xmean
             print 'before', yfrac_mean, yfrac_std
+            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+            print 'rmse before', yfrac_rmse
+            rmselist1.append(yfrac_rmse)
 
             axarr[0,0].scatter(x, y, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
@@ -373,6 +414,9 @@ if 'scatter' in args.plot:
             yfrac_std = np.nanstd(yfrac)
             ymean = yfrac_mean * xmean
             print 'after', yfrac_mean, yfrac_std
+            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+            print 'rmse alpha', yfrac_rmse
+            rmselist2.append(yfrac_rmse)
             
             axarr[1,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
@@ -401,6 +445,9 @@ if 'scatter' in args.plot:
             yfrac_std = np.nanstd(yfrac)
             ymean = yfrac_mean * xmean
             print 'after', yfrac_mean, yfrac_std
+            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+            print 'rmse beta', yfrac_rmse
+            rmselist3.append(yfrac_rmse)
             
             axarr[2,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
@@ -430,6 +477,9 @@ if 'scatter' in args.plot:
             yfrac_std = np.nanstd(yfrac)
             ymean = yfrac_mean * xmean
             print 'after', yfrac_mean, yfrac_std
+            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+            print 'rmse all', yfrac_rmse
+            rmselist4.append(yfrac_rmse)
             
             axarr[3,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
                                 s = 4, zorder = z_n, linewidth = 0, 
@@ -551,6 +601,31 @@ if 'scatter' in args.plot:
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
 
         plt.close('all')
+        
+        fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1, 4))
+        x = np.arange(4)
+        width = 0.1
+        
+        for i_n, n in enumerate(nlist):
+            plt.bar(1+i_n*width, rmselist1[i_n], width, color = clist[i_n])
+            diff2 = rmselist1[i_n] - rmselist2[i_n]
+            diff3 = rmselist1[i_n] - rmselist3[i_n]
+            diff4 = rmselist1[i_n] - rmselist4[i_n]
+            plt.bar(2+i_n*width, -diff2, width, color = clist[i_n])
+            plt.bar(3+i_n*width, -diff3, width, color = clist[i_n])
+            plt.bar(4+i_n*width, -diff4, width, color = clist[i_n])
+            plt.bar(5+i_n*width, rmselist4[i_n], width, color = clist[i_n])
+        #plt.scatter(np.log2(nlist)-0.15, rmselist1, c = clist)
+        #plt.scatter(np.log2(nlist)-0.05, rmselist2, c = clist)
+        #plt.scatter(np.log2(nlist)+0.05, rmselist3, c = clist)
+        #plt.scatter(np.log2(nlist)+0.15, rmselist4, c = clist)
+        plotsavestr = ('rmse_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
+                        '_nens-' + str(args.nens))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+
+        plt.close('all')
+        
 
 
 ################################################################################
@@ -608,72 +683,167 @@ if 'std_v_mean' in args.plot:
         print 'lev: ', lev
         
         # Set up the figure 
-
-        fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2, 4))
+        tmp = np.logspace(5,12, 1000)
+        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*2, 8))
         
         allstdM = []
         allM = []
         allstdQmp = []
         allQmp = []
+        
+        b_CC06 = []
+        b_SPPT = []
+        
         ####### n loop #######################
         for i_n, n in enumerate(dataset.variables['n']):
-            if True:
-                print 'n: ', n
-                z_n = 0.1 + (n/256.)*0.1   # for z_order
-                
-
-                stdM = np.array(stdM_list[iz][i_n])
-                M = np.array(M_list[iz][i_n])
-                print M.shape
-                # Now here I should do the binning.
-                nbins = 5 
-                binedges = np.logspace(6, 11, nbins+1)
-                bininds = np.digitize(M, binedges)
-                binmeans = []
-                binnum = []
-                for i in range(1,nbins+1):
-                    binmeans.append(np.mean(stdM[bininds==i]))
-                    num = (stdM[bininds==i]).shape[0]
-                    binnum.append(num / float((stdM[np.isfinite(stdM)]).shape[0]) * 50)
-                print binnum
-                axarr[0].scatter(np.arange(nbins)+i_n/7., binmeans, c = clist[i_n],
-                    s=binnum)
-                allstdM += list(np.ravel(stdM))
-                allM += list(np.ravel(M))
-                # axarr[0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
-                #                     s = 4, zorder = z_n, linewidth = 0, 
-                #                     alpha = 0.8)
-                # axarr[0].scatter(np.nanmean(M), np.nanmean(stdM), marker = 'o', 
-                #                 c = clist[i_n], 
-                #                 s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
-                #                 label = str(n*2.8)+'km')
+            #if True:
+            print 'n: ', n
+            z_n = 0.1 + (n/256.)*0.1   # for z_order
             
-            # stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24. * n**2
-            # Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24. * n**2
-            # allstdQmp += list(np.ravel(stdQmp))
-            # allQmp += list(np.ravel(Qmp))
-            # axarr[1].scatter(Qmp, stdQmp, marker = 'o', c = clist[i_n], 
-            #                     s = 4, zorder = 1, linewidth = 0, 
-            #                     alpha = 0.8)
-            # axarr[1].scatter(np.nanmean(Qmp), np.nanmean(stdQmp), marker = 'o', 
-            #                 c = clist[i_n], 
-            #                 s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
-            #                 label = str(n*2.8)+'km')
+            # Get the data
+            stdM = np.array(stdM_list[iz][i_n])
+            M = np.array(M_list[iz][i_n])
+            stdQmp = np.array(stdQmp_list[iz][i_n]) * 3600. * 24.
+            Qmp = np.array(Qmp_list[iz][i_n]) * 3600. * 24. 
             
-
-            # axarr[2].scatter(stdQmp, stdM, marker = 'o', c = clist[i_n], 
-            #                     s = 4, zorder = z_n, linewidth = 0, 
-            #                     alpha = 0.8)
+            #allstdM += list(np.ravel(stdM))
+            #allM += list(np.ravel(M))
+            #allstdQmp += list(np.ravel(stdQmp))
+            #allQmp += list(np.ravel(Qmp))
+            
+            # M v var(M) 
+            axarr[0,0].scatter(M, stdM, marker = 'o', c = clist[i_n], 
+                                s = 4, zorder = z_n, linewidth = 0, 
+                                alpha = 0.8)
+            # Fit the line, SPPT
+            tmp2 = np.logspace(6, 11, 1000)
+            p0 = [1]
+            y = np.array(stdM)
+            x = np.array(M)
+            mask = np.isfinite(y)
+            result = leastsq(residual_b, p0, args = (y[mask], x[mask]))
+            b = result[0]
+            b_SPPT.append(b)
+            axarr[0,0].plot(tmp2,b*tmp2, c = clist[i_n], alpha = 1, linestyle = '--',
+                    zorder = 2)
+            nrmse = np.sqrt(np.mean(residual_b(b, y[mask], x[mask])**2))/np.mean(y[mask])
+            axarr[0,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse, c = clist[i_n], 
+                                fmt = 'o')
+            # How good is the fit
+            
+            # Fit the line, CC06
+            result = leastsq(residual_b_sqrt, p0, args = (y[mask], x[mask]))
+            b = result[0]
+            b_CC06.append(b)
+            axarr[0,0].plot(tmp2,np.sqrt(b*tmp2), c = clist[i_n], alpha = 1, linestyle = '-.',
+                    zorder = 2)
+            nrmse = np.sqrt(np.mean(residual_b_sqrt(b, y[mask], x[mask])**2))/np.mean(y[mask])
+            axarr[0,1].errorbar(np.log2(n)+0.1, b/1e8, yerr = nrmse, c = clist[i_n], 
+                                fmt = 'x')
+            
+            #print M.shape
+            ## Now here I should do the binning.
+            #nbins = 5 
+            #binedges = np.logspace(6, 11, nbins+1)
+            #bininds = np.digitize(M, binedges)
+            #binmeans = []
+            #binnum = []
+            #for i in range(1,nbins+1):
+                #binmeans.append(np.mean(stdM[bininds==i]))
+                #num = (stdM[bininds==i]).shape[0]
+                #binnum.append(num / float((stdM[np.isfinite(stdM)]).shape[0]) * 50)
+            #print binnum
+            #axarr[0].scatter(np.arange(nbins)+i_n/7., binmeans, c = clist[i_n],
+                #s=binnum)
+            
+            
+            #axarr[0,0].scatter(np.nanmean(M), np.nanmean(stdM**2), marker = 'o', 
+                            #c = clist[i_n], 
+                            #s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+                            #label = str(n*2.8)+'km')
+            
+            #axarr[0,1].scatter(M, stdM, marker = 'o', c = clist[i_n], 
+                                #s = 4, zorder = z_n, linewidth = 0, 
+                                #alpha = 0.8)
+            
+            ## Fit the line
+            #tmp2 = np.linspace(0, 2e10, 1000)
+            #p0 = [1]
+            #y = np.array(stdM)
+            #x = np.array(M)
+            #mask = np.isfinite(y)
+            #result = leastsq(residual_b, p0, args = (y[mask], x[mask]))
+            #b = result[0]
+            #print b
+            #axarr[0,1].plot(tmp2,b*tmp2, c = clist[i_n], alpha = 1, linestyle = '--',
+                    #zorder = 2)
+            
+            #result = leastsq(residual_b_sqrt, p0, args = (y[mask], x[mask]))
+            #b = result[0]
+            #print b
+            #axarr[0,1].plot(tmp2,np.sqrt(b*tmp2), c = clist[i_n], alpha = 1, linestyle = '-.',
+                    #zorder = 2)
+            ##axarr[0,1].scatter(np.nanmean(M), np.nanmean(stdM), marker = 'o', 
+                            ##c = clist[i_n], 
+                            ##s = 40, zorder = 1.5, linewidth = 0.8, alpha = 1,
+                            ##label = str(n*2.8)+'km')
+            
+            
+            corr_mean =  np.corrcoef((Qmp* (n*2.8e3)**2)[mask], M[mask])[1,0]
+            corr_std =  np.corrcoef((stdQmp*(n*2.8e3)**2)[mask], stdM[mask])[1,0]
+            axarr[1,1].scatter(n, corr_mean, c = clist[i_n], marker = 'o')
+            axarr[1,1].scatter(n, corr_std, c = clist[i_n], marker = 'x')
+            
+            
+            axarr[1,0].scatter(Qmp*(n*2.8e3)**2, stdQmp*(n*2.8e3)**2, 
+                               marker = 'o', c = clist[i_n], 
+                                s = 4, zorder = z_n, linewidth = 0, 
+                                alpha = 0.8)
+            ## Fit the line
+            #tmp2 = np.linspace(0, 2*(256*2.8e3)**2, 100)
+            #p0 = [1e10,1]
+            #y = np.array(stdQmp*(n*2.8e3)**2)
+            #x = np.array(Qmp*(n*2.8e3)**2)
+            #mask = np.isfinite(y)
+            #result = leastsq(residual_ab, p0, args = (y[mask], x[mask]))
+            #a,b = result[0]
+            #print a, b
+            #axarr[1,1].plot(tmp2,a+b*tmp2, c = clist[i_n], alpha = 1, linestyle = '--',
+                    #zorder = 2)
+            
+            #mask = mask & [x>0]
+            ##p0 = [2*0.6e10]
+            ##result = leastsq(residual_b_sqrt, p0, args = (y[mask], x[mask]))
+            ##b = result[0]
+            ##print b
+            ##axarr[1,1].plot(tmp2,np.sqrt(b*tmp2), c = clist[i_n], alpha = 1, linestyle = '-.',
+                    ##zorder = 2)
+            
+            
+            #varQmp = (stdQmp  * (n*2.8e3)**2)**2
+            #mask = Qmp > 0.
+            #axarr[1,0].scatter((Qmp* (n*2.8e3)**2)[mask], varQmp[mask], marker = 'o', 
+                               #c = clist[i_n], 
+                                #s = 4, zorder = z_n, linewidth = 0, 
+                                #alpha = 0.8)
+            #mask = np.isfinite(Qmp) & np.isfinite(M)
+            
+            #axarr[2,0].scatter(Qmp* (n*2.8e3)**2, M, marker = 'o', c = clist[i_n], 
+                                #s = 4, zorder = z_n, linewidth = 0, 
+                                #alpha = 0.8)
+            #mask = np.isfinite(stdQmp) & np.isfinite(stdM)
+            #axarr[2,1].scatter(stdQmp*(n*2.8e3)**2, stdM, marker = 'o', c = clist[i_n], 
+                                #s = 4, zorder = z_n, linewidth = 0, 
+                                #alpha = 0.8)
             
         
         
         # Complete the figure
         #ax2.legend(loc =3, ncol = 2, prop={'size':6})
-        # tmp = np.linspace(0,1e10, 100000)
-        # axarr[0].plot(tmp,tmp, c = 'gray', alpha = 1, linestyle = '--',
-        #         zorder = 2)
-        axarr[0].plot(np.arange(nbins+1),np.sqrt(binedges*5e7), c = 'gray', alpha = 1, linestyle = '-.',
-                 zorder = 2)
+        
+        #axarr[0].plot(np.arange(nbins+1),np.sqrt(binedges*5e7), c = 'gray', 
+                      #alpha = 1, linestyle = '-.',
+                 #zorder = 2)
         # # Fit the line
         # p0 = [1,1]
         # y = np.array(allstdM)
@@ -684,15 +854,59 @@ if 'std_v_mean' in args.plot:
         # print b, c
         # axarr[0].plot(tmp,b*tmp**c, c = 'gray', alpha = 1, linestyle = '-',
         #         zorder = 2)
-        #axarr[0].set_xlim(1e6,1e11)
-        axarr[0].set_ylim(1e6,1e10)
-        #axarr[0].set_xscale('log')
-        axarr[0].set_yscale('log')
-        axarr[0].xaxis.grid(True)
+        #mmean = 0.6e8
+        #axarr[0,0].plot(tmp,np.sqrt(2*mmean*tmp), c = 'gray', alpha = 1, linestyle = '--',
+                #zorder = 2)
+        #axarr[0,0].plot(tmp,np.sqrt(1/12.*tmp**2), c = 'gray', alpha = 1, linestyle = '-.',
+                #zorder = 2)
+        axarr[0,0].set_xlim(1e6,1e11)
+        axarr[0,0].set_ylim(1e6,1e10)
+        axarr[0,0].set_xscale('log')
+        axarr[0,0].set_yscale('log')
+        #axarr[0,0].xaxis.grid(True)
         #ax2.invert_xaxis()
-        axarr[0].set_xlabel(r'$\langle M \rangle$')
-        axarr[0].set_ylabel(r'$\sqrt{\langle (\delta M)^2 \rangle}$')
+        axarr[0,0].set_xlabel(r'$\langle M \rangle$ [kg/s]')
+        axarr[0,0].set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
+        axarr[0,0].set_title('Mass flux: variability against mean', fontsize = 10)
         
+
+        axarr[0,1].set_title('How good are the CC06 and SPPT fits', fontsize = 10)
+        #axarr[0,0].xaxis.grid(True)
+        #ax2.invert_xaxis()
+        #axarr[0,1].plot(tmp,np.sqrt(2*mmean*tmp), c = 'gray', alpha = 1, linestyle = '--',
+                #zorder = 2)
+        #axarr[0,1].plot(tmp,np.sqrt(1/12.)*tmp, c = 'gray', alpha = 1, linestyle = '-.',
+                #zorder = 2)
+        #axarr[0,1].set_xlim(0,1.5e10)
+        #axarr[0,1].set_ylim(0,1.5e9)
+        #axarr[0,1].set_xlabel(r'$\langle M \rangle$')
+        #axarr[0,1].set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$')
+        
+        #axarr[1,0].set_xlim(1e5,1e13)
+        #axarr[1,0].set_ylim(1e11,1e24)
+        #axarr[1,0].set_xscale('log')
+        #axarr[1,0].set_yscale('log')
+        ##axarr[0,0].xaxis.grid(True)
+        ##ax2.invert_xaxis()
+        #axarr[1,0].set_xlabel(r'$\langle Q \rangle * A$')
+        #axarr[1,0].set_ylabel(r'$\langle (\delta Q)^2 \rangle *A^2$')
+        
+        
+        axarr[1,0].set_xlim(-0.3e12,2e12)
+        axarr[1,0].set_ylim(0,0.15e12)
+        axarr[1,0].set_xlabel(r'$\langle Q \rangle * A$ [K/d * m^2]')
+        axarr[1,0].set_ylabel(r'$\langle (\delta Q)^2 \rangle^{1/2} * A$ [K/d * m^2]')
+        #axarr[1,0].plot(tmp,np.sqrt(2*0.6e10*tmp), c = 'gray', alpha = 1, linestyle = '-.',
+                #zorder = 2)
+        
+        
+        
+        #axarr[2,0].set_xlabel(r'$\langle Q \rangle * A$')
+        #axarr[2,0].set_ylabel(r'$\langle M \rangle$')
+        
+        
+        #axarr[2,1].set_xlabel(r'$\langle (\delta Q)^2 \rangle^{1/2} * A$')
+        #axarr[2,1].set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$')
         
         # # Fit the line
         # p0 = [1,1]
@@ -714,10 +928,19 @@ if 'std_v_mean' in args.plot:
         # #axarr[2].set_xlabel(r'$\langle Q_{\mathrm{tot}} \rangle$')
         # #axarr[2].set_ylabel(r'$\sqrt{\langle (\delta Q_{\mathrm{tot}})^2 \rangle}$')
         
+        axarr[0,0].text(0.05, 0.9, '(a)', transform = axarr[0,0].transAxes, 
+                        fontsize = 10)
+        axarr[0,1].text(0.05, 0.9, '(b)', transform = axarr[0,1].transAxes, 
+                        fontsize = 10)
+        axarr[1,0].text(0.05, 0.9, '(c)', transform = axarr[1,0].transAxes, 
+                        fontsize = 10)
+        axarr[1,1].text(0.05, 0.9, '(d)', transform = axarr[1,1].transAxes, 
+                        fontsize = 10)
         
         titlestr = (alldatestr + '\n' + args.ana + 
                     ', water=' + str(args.water) + ', lev= ' + str(lev) + 
                     ', nens=' + str(args.nens))
+        titlestr += '\nCC06 variance scaling fits data reasonably well'
         fig.suptitle(titlestr)
         plt.tight_layout(rect=[0, 0.0, 1, 0.90])
         
@@ -746,44 +969,70 @@ if 'summary_stats' in args.plot:
         compM_list = []
         compm_list = []
         compsize_list = []
+        compm_list_tot = []
+        compsize_list_tot = []
         compN_list = []
-        compQ_list = []
+        #compQ_list = []
         for d in args.date:
             print 'Loading date: ', d
             dataset = Dataset(savedir + d + savesuf, 'r')
             tmp1 = dataset.variables['cld_size'][:,iz,:]
-            compsize_list.append(np.mean(tmp1, axis = 1))
+            tmp1[tmp1 > 1e20] = np.nan
+            compsize_list.append(np.nanmean(tmp1, axis = 1))
+            compsize_list_tot.append(tmp1)
             
             tmp2 = dataset.variables['cld_sum'][:,iz,:]
-            compm_list.append(np.mean(tmp2, axis = 1))
-            compM_list.append(np.sum(tmp2, axis = 1))
+            tmp2[tmp2 > 1e20] = np.nan
+            compm_list.append(np.nanmean(tmp2, axis = 1))
+            compM_list.append(np.nansum(tmp2, axis = 1))
+            compm_list_tot.append(tmp2)
             
-            tmp3 = dataset.variables['meanQmp'][:,iz,0,0,0]
-            compQ_list.append(tmp3)
+            #tmp3 = dataset.variables['meanQmp'][:,iz,0,0,0]
+            #compQ_list.append(tmp3)
             
             tmp4 = dataset.variables['meanN'][:,iz,0,0,0]
+            tmp4[tmp4 > 1e20] = np.nan
             compN_list.append(tmp4)
 
         
         # Get the composite means
-        compsize = np.nanmean(np.array(compsize_list), axis = 0)
-        compm = np.nanmean(np.array(compm_list), axis = 0)
+        #compsize = np.nanmean(np.array(compsize_list), axis = 0)
+        #compm = np.nanmean(np.array(compm_list), axis = 0)
+        #compstdm = np.nanstd(np.array(compm_list), axis = 0)
+        #print compm, compstdm
         compM = np.nanmean(np.array(compM_list), axis = 0)
-        compQ = np.nanmean(np.array(compQ_list), axis = 0)
+        #compQ = np.nanmean(np.array(compQ_list), axis = 0)
         compN = np.nanmean(np.array(compN_list), axis = 0)
+        
+        compm = []
+        compstdm = []
+        compsize = []
+        for it in range(compsize_list_tot[0].shape[0]):
+            tmp1 = []
+            tmp2 = []
+            for arr1, arr2 in zip(compsize_list_tot, compm_list_tot):
+                tmp1.append(arr1[it])
+                tmp2.append(arr2[it])
+            compsize.append(np.nanmean(tmp1))
+            compm.append(np.nanmean(tmp2))
+            compstdm.append(np.nanstd(tmp2))
+            
+        
         
         lev = dataset.variables['levs'][iz]
         timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
         timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
         # Create the figure
-        fig, axarr = plt.subplots(3, 2, figsize = (95./25.4*3, 11))
+        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 8))
         
-        axarr[0,0].plot(timelist_plot, compM, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compM_list):
+        axarr[0,0].plot(timelist_plot, compm, c = 'orangered', linewidth = 2)
+        #axarr[0,0].errorbar(timelist_plot, compm, yerr = compstdm, zorder = 0.1,
+                            #)
+        for ic, yplot in enumerate(compm_list):
             axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
         axarr[0,0].set_xlabel('time [h/UTC]')
         axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[0,0].set_ylabel('Domain total mass flux [kg/s]')
+        axarr[0,0].set_ylabel('Mean cloud mass flux [kg/s]')
         
         axarr[0,1].plot(timelist_plot, compsize, c = 'orangered', linewidth = 2)
         for ic, yplot in enumerate(compsize_list):
@@ -792,26 +1041,28 @@ if 'summary_stats' in args.plot:
         axarr[0,1].set_ylabel('Mean cloud size [m^2]')
         axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
         
-        axarr[1,0].plot(timelist_plot, compm, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compm_list):
+        axarr[1,0].plot(timelist_plot, compM, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compM_list):
             axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
         axarr[1,0].set_xlabel('time [h/UTC]')
         axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,0].set_ylabel('Mean cloud mass flux [kg/s]')
+        axarr[1,0].set_ylabel('Domain total mass flux [kg/s]')
         
-        axarr[1,1].plot(timelist_plot, compQ, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compQ_list):
+        
+        axarr[1,1].plot(timelist_plot, compN, c = 'orangered', linewidth = 2)
+        for ic, yplot in enumerate(compN_list):
             axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
         axarr[1,1].set_xlabel('time [h/UTC]')
         axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,1].set_ylabel('Mean Q [h]')
+        axarr[1,1].set_ylabel('Mean N')
         
-        axarr[2,1].plot(timelist_plot, compN, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compN_list):
-            axarr[2,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[2,1].set_xlabel('time [h/UTC]')
-        axarr[2,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[2,1].set_ylabel('Mean N [h]')
+        #axarr[1,1].plot(timelist_plot, compQ, c = 'orangered', linewidth = 2)
+        #for ic, yplot in enumerate(compQ_list):
+            #axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+        #axarr[1,1].set_xlabel('time [h/UTC]')
+        #axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+        #axarr[1,1].set_ylabel('Mean Q [h]')
+        
         
         titlestr = (alldatestr + ', ' + args.ana + 
                     ', water=' + str(args.water) + ', lev= ' + str(lev) + 
