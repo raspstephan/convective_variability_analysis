@@ -76,7 +76,8 @@ args = parser.parse_args()
 
 if 'all' in args.plot:
     args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
-                 'stamps_var', 'stamps_w', 'height_var', 'std_v_mean', 'prec_stamps']
+                 'stamps_var', 'stamps_w', 'height_var', 'std_v_mean', 'prec_stamps',
+                 'prec_hist']
 
 ################################################################################
 # Load datatsets
@@ -289,8 +290,119 @@ if 'rdf' in args.plot:
         fig.savefig(plotdirsub + plotsavestr, dpi = 300)
         plt.close('all')
         
+
+################################################################################
+if 'prec_rdf' in args.plot:
+    print 'Plotting rdf'
+
+    plotdirsub = plotdir +  '/prec_rdf/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    rdf_model_list = []
+    rdf_obs_list = []
+    for d in args.date:
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        rdf_tmp = dataset.variables['rdf_prec_model'][:]
+        rdf_tmp[rdf_tmp > 1e20] = np.nan
+        rdf_model_list.append(rdf_tmp)
+        rdf_tmp = dataset.variables['rdf_prec_obs'][:]
+        rdf_tmp[rdf_tmp > 1e20] = np.nan
+        rdf_obs_list.append(rdf_tmp)
+    rdf_model = np.nanmean(rdf_model_list, axis = 0)
+    rdf_obs = np.nanmean(rdf_obs_list, axis = 0)
+    
+    # Setup
+    ymax = 5
+    t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
+    UTCstart = timelist[t1]
+    UTCstop = timelist[t2-1]
+    rdf_model = np.mean(rdf_model[t1:t2], axis = 0)
+    rdf_obs = np.mean(rdf_obs[t1:t2], axis = 0)
+
+    # Get the data
+    r =   dataset.variables['dr'][:]
+    
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    
+    ############# Time loop ##############
+
+    ax.plot(r/1000., rdf_model, c = 'red', 
+            label = 'CRM')
+    ax.plot(r/1000., rdf_obs, c = 'green', 
+            label = 'observations')
+    
+    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.set_xlabel('Distance [km]')
+    ax.set_ylabel('Normalized RDF')
+    ax.set_title('Radial distribution function')
+    ax.set_ylim(0, ymax)
+    ax.set_xlim(0, np.max(r)/1000.)
+    
+    titlestr = (alldatestr + 
+                ', nens=' + str(args.nens)+ '\nfrom ' + str(UTCstart) + 
+                ' to ' + str(UTCstop))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.85])
+    
+    plotsavestr = ('prec_rdf_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + 
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc)+ '_tplot-' + str(t1) + 
+                    '-' + str(t2))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+
+
+
+################################################################################
+if 'prec_hist' in args.plot:
+    print 'Plotting prec_hist'
+
+    plotdirsub = plotdir +  '/prec_hist/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    hist_model = []
+    hist_obs = []
+    for d in args.date:
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        hist_model.append(dataset.variables['hist_model'][:])
+        hist_obs.append(dataset.variables['hist_obs'][:])
+    hist_model = np.mean(hist_model, axis = 0)
+    hist_obs = np.mean(hist_obs, axis = 0)
+    print np.sum(hist_model)
+    print np.sum(hist_obs)
+    
+    # Setup
+    histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
+    x = np.arange(len(histbinedges)-1)
+
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    ax.bar(x[1:]-0.2, hist_model[1:], width = 0.2, color = 'lightgray', label = 'CRM')
+    ax.bar(x[1:], hist_obs[1:], width = 0.2, color = 'darkgray', label = 'observations')
+    
+    
+    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.set_xlabel('Hourly accumulation [mm/h]')
+    ax.set_ylabel('Average number of grid points')
+    ax.set_title('Precipitation histogram')
+
+    
+    titlestr = (alldatestr +
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.85])
+    
+    plotsavestr = ('prec_hist_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) +
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
         
-            
+        
             
 ################################################################################
 if 'scatter' in args.plot:

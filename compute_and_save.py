@@ -10,9 +10,9 @@ import argparse
 from netCDF4 import Dataset, date2num
 import numpy as np
 from datetime import timedelta
-from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf
-from cosmo_utils.helpers import make_timelist, ddhhmmss
-from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d
+from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf, getfobj_ncdf_timeseries
+from cosmo_utils.helpers import make_timelist, ddhhmmss, yymmddhhmm, yyyymmddhh_strtotime
+from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,get_totmask
 from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 
@@ -65,9 +65,11 @@ nlist = [256, 128, 64, 32, 16, 8, 4]
 #hlist = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 6000, 7000,
             #8000, 9000, 10000]
 hlist = args.height
+histbinendges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
 
 ensdir = '/home/scratch/users/stephan.rasp/' + args.date + '/deout_ceu_pspens/'
-
+radarpref = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/raa01-rw_10000-'
+radarsufx = '-dwd---bin.nc'
 
 # Analysis-specific setup
 dx = 2800.
@@ -113,6 +115,7 @@ ydim = rootgrp.createDimension('y', nlist[0])
 nclddim = rootgrp.createDimension('N_cld', 1e6)
 drdim = rootgrp.createDimension('dr', 30/2+1) # For RDF
 drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
+binsdim = rootgrp.createDimension('bins', len(histbinendges)-1)
 
 
 # Create variables and add attributes 
@@ -135,6 +138,8 @@ enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
 cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','levs','N_cld'))
 cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','levs','N_cld'))
 rdf      = rootgrp.createVariable('rdf', 'f8', ('time','levs','dr'))
+rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
+rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
 acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
 varM     = rootgrp.createVariable('varM', 'f8', ('time','levs','n','x','y'))
 varN     = rootgrp.createVariable('varN', 'f8', ('time','levs','n','x','y'))
@@ -151,6 +156,9 @@ Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time','levs'))
 Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time','levs'))
 Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time','levs'))
 
+hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
+hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
+
 Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
 exw      = rootgrp.createVariable('exw', 'f8', ('time', 'levs', 'x', 'y'))
@@ -163,9 +171,22 @@ exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'levs', 'x', 'y'))
 ################################################################################
 
 
+# Load radar data for all times
+dateobj = yyyymmddhh_strtotime(args.date)
+dtradar = timedelta(minutes = 10)
+radarts = getfobj_ncdf_timeseries(radarpref, dateobj+tstart-dtradar, 
+                                  dateobj+tend-dtradar, tinc, 
+                                     reftime = dateobj, ncdffn_sufx = radarsufx, 
+                                     fieldn = 'pr', abs_datestr='yymmddhhmm',
+                                     dwdradar = True)
+# Get mask
+radarmask = get_totmask(radarts)
+
 ###################
 ## Time loop      #
 ###################
+tothist_model = []
+tothist_obs = []
 for it, t in enumerate(timelist):
     print 'time: ', t
     ############################################################################
@@ -243,11 +264,22 @@ for it, t in enumerate(timelist):
         preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                     dir_suffix='/OUTPUT/', fieldn = 'PREC_ACCUM', 
                                     nfill=1, levs = levlist, return_arrays = True)
+        hist_tmp = []
         for i in range(len(tauclist)):
             tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
             hpbllist[i] = hpbllist[i][lx1:lx2, ly1:ly2]
             capelist[i] = capelist[i][lx1:lx2, ly1:ly2]
             preclist[i] = preclist[i][lx1:lx2, ly1:ly2]
+            #print radarmask[lx1:lx2, ly1:ly2]
+            #print radarmask[lx1+62:lx2-42, ly1+22:ly2-42].shape
+            hist_tmp.append(np.histogram(preclist[i][~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]], 
+                                         histbinendges)[0])
+
+        hist_tmp = np.mean(hist_tmp, axis = 0)   # This is now the model hist for one time step
+        tothist_model.append(hist_tmp)
+        radarfield = radarts[it].data[lx1+62:lx2-42, ly1+22:ly2-42]
+        tothist_obs.append(np.histogram(radarfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]], 
+                                         histbinendges)[0])
     else:
         hpbllist = [None]*len(fieldlist)
         
@@ -265,7 +297,31 @@ for it, t in enumerate(timelist):
         enstauc[it] = np.nanmean(tauclist, axis = 0)
     # End calculate mean tau_c and save
     ############################################################################
-
+    
+    
+    # Calculate RDFs for precipitation
+    rdf_prec_modellist = []
+    for field in preclist:
+        # Identify clouds
+        tmpfield = field
+        tmpfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]] == 0.
+        tmp = identify_clouds(tmpfield, 1., water = args.water)
+        labels, cld_size_mem, cld_sum_mem = tmp
+        g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
+                        dr = 2)
+        rdf_prec_modellist.append(g)
+    rdf_prec_model[it, :] = np.mean(rdf_prec_modellist, axis = 0)
+    
+    # Now for the observation field
+    tmpfield = radarfield
+    tmpfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]] == 0.
+    tmp = identify_clouds(tmpfield, 1., water = args.water)
+    labels, cld_size_mem, cld_sum_mem = tmp
+    g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
+                    dr = 2)
+    rdf_prec_obs[it, :] = g
+    
+    
     ####################
     ## lev loop        #
     ####################
@@ -305,7 +361,7 @@ for it, t in enumerate(timelist):
             sumlist.append(cld_sum_mem)
             
             labelslist.append(labels)
-            # Calculste centers of mass
+            # Calculate centers of mass
             num = np.unique(labels).shape[0]   # Number of clouds
             com = np.array(center_of_mass(field[iz], labels, range(1,num)))
             if com.shape[0] == 0:   # Accout for empty arrays
@@ -317,6 +373,8 @@ for it, t in enumerate(timelist):
                             dr = 2)
             rdflist.append(g)
             dr[:] = r * 2.8   # km
+            
+            
         
         # Save lists and mean rdf
         ntmp = len([i for sl in sumlist for i in sl])
@@ -453,7 +511,10 @@ for it, t in enumerate(timelist):
             
             # End coarse upscaled variances and means
             ####################################################################
-            
+tothist_model = np.mean(tothist_model, axis = 0)
+hist_model[:] = tothist_model
+tothist_obs = np.mean(tothist_obs, axis = 0)
+hist_obs[:] = tothist_obs
 # Close ncdf file
 rootgrp.close()
             
