@@ -10,9 +10,12 @@ import argparse
 from netCDF4 import Dataset, date2num
 import numpy as np
 from datetime import timedelta
-from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf, getfobj_ncdf_timeseries
-from cosmo_utils.helpers import make_timelist, ddhhmmss, yymmddhhmm, yyyymmddhh_strtotime
-from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,get_totmask,powspec_2d_hor,powspec_2d_hor_alter
+from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf, \
+                               getfobj_ncdf_timeseries
+from cosmo_utils.helpers import make_timelist, ddhhmmss, yymmddhhmm, \
+                                yyyymmddhh_strtotime
+from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,\
+                             get_totmask,powspec_2d_hor,powspec_2d_hor_alter
 from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 
