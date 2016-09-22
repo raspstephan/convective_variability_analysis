@@ -112,7 +112,7 @@ tmp_dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
 timelist = [timedelta(seconds=ts) for ts in tmp_dataset.variables['time']]
 timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
 plotdir = ('/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + alldatestr + 
-           '/' + args.ana)
+           '/')
 
 ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens/'
 
@@ -1522,83 +1522,79 @@ if 'summary_weather' in args.plot:
     # Setup
     cyc = [plt.cm.bone(i) for i in np.linspace(0.1, 0.9, len(args.date))]
 
-    ######## Lev loop #####################
-    for iz in range(len(args.height)):
-        print 'lev: ', iz
+
+    ####### date loop #######################
+    comphpbl_list = []
+    compcape_list = []
+    compprec_list = []
+    comptauc_list = []
+    for d in args.date:
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
         
-        ####### date loop #######################
-        comphpbl_list = []
-        compcape_list = []
-        compprec_list = []
-        comptauc_list = []
-        for d in args.date:
-            print 'Loading date: ', d
-            dataset = Dataset(savedir + d + savesuf, 'r')
-            
-            hpbl_tmp = dataset.variables['dihpbl'][:]
-            cape_tmp = dataset.variables['dicape'][:]
-            prec_tmp = dataset.variables['diprec'][:]
-            comphpbl_list.append(hpbl_tmp)
-            compcape_list.append(cape_tmp)
-            compprec_list.append(prec_tmp)
-            
-            tauc_tmp = dataset.variables['ditauc'][:]
-            tauc_tmp[tauc_tmp > 1e10] = np.nan
-            comptauc_list.append(tauc_tmp)
+        hpbl_tmp = dataset.variables['dihpbl'][:]
+        cape_tmp = dataset.variables['dicape'][:]
+        prec_tmp = dataset.variables['diprec'][:]
+        comphpbl_list.append(hpbl_tmp)
+        compcape_list.append(cape_tmp)
+        compprec_list.append(prec_tmp)
         
-        # Get the composite means
-        comphpbl = np.nanmean(np.array(comphpbl_list), axis = 0)
-        compcape = np.nanmean(np.array(compcape_list), axis = 0)
-        compprec = np.nanmean(np.array(compprec_list), axis = 0)
-        comptauc = np.nanmean(np.array(comptauc_list), axis = 0)
-        
-        lev = dataset.variables['levs'][iz]
-        timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
-        timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
-        # Create the figure
-        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
-        
-        axarr[0,0].plot(timelist_plot, compprec, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compprec_list):
-            axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[0,0].set_xlabel('time [h/UTC]')
-        axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[0,0].set_ylabel('Domain average precipitation [mm/h]')
-        
-        axarr[0,1].plot(timelist_plot, compcape, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compcape_list):
-            axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[0,1].set_xlabel('time [h/UTC]')
-        axarr[0,1].set_ylabel('Domain average CAPE [J/kg]')
-        axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        
-        axarr[1,0].plot(timelist_plot, comptauc, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(comptauc_list):
-            axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[1,0].set_xlabel('time [h/UTC]')
-        axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,0].set_ylabel('Domain average tau_c [h]')
-        
-        axarr[1,1].plot(timelist_plot, comphpbl, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(comphpbl_list):
-            axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[1,1].set_xlabel('time [h/UTC]')
-        axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,1].set_ylabel('Domain average PBL height [m]')
-        
-        titlestr = (alldatestr + ', ' + args.ana + 
-                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                    ', nens=' + str(args.nens))
-        fig.suptitle(titlestr, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        
-        plotsavestr = ('summary_weather_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens) + '_tstart-' + 
-                        str(args.tstart) + '_tend-' + str(args.tend) + 
-                        '_tinc-' + str(args.tinc))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-        plt.close('all')
+        tauc_tmp = dataset.variables['ditauc'][:]
+        tauc_tmp[tauc_tmp > 1e10] = np.nan
+        comptauc_list.append(tauc_tmp)
+    
+    # Get the composite means
+    comphpbl = np.nanmean(np.array(comphpbl_list), axis = 0)
+    compcape = np.nanmean(np.array(compcape_list), axis = 0)
+    compprec = np.nanmean(np.array(compprec_list), axis = 0)
+    comptauc = np.nanmean(np.array(comptauc_list), axis = 0)
+    
+    timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    # Create the figure
+    fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
+    
+    axarr[0,0].plot(timelist_plot, compprec, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(compprec_list):
+        axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[0,0].set_xlabel('time [h/UTC]')
+    axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[0,0].set_ylabel('Domain average precipitation [mm/h]')
+    
+    axarr[0,1].plot(timelist_plot, compcape, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(compcape_list):
+        axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[0,1].set_xlabel('time [h/UTC]')
+    axarr[0,1].set_ylabel('Domain average CAPE [J/kg]')
+    axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,0].plot(timelist_plot, comptauc, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(comptauc_list):
+        axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[1,0].set_xlabel('time [h/UTC]')
+    axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[1,0].set_ylabel('Domain average tau_c [h]')
+    
+    axarr[1,1].plot(timelist_plot, comphpbl, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(comphpbl_list):
+        axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[1,1].set_xlabel('time [h/UTC]')
+    axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[1,1].set_ylabel('Domain average PBL height [m]')
+    
+    titlestr = (alldatestr + ', ' + args.ana + 
+                ', water=' + str(args.water) + ', height= ' + heightstr + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('summary_weather_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_height-' + heightstr +
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
             
 
 

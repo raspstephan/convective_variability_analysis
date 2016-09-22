@@ -20,12 +20,11 @@ from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 
 
-# Setup
+# Setup - Input arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--ana', metavar = 'ana', type=str)
 parser.add_argument('--date', metavar = 'date', type=str)
-parser.add_argument('--height', metavar = 'height', type=float, nargs = '+',
-                    default = [3000])
+parser.add_argument('--height', metavar = 'height', type=float, default =3000)
 parser.add_argument('--water', metavar = 'water', type=bool, default = True)
 parser.add_argument('--nens', metavar = 'nens', type=int, default = 20)
 parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
@@ -34,26 +33,13 @@ parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 args = parser.parse_args()
 
 
-# Functions
-def radial_profile(data, center):
-    y, x = np.indices((data.shape))
-    r = np.sqrt((x - center[0])**2 + (y - center[1])**2)
-    r = r.astype(np.int)
-
-    tbin = np.bincount(r.ravel(), data.ravel())
-    nr = np.bincount(r.ravel())
-    radialprofile = tbin / nr
-    return radialprofile
-
-
 # Create file str
 savedir = '/home/scratch/users/stephan.rasp/results/'
-heightstr = ''
-for h in args.height:
-    heightstr += str(int(h)) + '_'
+
+heightstr = str(int(args.height))
 savestr = (args.date + '_ana-' + args.ana + '_wat-' + str(args.water) + 
            '_height-' + heightstr +
-           'nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
+           '_nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
            '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + '.nc')
 
 # Convert times to timedelta objects
@@ -62,49 +48,50 @@ tend = timedelta(hours = args.tend)
 tinc = timedelta(minutes = args.tinc)  # temporal resolution for analysis
 
 
-# Make lists for loops, dimensions
+# Setup - Create or define lists
 timelist = make_timelist(tstart, tend, tinc)
 nlist = [256, 128, 64, 32, 16, 8, 4]
-#hlist = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 6000, 7000,
-            #8000, 9000, 10000]
-hlist = args.height
-histbinendges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
+histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
 
+# Setup - Directories for input data
 ensdir = '/home/scratch/users/stephan.rasp/' + args.date + '/deout_ceu_pspens/'
 radarpref = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
 
 # Analysis-specific setup
-dx = 2800.
-if args.ana == 'm':
-    HH = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
-    aslcol = HH.data[:, -1, -1]   # ATTENTION Hard coded colums above sea level 
-    levlist = []
-    realhlist = []
-    for h in hlist:
-        levlist.append(np.argmin(np.abs(aslcol-h)))   # find closest level
-        realhlist.append(aslcol[np.argmin(np.abs(aslcol-h))])
-    sufx = '.nc_30m'
-    fieldn = 'W'
-    thresh = 1.
-    HHcropped = HH.data[-1,50:-51, 50:-51]
-    HH50tot = np.mean(HHcropped[:,:])
-    HH50south = np.mean(HHcropped[:256/2, :])
-    HH50north = np.mean(HHcropped[256/2:, :])
-    print 'tot', HH50tot, 'south', HH50south, 'north', HH50north
-elif args.ana == 'hypo':
-    levlist = [0]
-    sufx = '.nc'
-    fieldn = 'm'
-    ensdir = ('/home/scratch/users/stephan.rasp/hypo_' + args.date + 
-              '/deout_ceu_pspens/')
-    thresh = 0.
-elif args.ana == 'p':
-    levlist = [None]
-    realhlist = ['surf']
-    raise Exception, 'p not implemented yet'
-else:
-    raise Exception, 'wrong analysis'
+dx = 2800.   # Grid Spacing ATTENTION: Hard coded and wrong as of now
+
+# Get analysis level
+HH = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
+aslcol = HH.data[:, -1, -1]   # ATTENTION Hard coded colums above sea level 
+lev = np.argmin(np.abs(aslcol-args.height))   # find closest level
+realh = aslcol[np.argmin(np.abs(aslcol-args.height))]
+
+sufx = '.nc_30m'
+fieldn = 'W'
+thresh = 1.
+
+# Determine analysis domain
+sxo, syo = HH.data.shape[1:]  # Original field shape
+lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
+lx2 = -(lx1+1) # Number of grid pts to exclude at border
+ly1 = (syo-256-1)/2
+ly2 = -(ly1+1)
+
+#HHcropped = HH.data[-1,lx1:lx2, ly1:ly2]
+#HH50tot = np.mean(HHcropped[:,:])
+#HH50south = np.mean(HHcropped[:256/2, :])
+#HH50north = np.mean(HHcropped[256/2:, :])
+#print 'tot', HH50tot, 'south', HH50south, 'north', HH50north
+
+#elif args.ana == 'hypo':
+    #levlist = [0]
+    #sufx = '.nc'
+    #fieldn = 'm'
+    #ensdir = ('/home/scratch/users/stephan.rasp/hypo_' + args.date + 
+              #'/deout_ceu_pspens/')
+    #thresh = 0.
+
 
 ################################################################################
 # Allocate NetCDF file
@@ -112,135 +99,154 @@ rootgrp = Dataset(savedir + savestr, 'w', format='NETCDF4')
 # Create dimensions
 tdim = rootgrp.createDimension('time', len(timelist))
 ndim = rootgrp.createDimension('n', len(nlist))
-levdim = rootgrp.createDimension('levs', len(levlist))
 xdim = rootgrp.createDimension('x', nlist[0])
 ydim = rootgrp.createDimension('y', nlist[0])
 nclddim = rootgrp.createDimension('N_cld', 1e6)
 drdim = rootgrp.createDimension('dr', 30/2+1) # For RDF
 drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
-binsdim = rootgrp.createDimension('bins', len(histbinendges)-1)
+binsdim = rootgrp.createDimension('bins', len(histbinedges)-1)
 specdim = rootgrp.createDimension('spec', 128)
-
 
 # Create variables and add attributes 
 time     = rootgrp.createVariable('time', 'f8', ('time',))
 time[:]  = [td.total_seconds() for td in timelist]
-
 n        = rootgrp.createVariable('n', 'i4', ('n',))
 n[:]     = nlist
-
-levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
-levs[:]  = levlist
-
 dr       = rootgrp.createVariable('dr', 'f4', ('dr',))
 
-ditauc   = rootgrp.createVariable('ditauc', 'f8', ('time'))
-dicape   = rootgrp.createVariable('dicape', 'f8', ('time'))
-diprec   = rootgrp.createVariable('diprec', 'f8', ('time'))
-dihpbl   = rootgrp.createVariable('dihpbl', 'f8', ('time'))
-enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
-cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','levs','N_cld'))
-cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','levs','N_cld'))
-rdf      = rootgrp.createVariable('rdf', 'f8', ('time','levs','dr'))
-rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
-rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
-acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
-varM     = rootgrp.createVariable('varM', 'f8', ('time','levs','n','x','y'))
-varN     = rootgrp.createVariable('varN', 'f8', ('time','levs','n','x','y'))
-varm     = rootgrp.createVariable('varm', 'f8', ('time','levs','n','x','y'))
-meanN    = rootgrp.createVariable('meanN', 'f8', ('time','levs','n','x','y'))
-meanM    = rootgrp.createVariable('meanM', 'f8', ('time','levs','n','x','y'))
-meanm    = rootgrp.createVariable('meanm', 'f8', ('time','levs','n','x','y'))
-varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','levs','n','x','y'))
-meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','levs','n','x','y'))
-varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','levs','n','x','y'))
-meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','levs','n','x','y'))
-hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
-Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time','levs'))
-Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time','levs'))
-Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time','levs'))
 
-hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
-hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
+# weather
+if args.ana == 'weather':
+    ditauc   = rootgrp.createVariable('ditauc', 'f8', ('time'))
+    dicape   = rootgrp.createVariable('dicape', 'f8', ('time'))
+    diprec   = rootgrp.createVariable('diprec', 'f8', ('time'))
+    dihpbl   = rootgrp.createVariable('dihpbl', 'f8', ('time'))
 
-bgkespec = rootgrp.createVariable('bgkespec', 'f8', ('time','spec'))
-dkespec  = rootgrp.createVariable('dkespec', 'f8', ('time','spec'))
-bgprecspec = rootgrp.createVariable('bgprecspec', 'f8', ('time','spec'))
-dprecspec  = rootgrp.createVariable('dprecspec', 'f8', ('time','spec'))
-speck    = rootgrp.createVariable('speck', 'f8', ('spec'))
-speclam  = rootgrp.createVariable('speclam', 'f8', ('spec'))
+# prec 
+if args.ana == 'prec':
+    rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
+    rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
+    hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
+    hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
 
-Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
+# spectra
+if args.ana == 'spectra':
+    bgkespec = rootgrp.createVariable('bgkespec', 'f8', ('time','spec'))
+    dkespec  = rootgrp.createVariable('dkespec', 'f8', ('time','spec'))
+    bgprecspec = rootgrp.createVariable('bgprecspec', 'f8', ('time','spec'))
+    dprecspec  = rootgrp.createVariable('dprecspec', 'f8', ('time','spec'))
+    speck    = rootgrp.createVariable('speck', 'f8', ('spec'))
+    speclam  = rootgrp.createVariable('speclam', 'f8', ('spec'))
 
-exw      = rootgrp.createVariable('exw', 'f8', ('time', 'levs', 'x', 'y'))
-exq      = rootgrp.createVariable('exq', 'f8', ('time', 'levs', 'x', 'y'))
-#exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
-excld    = rootgrp.createVariable('excld', 'f8', ('time', 'levs', 'x', 'y'))
-exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'levs', 'x', 'y'))
+# clouds
+if args.ana == 'clouds':
+    cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
+    cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','N_cld'))
+    rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
+    exw      = rootgrp.createVariable('exw', 'f8', ('time', 'x', 'y'))
+    exq      = rootgrp.createVariable('exq', 'f8', ('time', 'x', 'y'))
+    #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
+    excld    = rootgrp.createVariable('excld', 'f8', ('time', 'x', 'y'))
+    exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'x', 'y'))
+
+# coarse
+if args.ana == 'coarse':
+    varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
+    varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
+    varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
+    meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
+    meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
+    meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
+    varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','n','x','y'))
+    meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
+    varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
+    meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
+
+
+# currently not used
+#levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
+#levs[:]  = levlist
+#Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time'))
+#Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time'))
+#Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time'))
+#hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
+#enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
+#acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
+#Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
 # End allocation
 ################################################################################
 
 
-# Load radar data for all times
-dateobj = yyyymmddhh_strtotime(args.date)
-dtradar = timedelta(minutes = 10)
-radarts = getfobj_ncdf_timeseries(radarpref, dateobj+tstart-dtradar, 
-                                  dateobj+tend-dtradar, tinc, 
-                                     reftime = dateobj, ncdffn_sufx = radarsufx, 
-                                     fieldn = 'pr', abs_datestr='yymmddhhmm',
-                                     dwdradar = True)
-# Get mask
-radarmask = get_totmask(radarts)
+# Preliminaries before time loop
+if args.ana == 'prec':
+    # Load radar data for all times
+    dateobj = yyyymmddhh_strtotime(args.date)
+    dtradar = timedelta(minutes = 10)
+    radarts = getfobj_ncdf_timeseries(radarpref, dateobj+tstart-dtradar, 
+                                    dateobj+tend-dtradar, tinc, 
+                                        reftime=dateobj, ncdffn_sufx=radarsufx, 
+                                        fieldn = 'pr', abs_datestr='yymmddhhmm',
+                                        dwdradar = True)
+    # Get mask
+    radarmask = get_totmask(radarts)
+    
+    # Crop data
+    radarmask = radarmask[lx1+62:lx2-42, ly1+22:ly2-42]
+    for i in range(len(radarts)):
+        radarts[i].data = radarts[i].data[lx1+62:lx2-42, ly1+22:ly2-42]
+        
+    # Allocate lists to get time average histograms
+    tothist_model = []
+    tothist_obs = []
+
 
 ###################
 ## Time loop      #
 ###################
-tothist_model = []
-tothist_obs = []
 for it, t in enumerate(timelist):
     print 'time: ', t
     ############################################################################
     # Load COSMO data
     ncdffn = 'lfff' + ddhhmmss(t) + sufx
-    fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                 dir_suffix='/OUTPUT/', fieldn = fieldn, 
-                                 nfill=1, levs = levlist, return_arrays = True)
     
-    # Crop all fields to analysis domain
-    sxo, syo = fieldlist[0][0].shape  # Original field shape
-    lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
-    lx2 = -(lx1+1) # Number of grid pts to exclude at border
-    ly1 = (syo-256-1)/2
-    ly2 = -(ly1+1)
-    for i in range(len(fieldlist)):
-        fieldlist[i] = fieldlist[i][:, lx1:lx2, ly1:ly2]
-    if args.ana == 'm':   # Load some extra variables 
+    if args.ana in ['clouds', 'coarse']:
+        # Load fields required for mass flux analysis
+        fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = fieldn, 
+                                    nfill=1, levs = lev, return_arrays=True)
+        
+        # Crop all fields to analysis domain
+        for i in range(args.nens):
+            print fieldlist[i].shape
+            fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
+            
         qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QC', 
-                                  nfill=1, levs = levlist, return_arrays = True)
+                                  nfill=1, levs = lev, return_arrays = True)
         # Add QI and QS
         qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QI', 
-                                  nfill=1, levs = levlist, return_arrays = True)
+                                  nfill=1, levs = lev, return_arrays = True)
         qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
                                   dir_suffix='/OUTPUT/', fieldn = 'QS', 
-                                  nfill=1, levs = levlist, return_arrays = True)
-        for i in range(len(qclist)):
-            qclist[i] = (qclist[i][:, lx1:lx2, ly1:ly2] + 
-                         qilist[i][:, lx1:lx2, ly1:ly2] + 
-                         qslist[i][:, lx1:lx2, ly1:ly2])
+                                  nfill=1, levs = lev, return_arrays = True)
+        for i in range(args.nens):
+            qclist[i] = (qclist[i][lx1:lx2, ly1:ly2] + 
+                         qilist[i][lx1:lx2, ly1:ly2] + 
+                         qslist[i][lx1:lx2, ly1:ly2])
 
         del qilist
         del qslist
         ncdffn_buoy = ncdffn + '_buoy'
         rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
-                                   nfill=1, levs = levlist, return_arrays = True)
+                                   nfill=1, levs=lev, return_arrays=True)
         
-        for i in range(len(rholist)):
-            rholist[i] = rholist[i][:, lx1:lx2, ly1:ly2]
+        for i in range(args.nens):
+            rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
             
+    if args.ana == 'coarse':
         # Get vertically integrated Q    
         Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
                                   dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
@@ -248,108 +254,102 @@ for it, t in enumerate(timelist):
         Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
                                   dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
                                   nfill=1, return_arrays = True)
-        for i in range(len(Qmplist)):
+        for i in range(args.nens):
             Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
             Qtotlist[i] = np.mean(Qtotlist[i][:, lx1:lx2, ly1:ly2], axis = 0)
-            
-        
-        
-    else:   # Fill lists with None
-        qclist = [None]*len(fieldlist)
-        rholist = [None]*len(fieldlist)
-        Qmplist = [None]*len(fieldlist)
-        Qtotlist = [None]*len(fieldlist)
-        
-    # Load tau_c data
-    if not args.ana == 'hypo':
+
+    if args.ana in ['weather', 'prec', 'spectra']:
+        # Load precipitation data
         ncdffn_surf = ncdffn + '_surf'
+        preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                    dir_suffix='/OUTPUT/', fieldn='PREC_ACCUM', 
+                                    nfill=1, return_arrays=True)
+        for i in range(args.nens):
+            preclist[i] = preclist[i][lx1:lx2, ly1:ly2]
+        
+    if args.ana == 'weather':
+        # Load weather info data
         tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                     dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
-                                    nfill=1, levs = levlist, return_arrays = True)
+                                    nfill=1, return_arrays=True)
         hpbllist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                     dir_suffix='/OUTPUT/', fieldn = 'HPBL', 
-                                    nfill=1, levs = levlist, return_arrays = True)
+                                    nfill=1, return_arrays=True)
         capelist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                     dir_suffix='/OUTPUT/', fieldn = 'CAPE_ML', 
-                                    nfill=1, levs = levlist, return_arrays = True)
-        preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'PREC_ACCUM', 
-                                    nfill=1, levs = levlist, return_arrays = True)
-        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
-            ncdffn_uv = ncdffn + '_uv'
-            ulist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
-                                        dir_suffix='/OUTPUT/', fieldn = 'U', 
-                                        nfill=1, return_arrays = True)
-            vlist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
-                                        dir_suffix='/OUTPUT/', fieldn = 'V', 
-                                        nfill=1, return_arrays = True)
-            for i in range(len(ulist)):
-                ulist[i] = ulist[i][:,lx1:lx2, ly1:ly2]
-                vlist[i] = vlist[i][:,lx1:lx2, ly1:ly2]
-        hist_tmp = []
-        for i in range(len(tauclist)):
+                                    nfill=1, return_arrays=True)
+        for i in range(args.nens):
             tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
             hpbllist[i] = hpbllist[i][lx1:lx2, ly1:ly2]
             capelist[i] = capelist[i][lx1:lx2, ly1:ly2]
-            preclist[i] = preclist[i][lx1:lx2, ly1:ly2]
-            #print radarmask[lx1:lx2, ly1:ly2]
-            #print radarmask[lx1+62:lx2-42, ly1+22:ly2-42].shape
-            hist_tmp.append(np.histogram(preclist[i][~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]], 
-                                         histbinendges)[0])
-
-        hist_tmp = np.mean(hist_tmp, axis = 0)   # This is now the model hist for one time step
-        tothist_model.append(hist_tmp)
-        radarfield = radarts[it].data[lx1+62:lx2-42, ly1+22:ly2-42]
-        tothist_obs.append(np.histogram(radarfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]], 
-                                         histbinendges)[0])
-    else:
-        hpbllist = [None]*len(fieldlist)
-        
-
+    
+    if args.ana == 'spectra':
+        # Load U and V
+        ncdffn_uv = ncdffn + '_uv'
+        ulist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'U', 
+                                    nfill=1, return_arrays = True)
+        vlist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'V', 
+                                    nfill=1, return_arrays = True)
+        for i in range(5):
+            ulist[i] = ulist[i][:,lx1:lx2, ly1:ly2]
+            vlist[i] = vlist[i][:,lx1:lx2, ly1:ly2]
+    
     # End loading data
     ############################################################################
     
     ############################################################################
-    # Calculate mean tau_c and save
-    if not args.ana == 'hypo':
+    # Do analysis
+    
+    if args.ana == 'weather':
+        # Calculate ensemble and domain mean and save for timestep
         ditauc[it] = np.nanmean(tauclist)
         dihpbl[it] = np.nanmean(hpbllist)
         dicape[it] = np.nanmean(capelist)
         diprec[it] = np.nanmean(preclist)
-        enstauc[it] = np.nanmean(tauclist, axis = 0)
-    # End calculate mean tau_c and save
-    ############################################################################
-    
-    
-    # Calculate RDFs for precipitation
-    rdf_prec_modellist = []
-    for field in preclist:
-        # Identify clouds
-        tmpfield = field
-        tmpfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]] == 0.
+        # weather is DONE!!!
+        
+    if args.ana == 'prec':
+        # 1. histograms
+        hist_tmp = []
+        for i in range(args.nens):
+            hist_tmp.append(np.histogram(preclist[i][~radarmask], 
+                                         histbinedges)[0])
+        # This is now the model hist for one time step
+        tothist_model.append(np.mean(hist_tmp, axis = 0)) 
+        radarfield = radarts[it].data
+        # This is now the obs hist for one time step
+        tothist_obs.append(np.histogram(radarfield[~radarmask], 
+                                         histbinedges)[0])
+        
+        # 2. rdf
+        rdf_prec_modellist = []
+        for field in preclist:
+            # Identify clouds
+            tmpfield = field
+            tmpfield[~radarmask] == 0.
+            tmp = identify_clouds(tmpfield, 1., water = args.water)
+            labels, cld_size_mem, cld_sum_mem = tmp
+            g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
+                            dr = 2)
+            rdf_prec_modellist.append(g)
+        rdf_prec_model[it, :] = np.mean(rdf_prec_modellist, axis = 0)
+        
+        # Now for the observation field
+        tmpfield = radarfield
+        tmpfield[~radarmask] == 0.
         tmp = identify_clouds(tmpfield, 1., water = args.water)
         labels, cld_size_mem, cld_sum_mem = tmp
         g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
                         dr = 2)
-        rdf_prec_modellist.append(g)
-    rdf_prec_model[it, :] = np.mean(rdf_prec_modellist, axis = 0)
-    
-    # Now for the observation field
-    tmpfield = radarfield
-    tmpfield[~radarmask[lx1+62:lx2-42, ly1+22:ly2-42]] == 0.
-    tmp = identify_clouds(tmpfield, 1., water = args.water)
-    labels, cld_size_mem, cld_sum_mem = tmp
-    g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
-                    dr = 2)
-    rdf_prec_obs[it, :] = g
-    
-    
-    
-    # Calculate DKE spectra
-    dx = 2.8e3
-    vertlim = 15
-    if t.total_seconds()/3600%3 == 0:   # Every 3 hours
-        # 1. Get ensemble average backgroud KE spectrum
+        rdf_prec_obs[it, :] = g
+        # rdf is DONE!!!
+        
+    if args.ana == 'spectra':
+        # 1. Calculate DKE spectra
+        vertlim = 15
+        # a. Get ensemble average backgroud KE spectrum
         kelist = []
         for u, v in zip(ulist, vlist):
             vertlist = []
@@ -359,7 +359,7 @@ for it, t in enumerate(timelist):
             kelist.append(np.mean(vertlist, axis = 0))
         bgkespec[it,:] = np.mean(kelist, axis = 0)
         
-        # 2. Get ensemble mean difference KE spectrum
+        # b. Get ensemble mean difference KE spectrum
         dkelist = []
         for i in range(len(ulist)-1):
             for j in range(i+1, len(ulist)):
@@ -371,21 +371,16 @@ for it, t in enumerate(timelist):
                     vertlist.append(p)
                 dkelist.append(np.mean(vertlist, axis = 0))
         dkespec[it,:] = np.mean(dkelist, axis = 0)
-        
-        speck[:] = kspec
-        speclam[:] = s
-            
-    # Calculate Precipitation spectra
-    dx = 2.8e3
-    if t.total_seconds()/3600%3 == 0:   # Every 3 hours
-        # 1. Get ensemble average backgroud KE spectrum
+                
+        # 2. Calculate Precipitation spectra
+        # a. Get ensemble average backgroud KE spectrum
         kelist = []
         for prec in preclist[:5]:
             p, kspec, s = powspec_2d_hor_alter(prec[:,:], dx, dx)
             kelist.append(p)
         bgprecspec[it,:] = np.mean(kelist, axis = 0)
         
-        # 2. Get ensemble mean difference KE spectrum
+        # b. Get ensemble mean difference KE spectrum
         dkelist = []
         for i in range(len(preclist[:5])-1):
             for j in range(i+1, len(preclist[:5])):
@@ -396,7 +391,64 @@ for it, t in enumerate(timelist):
         
         speck[:] = kspec
         speclam[:] = s
+        
+        
+    if args.ana == 'clouds':
+        # Pick up herer tmr!
+        # Member loop
+        sizelist = []
+        sumlist = []
+        rdflist = []
+        labelslist = []   # Save for use later
+        comlist = []      # Save for use later
+        for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
+                                  range(len(fieldlist))):
+            # Identify clouds
+            if args.ana == 'm':
+                if imem == 0:
+                    exw[it,iz,:,:] = field[iz]
+                    exq[it,iz,:,:] = qc[iz]
+                    tmp = identify_clouds(field[iz], thresh, qc[iz],
+                                      opt_thresh = 0., water = False,
+                                      rho = rho[iz])
+                    excld[it,iz,:,:] = tmp[0]
+                tmp = identify_clouds(field[iz], thresh, qc[iz],
+                                      opt_thresh = 0., water = args.water,
+                                      rho = rho[iz])
+                labels, cld_size_mem, cld_sum_mem = tmp
+                if imem == 0:
+                    exwater[it,iz,:,:] = labels
+                cld_sum_mem *= dx*dx  # Rho is now already included
+            else:
+                tmp = identify_clouds(field[iz], thresh, water = args.water)
+                labels, cld_size_mem, cld_sum_mem = tmp
+            sizelist.append(cld_size_mem)
+            sumlist.append(cld_sum_mem)
+            
+            labelslist.append(labels)
+            # Calculate centers of mass
+            num = np.unique(labels).shape[0]   # Number of clouds
+            com = np.array(center_of_mass(field[iz], labels, range(1,num)))
+            if com.shape[0] == 0:   # Accout for empty arrays
+                com = np.empty((0,2))
+            comlist.append(com)
+            
+            # Calculate RDF
+            g, r = calc_rdf(labels, field[iz], normalize = True, rmax = 30, 
+                            dr = 2)
+            rdflist.append(g)
+            dr[:] = r * 2.8   # km
     
+    
+    # End do analysis
+    ############################################################################
+
+    
+    
+    
+    
+    
+"""
     
     ####################
     ## lev loop        #
@@ -587,10 +639,12 @@ for it, t in enumerate(timelist):
             
             # End coarse upscaled variances and means
             ####################################################################
-tothist_model = np.mean(tothist_model, axis = 0)
-hist_model[:] = tothist_model
-tothist_obs = np.mean(tothist_obs, axis = 0)
-hist_obs[:] = tothist_obs
+"""
+if args.ana == 'prec':
+    tothist_model = np.mean(tothist_model, axis = 0)
+    hist_model[:] = tothist_model
+    tothist_obs = np.mean(tothist_obs, axis = 0)
+    hist_obs[:] = tothist_obs
 # Close ncdf file
 rootgrp.close()
             
