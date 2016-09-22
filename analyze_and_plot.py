@@ -312,12 +312,26 @@ if 'prec_rdf' in args.plot:
     rdf_obs = np.nanmean(rdf_obs_list, axis = 0)
     
     # Setup
-    ymax = 5
-    t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
-    UTCstart = timelist[t1]
-    UTCstop = timelist[t2-1]
-    rdf_model = np.mean(rdf_model[t1:t2], axis = 0)
-    rdf_obs = np.mean(rdf_obs[t1:t2], axis = 0)
+    ymax = 3
+    
+    
+    # Get 3 hr averages
+    rdf_3hr_model = []
+    rdf_3hr_obs = []
+    tlist_3hr = []
+    dt = 3 * args.tinc/60.
+    for i in range(len(timelist)/3):
+        rdf_3hr_model.append(np.nanmean(rdf_model[i*dt:(i+1)*dt], axis = 0))
+        rdf_3hr_obs.append(np.nanmean(rdf_obs[i*dt:(i+1)*dt], axis = 0))
+        tlist_3hr.append(timelist[i*3])
+    #rdf_3hr = np.array(rdf_3hr)
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
+    
+    #t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
+    #UTCstart = timelist[t1]
+    #UTCstop = timelist[t2-1]
+    #rdf_model = np.mean(rdf_model[t1:t2], axis = 0)
+    #rdf_obs = np.mean(rdf_obs[t1:t2], axis = 0)
 
     # Get the data
     r =   dataset.variables['dr'][:]
@@ -325,11 +339,11 @@ if 'prec_rdf' in args.plot:
     fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
     
     ############# Time loop ##############
-
-    ax.plot(r/1000., rdf_model, c = 'red', 
-            label = 'CRM')
-    ax.plot(r/1000., rdf_obs, c = 'green', 
-            label = 'observations')
+    for it, t in enumerate(tlist_3hr):
+        ax.plot(r/1000., rdf_3hr_model[it], c = cyc[it], linestyle = '-' ,
+                label = str(t) +'CRM')
+        ax.plot(r/1000., rdf_3hr_obs[it], c = cyc[it], linestyle = '--' ,
+                label = str(t) +'observations')
     
     ax.legend(loc = 1, ncol = 2, prop={'size':6})
     ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
@@ -340,8 +354,7 @@ if 'prec_rdf' in args.plot:
     ax.set_xlim(0, np.max(r)/1000.)
     
     titlestr = (alldatestr + 
-                ', nens=' + str(args.nens)+ '\nfrom ' + str(UTCstart) + 
-                ' to ' + str(UTCstop))
+                ', nens=' + str(args.nens))
     fig.suptitle(titlestr, fontsize='x-large')
     plt.tight_layout(rect=[0, 0.0, 1, 0.85])
     
@@ -349,8 +362,7 @@ if 'prec_rdf' in args.plot:
                     '_wat-' + str(args.water) + 
                     '_nens-' + str(args.nens) + '_tstart-' + 
                     str(args.tstart) + '_tend-' + str(args.tend) + 
-                    '_tinc-' + str(args.tinc)+ '_tplot-' + str(t1) + 
-                    '-' + str(t2))
+                    '_tinc-' + str(args.tinc))
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
@@ -373,26 +385,28 @@ if 'prec_hist' in args.plot:
     hist_obs = np.mean(hist_obs, axis = 0)
     print np.sum(hist_model)
     print np.sum(hist_obs)
+    hist_model[0] = hist_model[0]/10.
+    hist_obs[0] = hist_obs[0]/10.
     
     # Setup
     histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
     x = np.arange(len(histbinedges)-1)
 
     fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
-    ax.bar(x[1:]-0.2, hist_model[1:], width = 0.2, color = 'lightgray', label = 'CRM')
-    ax.bar(x[1:], hist_obs[1:], width = 0.2, color = 'darkgray', label = 'observations')
+    ax.bar(x+0.25, hist_model, width = 0.25, color = 'lightgray', label = 'CRM')
+    ax.bar(x+0.5, hist_obs, width = 0.25, color = 'darkgray', label = 'observations')
     
     
     ax.legend(loc = 1, ncol = 2, prop={'size':6})
     ax.set_xlabel('Hourly accumulation [mm/h]')
     ax.set_ylabel('Average number of grid points')
     ax.set_title('Precipitation histogram')
-
+    plt.xticks(x, histbinedges[:-1])
     
     titlestr = (alldatestr +
                 ', nens=' + str(args.nens))
     fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.85])
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('prec_hist_' + alldatestr + '_ana-' + args.ana + 
                     '_wat-' + str(args.water) +
@@ -402,7 +416,144 @@ if 'prec_hist' in args.plot:
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
         
-        
+
+
+################################################################################
+if 'dke_spec' in args.plot:
+    print 'Plotting dke_spec'
+
+    plotdirsub = plotdir +  '/dke_spec/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    dke_spec_list = []
+    bgke_spec_list = []
+    for d in args.date:
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        dke_spec_list.append(dataset.variables['dkespec'][:])
+        bgke_spec_list.append(dataset.variables['bgkespec'][:])
+    dke_spec = np.nanmean(dke_spec_list, axis = 0)
+    bgke_spec = np.nanmean(bgke_spec_list, axis = 0)
+    
+    # Setup
+    ymax = 5
+    
+    
+    # filter Data every three hours
+    dke_spec_3h = []
+    bgke_spec_3h = []
+    tlist_3hr = []
+    for it, t in enumerate(timelist):
+        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
+            dke_spec_3h.append(dke_spec[it,:])
+            bgke_spec_3h.append(2*bgke_spec[it,:])
+            tlist_3hr.append(t)
+
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
+
+    speclam = dataset.variables['speclam'][:]
+    
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    
+    ############# Time loop ##############
+    for it, t in enumerate(tlist_3hr):
+        print 'time: ', t
+        # Get ratio
+        ratio = dke_spec_3h[it]/bgke_spec_3h[it]
+        #ax.plot(speclam/1000., bgke_spec_3h[it])
+        #ax.plot(speclam/1000., dke_spec_3h[it])
+        ax.plot(speclam/1000., ratio, c = cyc[it], label = str(t))
+    
+    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.plot([2.8, 1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.set_xlabel('Wavelength [km]')
+    ax.set_ylabel('DKE/(2*KE)')
+    ax.set_title("Ratio of difference to background KE")
+    ax.set_ylim(1e-2, 2)
+    ax.set_xlim(2.8, 1000.)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    
+    titlestr = (alldatestr + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('dke_spec_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water)  +
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+
+################################################################################
+if 'prec_spec' in args.plot:
+    print 'Plotting prec_spec'
+
+    plotdirsub = plotdir +  '/prec_spec/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    dprec_spec_list = []
+    bgprec_spec_list = []
+    for d in args.date:
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        dprec_spec_list.append(dataset.variables['dprecspec'][:])
+        bgprec_spec_list.append(dataset.variables['bgprecspec'][:])
+    dprec_spec = np.nanmean(dprec_spec_list, axis = 0)
+    bgprec_spec = np.nanmean(bgprec_spec_list, axis = 0)
+    
+    # Setup
+    ymax = 5
+    
+    
+    # filter Data every three hours
+    dprec_spec_3h = []
+    bgprec_spec_3h = []
+    tlist_3hr = []
+    for it, t in enumerate(timelist):
+        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
+            dprec_spec_3h.append(dprec_spec[it,:])
+            bgprec_spec_3h.append(2*bgprec_spec[it,:])
+            tlist_3hr.append(t)
+
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
+
+    speclam = dataset.variables['speclam'][:]
+    
+    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    
+    ############# Time loop ##############
+    for it, t in enumerate(tlist_3hr):
+        print 'time: ', t
+        # Get ratio
+        ratio = dprec_spec_3h[it]/bgprec_spec_3h[it]
+        #ax.plot(speclam/1000., bgprec_spec_3h[it])
+        #ax.plot(speclam/1000., dprec_spec_3h[it])
+        ax.plot(speclam/1000., ratio, c = cyc[it], label = str(t))
+    
+    ax.legend(loc = 3, ncol = 2, prop={'size':6})
+    ax.plot([2.8, 1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.set_xlabel('Wavelength [km]')
+    ax.set_ylabel('D(Prec)/(2*Prec)')
+    ax.set_title("Ratio of difference to background Precipitation")
+    ax.set_ylim(1e-2, 2)
+    ax.set_xlim(2.8, 1000.)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    
+    titlestr = (alldatestr + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('prec_spec_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water)  +
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+
             
 ################################################################################
 if 'scatter' in args.plot:

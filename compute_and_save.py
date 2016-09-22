@@ -12,7 +12,7 @@ import numpy as np
 from datetime import timedelta
 from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf, getfobj_ncdf_timeseries
 from cosmo_utils.helpers import make_timelist, ddhhmmss, yymmddhhmm, yyyymmddhh_strtotime
-from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,get_totmask
+from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,get_totmask,powspec_2d_hor,powspec_2d_hor_alter
 from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 
@@ -116,6 +116,7 @@ nclddim = rootgrp.createDimension('N_cld', 1e6)
 drdim = rootgrp.createDimension('dr', 30/2+1) # For RDF
 drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
 binsdim = rootgrp.createDimension('bins', len(histbinendges)-1)
+specdim = rootgrp.createDimension('spec', 128)
 
 
 # Create variables and add attributes 
@@ -158,6 +159,13 @@ Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time','levs'))
 
 hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
 hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
+
+bgkespec = rootgrp.createVariable('bgkespec', 'f8', ('time','spec'))
+dkespec  = rootgrp.createVariable('dkespec', 'f8', ('time','spec'))
+bgprecspec = rootgrp.createVariable('bgprecspec', 'f8', ('time','spec'))
+dprecspec  = rootgrp.createVariable('dprecspec', 'f8', ('time','spec'))
+speck    = rootgrp.createVariable('speck', 'f8', ('spec'))
+speclam  = rootgrp.createVariable('speclam', 'f8', ('spec'))
 
 Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
 
@@ -264,6 +272,17 @@ for it, t in enumerate(timelist):
         preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
                                     dir_suffix='/OUTPUT/', fieldn = 'PREC_ACCUM', 
                                     nfill=1, levs = levlist, return_arrays = True)
+        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
+            ncdffn_uv = ncdffn + '_uv'
+            ulist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'U', 
+                                        nfill=1, return_arrays = True)
+            vlist = getfobj_ncdf_ens(ensdir, 'sub', 5, ncdffn_uv, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'V', 
+                                        nfill=1, return_arrays = True)
+            for i in range(len(ulist)):
+                ulist[i] = ulist[i][:,lx1:lx2, ly1:ly2]
+                vlist[i] = vlist[i][:,lx1:lx2, ly1:ly2]
         hist_tmp = []
         for i in range(len(tauclist)):
             tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
@@ -320,6 +339,60 @@ for it, t in enumerate(timelist):
     g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
                     dr = 2)
     rdf_prec_obs[it, :] = g
+    
+    
+    
+    # Calculate DKE spectra
+    dx = 2.8e3
+    vertlim = 15
+    if t.total_seconds()/3600%3 == 0:   # Every 3 hours
+        # 1. Get ensemble average backgroud KE spectrum
+        kelist = []
+        for u, v in zip(ulist, vlist):
+            vertlist = []
+            for k in range(vertlim, v.shape[0]):
+                p, kspec, s = powspec_2d_hor(u[k,:,:], v[k,:,:], dx, dx)
+                vertlist.append(p)
+            kelist.append(np.mean(vertlist, axis = 0))
+        bgkespec[it,:] = np.mean(kelist, axis = 0)
+        
+        # 2. Get ensemble mean difference KE spectrum
+        dkelist = []
+        for i in range(len(ulist)-1):
+            for j in range(i+1, len(ulist)):
+                du = ulist[i] - ulist[j]
+                dv = vlist[i] - vlist[j]
+                vertlist = []
+                for k in range(vertlim, v.shape[0]):
+                    p, kspec, s = powspec_2d_hor(du[k,:,:], dv[k,:,:], dx, dx)
+                    vertlist.append(p)
+                dkelist.append(np.mean(vertlist, axis = 0))
+        dkespec[it,:] = np.mean(dkelist, axis = 0)
+        
+        speck[:] = kspec
+        speclam[:] = s
+            
+    # Calculate Precipitation spectra
+    dx = 2.8e3
+    if t.total_seconds()/3600%3 == 0:   # Every 3 hours
+        # 1. Get ensemble average backgroud KE spectrum
+        kelist = []
+        for prec in preclist[:5]:
+            p, kspec, s = powspec_2d_hor_alter(prec[:,:], dx, dx)
+            kelist.append(p)
+        bgprecspec[it,:] = np.mean(kelist, axis = 0)
+        
+        # 2. Get ensemble mean difference KE spectrum
+        dkelist = []
+        for i in range(len(preclist[:5])-1):
+            for j in range(i+1, len(preclist[:5])):
+                dprec = preclist[i] - preclist[j]
+                p, kspec, s = powspec_2d_hor_alter(dprec, dx, dx)
+                dkelist.append(p)
+        dprecspec[it,:] = np.mean(dkelist, axis = 0)
+        
+        speck[:] = kspec
+        speclam[:] = s
     
     
     ####################
