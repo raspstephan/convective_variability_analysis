@@ -122,7 +122,7 @@ These perturbations (last term) are process-specific, so for each parameterized 
 \end{equation}
 where $\mathit{l_{\infty}} = 150$ m is the mixing length describing the average size of an eddy. The term $\sigma_{\Phi}$ is the sub-grid scale standard deviation. For the turbulence perturbations the considered variables are vertical velocity $w$, potential temperature $\theta$ and humidity $q$. The standard deviations are calculated in the turbulence parameterization (see KC06 for details). The factor $\frac{\mathit{l_{\infty}}}{5 \Delta x} \propto \frac{1}{\sqrt{N_{\mathrm{eddy}}}}$ scales the variability according to number of unresolved eddies similar to Eq. \ref{eq:M_var}. The factor $\frac{1}{dt}$  converts the term into a tendency term dependent on the time step. Finally, a scaling factor $\alpha_{\mathrm{const}, \Phi}$ is included for tuning purposes and should be of order one. It is set to 2 for these experiments. 
 
-\paragraph{Are the simulations realistic?} To proceed we will assume that the simulations represent a realistic depiction of convection. To test whether this assumption holds we will now compare the simulated precipitation fields to radar observations. A visual impression of the similarity between model output and observations can be gained from FIG???. To get a quantitative picture a precipitation histogram is used to check whether the simulations produce a realistic distribution of rain (Fig.~\ref{fig:prec_hist}). Overall the agreement is good. The model seems to produce slightly more very light rain and very heavy rain. To test whether the spatial distribution of clouds is comparable we show the radial distribution function (details on the calculation are found in SEC???; Fig.~\ref{fig:prec_rdf}). This is particularly important since clustering will turn out to be an important factor in modulating convective variability. There is a good agreement in the diurnal cycle of clustering with reduced clustering around noon and an increase towards the evening hours. In general the clustering in the model appears to be sharper, meaning that the peak is larger, but then drops off faster. This implies that the model likes to produce clouds directly next to existing clouds (partly this can be an artifact of the cloud separation method), but is less likely to produce larger clusters, a known problem in convection-permitting models. With this in mind, we can still conclude that the model simulations are a realistic representation of convection.  \textit{Mention the ten minute offset and is radar data same as prec_accum?}
+\paragraph{Are the simulations realistic?} To proceed we will assume that the simulations represent a realistic depiction of convection. To test whether this assumption holds we will now compare the simulated precipitation fields to radar observations. A visual impression of the similarity between model output and observations can be gained from FIG???. To get a quantitative picture a precipitation histogram is used to check whether the simulations produce a realistic distribution of rain (Fig.~\ref{fig:prec_hist}). Overall the agreement is good. The model seems to produce slightly more very light rain and very heavy rain. To test whether the spatial distribution of clouds is comparable we show the radial distribution function (details on the calculation are found in SEC???; Fig.~\ref{fig:prec_rdf}). This is particularly important since clustering will turn out to be an important factor in modulating convective variability. There is a good agreement in the diurnal cycle of clustering with reduced clustering around noon and an increase towards the evening hours. In general the clustering in the model appears to be sharper, meaning that the peak is larger, but then drops off faster. This implies that the model likes to produce clouds directly next to existing clouds (partly this can be an artifact of the cloud separation method), but is less likely to produce larger clusters, a known problem in convection-permitting models. With this in mind, we can still conclude that the model simulations are a realistic representation of convection.  \textit{Mention the ten minute offset and is radar data same as prec accum?}
 
 \paragraph{Are the large scales sufficiently similar and the convective scales sufficiently displaced?} This is the premise upon which this study is built. A visual, qualitative test of this premise is show in Fig.~\ref{fig:prec_stamps}. On the large scales the members agree on the location of the precipitation, but zooming in on the convection itself reveals no perceptible correlation. A more quantitative approach is given by the ratio of the difference to the background energy spectra of kinetic energy and precipitation (Fig.~\ref{fig:spectra}). A complete displacement at a given scale would result in a difference energy which is twice the background energy. The precipitation spectra show a complete displacement for scales up to 50\,km at all times, while there is some correlation at larger scales. The kinetic energy spectrum shows this large-scale correlation even better. Here the largest scales seem to agree very well (with a ratio of around 10\%) even at later times after the errors have grown. The small scales show a strong upscale error growth, suggesting that it takes longer for the displacement to be complete in the wind field. Since we are interested in the convection, however, it is sufficient if the convective features (i.e. the precipitation) is completely displaces. The analysis presented in this paragraph shows that the basic premise of displaces small scales and sufficiently similar large scales is fulfilled for our simulations. 
 
@@ -404,34 +404,33 @@ HPBL, dtM
 
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
-\includegraphics[height=0.4\textheight]{2016060400/m/prec_stamps/stamps_prec_zoom_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
-\caption{(a) Surface elevation of the analysis domain. (b--d) Precipitation fields of three ensemble members for DATE. Bottom plots show a zoom.} \label{fig:prec_stamps}
+\includegraphics[width=0.98\textwidth]{2016060400/prec_stamps/stamps_prec_2016060400_ana-m_wat-True_nens-20_time-00140000.png}\\
+\caption{(top right) Radar observations, (top row) Three ensemble members, (bottom row) zoom of plot on top and (bottom left) surface elevation} \label{fig:prec_stamps}
 \end{figure}
 
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.9\textwidth]{2016060100_2016060200_2016060300_2016060400_2016060500_2016060600/m/prec_hist/prec_hist_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_ana-m_wat-True_nens-50_tstart-3_tend-24_tinc-60.png}\\
-\caption{Precipitation histogram comparing model results and observations. The first bin has been divided by ten.} \label{fig:prec_hist}
+\includegraphics[width=0.49\textwidth]{composite/prec_hist/prec_hist_composite_ana-prec_wat-True_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Precipitation histogram showing the number of grid cells within a specified hourly precipitation range. Values are averaged for all analysis times and days. Additionally the simulation numbers are ensemble averages. The ``no rain'' bin (0--0.1 mm/h) is not shown and accounts for the differences in the total number of shown values.} \label{fig:prec_hist}
 \end{figure}
 
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.9\textwidth]{2016060100_2016060200_2016060300_2016060400_2016060500_2016060600/m/prec_rdf/prec_rdf_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_ana-m_wat-True_nens-50_tstart-3_tend-24_tinc-60.png}\\
-\caption{Radial distribution function of the precipitation fields for observations and model simulations} \label{fig:prec_rdf}
+\includegraphics[width=0.98\textwidth]{composite/prec_rdf/prec_rdf_composite_ana-prec_wat-True_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Radial distribution function (RDF) of the hourly precipitation fields for simulations and observations. The method of calculating the RDF is the same as in ??? and is described in detail in ???} \label{fig:prec_rdf}
 \end{figure}
 
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.45\textwidth]{2016052800/m/prec_spec/prec_spec_2016052800_ana-m_wat-True_nens-5_tstart-3_tend-24_tinc-180.png}\\
-\includegraphics[width=0.45\textwidth]{2016052800/m/dke_spec/dke_spec_2016052800_ana-m_wat-True_nens-2_tstart-3_tend-24_tinc-180.png}\\
-\caption{Ratio of the energy spectra of the difference fields to twice the background fields, averaged for 5 ensemble members and displayed for different times. (a) Precipitation, (b) Kinetic energy.} \label{fig:spectra}
+\includegraphics[width=0.48\textwidth]{2016052800_2016052900/prec_spec/prec_spec_2016052800_2016052900_ana-spectra_wat-True_nens-20_tstart-3_tend-24_tinc-180.png}
+\includegraphics[width=0.48\textwidth]{2016052800_2016052900/dke_spec/dke_spec_2016052800_2016052900_ana-spectra_wat-True_nens-20_tstart-3_tend-24_tinc-180.png}\\
+\caption{Saturation ratio is defined as the difference energy spectrum divided by twice the background energy spectrum for (left) precipitation and (right) kinetic energy (KE). The KE spectrum was averaged from the lowest model level to level 15 (approximately 10\,km height). All spectra are instantaneous and ensemble means, where a reduced 5 member ensemble has been used. For details on the calculation of energy spectra, refer to \cite{Selz2015b}} \label{fig:spectra}
 \end{figure}
 
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.9\textwidth]{2016060400/m/summary_weather/summary_weather_2016060400_ana-m_wat-True_lev-30_nens-2_tstart-3_tend-24_tinc-60.png}\\
-\caption{Time series of (a) hourly rainfall in mm/h, (b) CAPE in J/kg, (c) the convective adjustment time scale in h and (d) the perturbed boundary layer height in m. All values are domain and ensemble averages. Each gray line represents one simulation day. The red line is the mean over all simulation days.} \label{fig:Fig3}
+\includegraphics[width=0.98\textwidth]{composite/summary_weather/summary_weather_composite_ana-weather_wat-True_nens-20_tstart-3_tend-24_tinc-60.png}\\
+\caption{Time series of (a) hourly rainfall in mm/h, (b) CAPE in J/kg, (c) the convective adjustment time scale in h and (d) the perturbed boundary layer height in m. All values are domain and ensemble averages. Each gray line represents one simulation day. The red line is the mean over all simulation days.} \label{fig:summary_weather}
 \end{figure}
 
 \begin{figure}[ht]

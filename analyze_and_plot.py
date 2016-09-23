@@ -12,13 +12,20 @@ import argparse
 from netCDF4 import Dataset
 import numpy as np
 from datetime import timedelta
-from cosmo_utils.helpers import ddhhmmss
+from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime, yymmddhhmm
 from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
 from cosmo_utils.pywgrib import fieldobj
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.diag import mean_spread_fieldobjlist
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
+
+# Some plotting setup
+pdfwidth = 7.87   # inches for AMetSoc
+mpl.rcParams['font.size'] = 10
+mpl.rcParams['font.family'] = 'sans-serif'
+
 
 # Define functions
 def residual_bc(p, y, x):
@@ -149,81 +156,78 @@ if 'cloud_stats' in args.plot:
     # Setup
     sizemax = 4e8
     summax = 10e8
+
     totlist1 = []
     totlist2 = []
-    for iz, lev in enumerate(dataset.variables['levs']):
-        tmplist1 = []
-        tmplist2 = []
-        for d in args.date:
-            dataset = Dataset(savedir + d + savesuf, 'r')
-            cld_size_tmp = dataset.variables['cld_size'][:,iz, :]
-            cld_size_tmp = cld_size_tmp[~cld_size_tmp.mask].data
-            cld_sum_tmp = dataset.variables['cld_sum'][:,iz, :]
-            cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
-            tmplist1 += list(cld_size_tmp)
-            tmplist2 += list(cld_sum_tmp)
-        totlist1.append(tmplist1)
-        totlist2.append(tmplist2)
+    for d in args.date:
+        print d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        cld_size_tmp = dataset.variables['cld_size'][:, :]
+        print cld_size_tmp
+        cld_size_tmp = cld_size_tmp[~cld_size_tmp.mask].data
+        cld_sum_tmp = dataset.variables['cld_sum'][:, :]
+        cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
+        totlist1 += list(cld_size_tmp)
+        totlist2 += list(cld_sum_tmp)
+    print totlist1
+
+
+
+    sizehist, sizeedges = np.histogram(totlist1, 
+                                        bins = 15, range = [0., sizemax])
+    sizemean = np.mean(totlist1)
+    sizevar = np.var(totlist1)
+    print 'size beta', sizevar/sizemean**2
+    sumhist, sumedges = np.histogram(totlist2, 
+                                        bins = 15, range = [0., summax])
+    summean = np.mean(totlist2)
+    sumvar = np.var(totlist2)
+    print 'beta', sumvar/summean**2
     
-
-    ######## Lev loop #####################
-    for iz, lev in enumerate(dataset.variables['levs']):
-        # Get the data
-        print 'lev: ', lev
-
-        sizehist, sizeedges = np.histogram(totlist1[iz], 
-                                            bins = 15, range = [0., sizemax])
-        sizemean = np.mean(totlist1[iz])
-        sizevar = np.var(totlist1[iz])
-        print 'size beta', sizevar/sizemean**2
-        sumhist, sumedges = np.histogram(totlist2[iz], 
-                                            bins = 15, range = [0., summax])
-        summean = np.mean(totlist2[iz])
-        sumvar = np.var(totlist2[iz])
-        print 'beta', sumvar/summean**2
-        
-        # Plot the histograms
-        fig, axarr = plt.subplots(1, 2, figsize = (95./25.4*2.5, 4.2))
-        axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0])
-        axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
-                    alpha = 0.5)
-        # Fit line
-        p0 = [1e6, 1e-7]
-        result = leastsq(residual_ab_exp, p0, args = (sizeedges[:-1], sizehist))
-        a,b = result[0]
-        print a,b
-        a = 1e6
-        b = -0.4e-7
-        axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
-        print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
-        axarr[0].set_xlabel('Cloud size [m^2]')
-        axarr[0].set_ylabel('Number of clouds')
-        axarr[0].set_title('Cloud size distribution')
-        axarr[0].set_xlim([0., sizemax])
-        axarr[0].set_ylim([1, 1e6])
-        axarr[0].set_yscale('log')
-        
-        axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0])
-        axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
-                    alpha = 0.5)
-        axarr[1].set_ylabel('Number of clouds')
-        axarr[1].set_xlim([0., summax])
-        axarr[1].set_ylim([1, 1e6])
-        axarr[1].set_yscale('log')
-        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
-        axarr[1].set_title('Cloud mass flux distribution')
-        
-        titlestr = (alldatestr  + ', ' + args.ana + 
-                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                    ', nens=' + str(args.nens))
-        fig.suptitle(titlestr, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        
-        plotsavestr = ('cloud_stats_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-        plt.close('all')
+    # Plot the histograms
+    fig, axarr = plt.subplots(1, 2, figsize = (pdfwidth, 3.5))
+    axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0],
+                 color = 'darkgray')
+    axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
+                alpha = 0.5)
+    ## Fit line
+    #p0 = [1e6, 1e-7]
+    #result = leastsq(residual_ab_exp, p0, args = (sizeedges[:-1], sizehist))
+    #a,b = result[0]
+    #print a,b
+    #a = 1e6
+    #b = -0.4e-7
+    #axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
+    #print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
+    axarr[0].set_xlabel('Cloud size [m^2]')
+    axarr[0].set_ylabel('Number of clouds')
+    axarr[0].set_title('Cloud size', fontsize = 10)
+    axarr[0].set_xlim([0., sizemax])
+    axarr[0].set_ylim([1, 1e6])
+    axarr[0].set_yscale('log')
+    
+    axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
+                 color = 'darkgray')
+    axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
+                alpha = 0.5)
+    axarr[1].set_ylabel('Number of clouds')
+    axarr[1].set_xlim([0., summax])
+    axarr[1].set_ylim([1, 1e6])
+    axarr[1].set_yscale('log')
+    axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+    axarr[1].set_title('Mass flux per cloud', fontsize = 10)
+    
+    titlestr = (alldatestr  + ', ' + args.ana + 
+                ', water=' + str(args.water) +  
+                ', nens=' + str(args.nens))
+    fig.suptitle('Cloud size and mass flux per cloud distributions', fontsize=12)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('cloud_stats_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
 
 
 
@@ -312,6 +316,7 @@ if 'prec_rdf' in args.plot:
     rdf_obs = np.nanmean(rdf_obs_list, axis = 0)
     
     # Setup
+    ymin = 0.5
     ymax = 3
     
     
@@ -324,7 +329,6 @@ if 'prec_rdf' in args.plot:
         rdf_3hr_model.append(np.nanmean(rdf_model[i*dt:(i+1)*dt], axis = 0))
         rdf_3hr_obs.append(np.nanmean(rdf_obs[i*dt:(i+1)*dt], axis = 0))
         tlist_3hr.append(timelist[i*3])
-    #rdf_3hr = np.array(rdf_3hr)
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
     
     #t1 = int(args.tplot[0]); t2 = int(args.tplot[1])
@@ -332,31 +336,40 @@ if 'prec_rdf' in args.plot:
     #UTCstop = timelist[t2-1]
     #rdf_model = np.mean(rdf_model[t1:t2], axis = 0)
     #rdf_obs = np.mean(rdf_obs[t1:t2], axis = 0)
-
     # Get the data
     r =   dataset.variables['dr'][:]
     
-    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    fig, axarr = plt.subplots(1, 2, figsize = (pdfwidth, 3.5))
     
     ############# Time loop ##############
     for it, t in enumerate(tlist_3hr):
-        ax.plot(r/1000., rdf_3hr_model[it], c = cyc[it], linestyle = '-' ,
-                label = str(t) +'CRM')
-        ax.plot(r/1000., rdf_3hr_obs[it], c = cyc[it], linestyle = '--' ,
-                label = str(t) +'observations')
+        axarr[0].plot(r/1000., rdf_3hr_model[it], c = cyc[it], 
+                        linestyle = '-' , label = str(it*3+3) +' UTC',
+                        linewidth = 1.5)
+        axarr[1].plot(r/1000., rdf_3hr_obs[it], c = cyc[it], 
+                        linestyle = '-' , label = str(it*3+3).zfill(2) +' UTC',
+                        linewidth = 1.5)
     
-    ax.legend(loc = 1, ncol = 2, prop={'size':6})
-    ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    ax.set_xlabel('Distance [km]')
-    ax.set_ylabel('Normalized RDF')
-    ax.set_title('Radial distribution function')
-    ax.set_ylim(0, ymax)
-    ax.set_xlim(0, np.max(r)/1000.)
+    axarr[1].legend(loc = 1, ncol = 1, prop={'size':10})
+    axarr[0].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[0].set_xlabel('Distance [km]')
+    axarr[0].set_ylabel('Normalized RDF')
+    axarr[0].set_title('Simulation', fontsize = 10)
+    axarr[0].set_ylim(ymin, ymax)
+    axarr[0].set_xlim(0, np.max(r)/1000.)
+    
+    axarr[1].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[1].set_xlabel('Distance [km]')
+    #axarr[1].set_ylabel('Normalized RDF')
+    axarr[1].set_title('Observation', fontsize = 10)
+    axarr[1].set_ylim(ymin, ymax)
+    axarr[1].set_xlim(0, np.max(r)/1000.)
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.85])
+    fig.suptitle('Radial distribution function of precipitation fields', 
+                 fontsize=12)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('prec_rdf_' + alldatestr + '_ana-' + args.ana + 
                     '_wat-' + str(args.water) + 
@@ -383,8 +396,6 @@ if 'prec_hist' in args.plot:
         hist_obs.append(dataset.variables['hist_obs'][:])
     hist_model = np.mean(hist_model, axis = 0)
     hist_obs = np.mean(hist_obs, axis = 0)
-    print np.sum(hist_model)
-    print np.sum(hist_obs)
     hist_model[0] = hist_model[0]/10.
     hist_obs[0] = hist_obs[0]/10.
     
@@ -392,21 +403,23 @@ if 'prec_hist' in args.plot:
     histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
     x = np.arange(len(histbinedges)-1)
 
-    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
-    ax.bar(x+0.25, hist_model, width = 0.25, color = 'lightgray', label = 'CRM')
-    ax.bar(x+0.5, hist_obs, width = 0.25, color = 'darkgray', label = 'observations')
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    ax.bar(x[1:]+0.2, hist_model[1:], width = 0.3, color = '#d9d9d9', 
+           label = 'Simulations')
+    ax.bar(x[1:]+0.5, hist_obs[1:], width = 0.3, color = '#333333', 
+           label = 'Observations')
     
     
-    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.legend(loc = 1, prop={'size':10})
     ax.set_xlabel('Hourly accumulation [mm/h]')
-    ax.set_ylabel('Average number of grid points')
-    ax.set_title('Precipitation histogram')
-    plt.xticks(x, histbinedges[:-1])
+    ax.set_ylabel('Number of grid points')
+    ax.set_title('Precipitation histogram', fontsize=12)
+    plt.xticks(x[1:], histbinedges[1:-1])
     
     titlestr = (alldatestr +
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    #fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout()
     
     plotsavestr = ('prec_hist_' + alldatestr + '_ana-' + args.ana + 
                     '_wat-' + str(args.water) +
@@ -434,49 +447,37 @@ if 'dke_spec' in args.plot:
     dke_spec = np.nanmean(dke_spec_list, axis = 0)
     bgke_spec = np.nanmean(bgke_spec_list, axis = 0)
     
-    # Setup
-    ymax = 5
-    
-    
-    # filter Data every three hours
-    dke_spec_3h = []
-    bgke_spec_3h = []
-    tlist_3hr = []
-    for it, t in enumerate(timelist):
-        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
-            dke_spec_3h.append(dke_spec[it,:])
-            bgke_spec_3h.append(2*bgke_spec[it,:])
-            tlist_3hr.append(t)
-
-    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(timelist))]
 
     speclam = dataset.variables['speclam'][:]
     
-    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
     
     ############# Time loop ##############
-    for it, t in enumerate(tlist_3hr):
+    for it, t in enumerate(timelist):
         print 'time: ', t
         # Get ratio
-        ratio = dke_spec_3h[it]/bgke_spec_3h[it]
+        ratio = dke_spec[it]/bgke_spec[it]/2.
         #ax.plot(speclam/1000., bgke_spec_3h[it])
         #ax.plot(speclam/1000., dke_spec_3h[it])
-        ax.plot(speclam/1000., ratio, c = cyc[it], label = str(t))
+        ax.plot(speclam/1000., ratio, c = cyc[it], 
+                label = str(int(timelist_plot[it])).zfill(2) + ' UTC',
+                linewidth = 1.5)
     
-    ax.legend(loc = 1, ncol = 2, prop={'size':6})
-    ax.plot([2.8, 1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.legend(loc = 3, ncol = 2, prop={'size':8})
+    ax.plot([5, 1000.], [1, 1], c = 'gray', alpha = 0.5)
     ax.set_xlabel('Wavelength [km]')
-    ax.set_ylabel('DKE/(2*KE)')
-    ax.set_title("Ratio of difference to background KE")
+    ax.set_ylabel('Saturation ratio')
+    ax.set_title("Saturation of KE spectrum")
     ax.set_ylim(1e-2, 2)
-    ax.set_xlim(2.8, 1000.)
+    ax.set_xlim(5, 1000.)
     ax.set_yscale('log')
     ax.set_xscale('log')
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    #fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout()
     
     plotsavestr = ('dke_spec_' + alldatestr + '_ana-' + args.ana + 
                     '_wat-' + str(args.water)  +
@@ -501,50 +502,38 @@ if 'prec_spec' in args.plot:
         bgprec_spec_list.append(dataset.variables['bgprecspec'][:])
     dprec_spec = np.nanmean(dprec_spec_list, axis = 0)
     bgprec_spec = np.nanmean(bgprec_spec_list, axis = 0)
-    
-    # Setup
-    ymax = 5
-    
-    
-    # filter Data every three hours
-    dprec_spec_3h = []
-    bgprec_spec_3h = []
-    tlist_3hr = []
-    for it, t in enumerate(timelist):
-        if t.total_seconds()/3600%3 == 0:   # Every 3 hours
-            dprec_spec_3h.append(dprec_spec[it,:])
-            bgprec_spec_3h.append(2*bgprec_spec[it,:])
-            tlist_3hr.append(t)
 
-    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(timelist))]
 
     speclam = dataset.variables['speclam'][:]
     
-    fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
     
     ############# Time loop ##############
-    for it, t in enumerate(tlist_3hr):
+    for it, t in enumerate(timelist):
         print 'time: ', t
         # Get ratio
-        ratio = dprec_spec_3h[it]/bgprec_spec_3h[it]
-        #ax.plot(speclam/1000., bgprec_spec_3h[it])
-        #ax.plot(speclam/1000., dprec_spec_3h[it])
-        ax.plot(speclam/1000., ratio, c = cyc[it], label = str(t))
+        ratio = dprec_spec[it]/bgprec_spec[it]/2.
+        #ax.plot(speclam/1000., bgke_spec_3h[it])
+        #ax.plot(speclam/1000., dke_spec_3h[it])
+        ax.plot(speclam/1000., ratio, c = cyc[it], 
+                label = str(int(timelist_plot[it])).zfill(2) + ' UTC',
+                linewidth = 1.5)
     
-    ax.legend(loc = 3, ncol = 2, prop={'size':6})
-    ax.plot([2.8, 1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.legend(loc = 3, ncol = 2, prop={'size':8})
+    ax.plot([5, 1000.], [1, 1], c = 'gray', alpha = 0.5)
     ax.set_xlabel('Wavelength [km]')
-    ax.set_ylabel('D(Prec)/(2*Prec)')
-    ax.set_title("Ratio of difference to background Precipitation")
+    ax.set_ylabel('Saturation ratio')
+    ax.set_title("Saturation of precipitation spectrum")
     ax.set_ylim(1e-2, 2)
-    ax.set_xlim(2.8, 1000.)
+    ax.set_xlim(5, 1000.)
     ax.set_yscale('log')
     ax.set_xscale('log')
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    #fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout()
     
     plotsavestr = ('prec_spec_' + alldatestr + '_ana-' + args.ana + 
                     '_wat-' + str(args.water)  +
@@ -1551,21 +1540,22 @@ if 'summary_weather' in args.plot:
     
     timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
     timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    
     # Create the figure
-    fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 7.))
+    fig, axarr = plt.subplots(2, 2, figsize = (pdfwidth, 7.))
     
     axarr[0,0].plot(timelist_plot, compprec, c = 'orangered', linewidth = 2)
     for ic, yplot in enumerate(compprec_list):
         axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
     axarr[0,0].set_xlabel('time [h/UTC]')
     axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-    axarr[0,0].set_ylabel('Domain average precipitation [mm/h]')
+    axarr[0,0].set_ylabel('Precipitation [mm/h]')
     
     axarr[0,1].plot(timelist_plot, compcape, c = 'orangered', linewidth = 2)
     for ic, yplot in enumerate(compcape_list):
         axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
     axarr[0,1].set_xlabel('time [h/UTC]')
-    axarr[0,1].set_ylabel('Domain average CAPE [J/kg]')
+    axarr[0,1].set_ylabel('CAPE [J/kg]')
     axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
     axarr[1,0].plot(timelist_plot, comptauc, c = 'orangered', linewidth = 2)
@@ -1573,23 +1563,24 @@ if 'summary_weather' in args.plot:
         axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
     axarr[1,0].set_xlabel('time [h/UTC]')
     axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-    axarr[1,0].set_ylabel('Domain average tau_c [h]')
+    axarr[1,0].set_ylabel('Convective timescale [h]')
     
     axarr[1,1].plot(timelist_plot, comphpbl, c = 'orangered', linewidth = 2)
     for ic, yplot in enumerate(comphpbl_list):
         axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
     axarr[1,1].set_xlabel('time [h/UTC]')
     axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-    axarr[1,1].set_ylabel('Domain average PBL height [m]')
+    axarr[1,1].set_ylabel('PBL height [m]')
     
     titlestr = (alldatestr + ', ' + args.ana + 
                 ', water=' + str(args.water) + ', height= ' + heightstr + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
+    #fig.suptitle(titlestr, fontsize='x-large')
+    fig.suptitle('Temporal evolution of domain averaged quantities', fontsize = 12.)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('summary_weather_' + alldatestr + '_ana-' + args.ana + 
-                    '_wat-' + str(args.water) + '_height-' + heightstr +
+                    '_wat-' + str(args.water) +
                     '_nens-' + str(args.nens) + '_tstart-' + 
                     str(args.tstart) + '_tend-' + str(args.tend) + 
                     '_tinc-' + str(args.tinc))
@@ -2189,6 +2180,7 @@ if 'prec_stamps' in args.plot:
     
     ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens/'
     t = timedelta(hours = args.tplot[0])
+    print t
     HHobj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
     PREC1obj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff' + ddhhmmss(t) + 
                             '.nc_30m_surf', 'PREC_ACCUM')
@@ -2197,23 +2189,32 @@ if 'prec_stamps' in args.plot:
     PREC3obj = getfobj_ncdf(ensdir + '/3/OUTPUT/lfff' + ddhhmmss(t) + 
                             '.nc_30m_surf', 'PREC_ACCUM')
     
-    # Set up the figure 
-    fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
-    plt.sca(axarr[0,0])   # This is necessary for some reason...
+    radarpref = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/raa01-rw_10000-'
+    radarsufx = '-dwd---bin.nc'
+    dateobj = yyyymmddhh_strtotime(args.date[0])
+    dtradar = timedelta(minutes = 10)
+    t_rad = dateobj - dtradar + t
+    print t_rad
+    RADARobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) + 
+                            radarsufx, 'pr', dwdradar = True)
     
-    cf, tmp = ax_contourf(axarr[0,0], HHobj,
+    # Set up the figure 
+    fig, axarr = plt.subplots(2, 4, figsize = (pdfwidth, 5))
+    plt.sca(axarr[1,0])   # This is necessary for some reason...
+    
+    cf, tmp = ax_contourf(axarr[1,0], HHobj,
                           cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
                             ji0=(50, 50),
                             ji1=(357-51, 357-51),
-                            sp_title=HHobj.fieldn,
+                            sp_title='Surface height',
                             Basemap_drawrivers = False,
                             npars = 0, nmers = 0,
                             lev = 50,
                             extend = 'both')
-    cb = fig.colorbar(cf)
-    cb.set_label(HHobj.unit)
+    #cb = fig.colorbar(cf)
+    #cb.set_label(HHobj.unit)
     
-    for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), 
+    for ax, fob, i, in zip(list(axarr[0,1:]),
                            [PREC1obj,PREC2obj, PREC3obj], range(1,4)):
         
         # 2. NvarMN
@@ -2222,46 +2223,44 @@ if 'prec_stamps' in args.plot:
                               colors = cmPrec, pllevels = levelsPrec,
                               ji0=(50, 50),
                             ji1=(357-51, 357-51),
-                            sp_title=fob.fieldn + str(i),
+                            sp_title='Member ' + str(i),
                             Basemap_drawrivers = False,
                             npars = 0, nmers = 0)
-        cb = fig.colorbar(cf)
-        cb.set_label(fob.unit)
-    
-    titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
-                ', water=' + str(args.water) + 
-                ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-    
-    plotsavestr = ('stamps_prec_' + args.date[0] + '_ana-' + args.ana + 
-                '_wat-' + str(args.water) +
-                '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
-    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-    plt.close('all')
-    
-    ####################################33
-    # Set up the figure 2
-    fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
-    plt.sca(axarr[0,0])   # This is necessary for some reason...
-     
-    tmpfield = np.ones((51, 357, 357), dtype = bool)
-    tmpfield[:,110:357-161,160:357-111] = 0
-    HHobj.data[tmpfield] = np.nan
-    
-    cf, tmp = ax_contourf(axarr[0,0], HHobj,
-                          cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
-                            ji0=(50, 50),
-                            ji1=(357-51, 357-51),
-                            sp_title=HHobj.fieldn,
+        #cb = fig.colorbar(cf)
+        #cb.set_label(fob.unit)
+    plt.sca(axarr[0,0])
+    cf, tmp = ax_contourf(axarr[0,0], RADARobj, 
+                              colors = cmPrec, pllevels = levelsPrec,
+                              ji0=(50+62, 50+22),
+                            ji1=(357-51+62, 357-51+22),
+                            sp_title='RADAR',
                             Basemap_drawrivers = False,
-                            npars = 0, nmers = 0,
-                            lev = 50,
-                            extend = 'both')
-    cb = fig.colorbar(cf)
-    cb.set_label(HHobj.unit)
+                            npars = 0, nmers = 0)
+    #cb = fig.colorbar(cf)
+    #cb.set_label(fob.unit)
     
-    for ax, fob, i, in zip(list(np.ravel(axarr)[1:]), 
+    #####################################33
+    ## Set up the figure 2
+    #fig, axarr = plt.subplots(2, 2, figsize = (9, 8))
+    #plt.sca(axarr[0,0])   # This is necessary for some reason...
+     
+    #tmpfield = np.ones((51, 357, 357), dtype = bool)
+    #tmpfield[:,110:357-161,160:357-111] = 0
+    #HHobj.data[tmpfield] = np.nan
+    
+    #cf, tmp = ax_contourf(axarr[0,0], HHobj,
+                          #cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
+                            #ji0=(50, 50),
+                            #ji1=(357-51, 357-51),
+                            #sp_title=HHobj.fieldn,
+                            #Basemap_drawrivers = False,
+                            #npars = 0, nmers = 0,
+                            #lev = 50,
+                            #extend = 'both')
+    #cb = fig.colorbar(cf)
+    #cb.set_label(HHobj.unit)
+    
+    for ax, fob, i, in zip(list(axarr[1,1:]), 
                            [PREC1obj,PREC2obj, PREC3obj], range(1,4)):
         
         # 2. NvarMN
@@ -2270,21 +2269,22 @@ if 'prec_stamps' in args.plot:
                               colors = cmPrec, pllevels = levelsPrec,
                               ji0=(110, 160),
                             ji1=(357-161, 357-111),
-                            sp_title=fob.fieldn + str(i),
+                            sp_title='Member ' + str(i),
                             Basemap_drawrivers = False,
                             npars = 0, nmers = 0)
-        cb = fig.colorbar(cf)
-        cb.set_label(fob.unit)
+        #cb = fig.colorbar(cf)
+        #cb.set_label(fob.unit)
     
     titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
                 ', water=' + str(args.water) + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    fig.suptitle('Precipitation stamps ' + str(dateobj+t), fontsize=12)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.93])
     
-    plotsavestr = ('stamps_prec_zoom_' + args.date[0] + '_ana-' + args.ana + 
+    plotsavestr = ('stamps_prec_' + args.date[0] + '_ana-' + args.ana + 
                 '_wat-' + str(args.water) +
                 '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+    print plotsavestr
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
     
@@ -2299,30 +2299,32 @@ if 'identification' in args.plot:
     # ATTENTION For now this just takes one level 
     
     y1 = 0; y2 = 70; x1 = 160; x2 = 230
-    exw = dataset.variables['exw'][args.tplot[0],0, x1:x2, y1:y2]
-    exq = dataset.variables['exq'][args.tplot[0],0, x1:x2, y1:y2]
-    excld = dataset.variables['excld'][args.tplot[0],0, x1:x2, y1:y2]
-    exwater = dataset.variables['exwater'][args.tplot[0],0, x1:x2, y1:y2]
+    exw = dataset.variables['exw'][args.tplot[0], x1:x2, y1:y2]
+    exq = dataset.variables['exq'][args.tplot[0], x1:x2, y1:y2]*1000.
+    excld = dataset.variables['excld'][args.tplot[0], x1:x2, y1:y2]
+    exwater = dataset.variables['exwater'][args.tplot[0], x1:x2, y1:y2]
     excld[excld == 0] = np.nan
     exwater[exwater == 0] = np.nan
     exbin = (exw > 1.) * (exq > 0.)
     
-    fig, axarr = plt.subplots(2, 3, figsize = (12, 7))
+    fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 4.5))
     
-    for ax, field, cm, name in zip(list(np.ravel(axarr)), 
+    for ax, field, cm, name, unit in zip(list(np.ravel(axarr)), 
                         [exw, exq, exbin, excld, exwater],
                         ['bwr', 'Blues', 'Oranges', 'prism', 'prism'],
-                        ['w', 'q*', 'binary', 'before separation', 'after separation']):
+                        ['w', 'qc+qs+qi', 'binary', 'before separation', 'after separation'],
+                        ['m/s', 'g/kg', '', '', '']):
         C = ax.imshow(field, interpolation = 'nearest', origin = 'lower',
                   cmap = cm)
         cb = fig.colorbar(C, ax = ax)
-        ax.set_title(name)
+        cb.set_label(unit)
+        ax.set_title(name, fontsize = 10)
     axarr[1,2].axis('off')
     t = timedelta(hours = args.tplot[0] + args.tstart)
     titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
                 ', water=' + str(args.water) + 
                 ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
+    fig.suptitle('Example for cloud identification and separation', fontsize=12)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('identification_' + args.date[0] + '_ana-' + args.ana + 

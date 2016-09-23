@@ -71,6 +71,9 @@ sufx = '.nc_30m'
 fieldn = 'W'
 thresh = 1.
 
+rmax_rdf = 36
+dr_rdf = 2
+
 # Determine analysis domain
 sxo, syo = HH.data.shape[1:]  # Original field shape
 lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
@@ -102,7 +105,7 @@ ndim = rootgrp.createDimension('n', len(nlist))
 xdim = rootgrp.createDimension('x', nlist[0])
 ydim = rootgrp.createDimension('y', nlist[0])
 nclddim = rootgrp.createDimension('N_cld', 1e6)
-drdim = rootgrp.createDimension('dr', 30/2+1) # For RDF
+drdim = rootgrp.createDimension('dr', rmax_rdf/dr_rdf+1) # For RDF
 drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
 binsdim = rootgrp.createDimension('bins', len(histbinedges)-1)
 specdim = rootgrp.createDimension('spec', 128)
@@ -218,7 +221,6 @@ for it, t in enumerate(timelist):
         
         # Crop all fields to analysis domain
         for i in range(args.nens):
-            print fieldlist[i].shape
             fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
             
         qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
@@ -331,8 +333,8 @@ for it, t in enumerate(timelist):
             tmpfield[~radarmask] == 0.
             tmp = identify_clouds(tmpfield, 1., water = args.water)
             labels, cld_size_mem, cld_sum_mem = tmp
-            g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
-                            dr = 2)
+            g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = rmax_rdf, 
+                            dr = dr_rdf)
             rdf_prec_modellist.append(g)
         rdf_prec_model[it, :] = np.mean(rdf_prec_modellist, axis = 0)
         
@@ -341,9 +343,10 @@ for it, t in enumerate(timelist):
         tmpfield[~radarmask] == 0.
         tmp = identify_clouds(tmpfield, 1., water = args.water)
         labels, cld_size_mem, cld_sum_mem = tmp
-        g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = 30, 
-                        dr = 2)
+        g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = rmax_rdf, 
+                        dr = dr_rdf)
         rdf_prec_obs[it, :] = g
+        dr[:] = r   # km
         # rdf is DONE!!!
         
     if args.ana == 'spectra':
@@ -404,41 +407,45 @@ for it, t in enumerate(timelist):
         for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
                                   range(len(fieldlist))):
             # Identify clouds
-            if args.ana == 'm':
-                if imem == 0:
-                    exw[it,iz,:,:] = field[iz]
-                    exq[it,iz,:,:] = qc[iz]
-                    tmp = identify_clouds(field[iz], thresh, qc[iz],
-                                      opt_thresh = 0., water = False,
-                                      rho = rho[iz])
-                    excld[it,iz,:,:] = tmp[0]
-                tmp = identify_clouds(field[iz], thresh, qc[iz],
-                                      opt_thresh = 0., water = args.water,
-                                      rho = rho[iz])
-                labels, cld_size_mem, cld_sum_mem = tmp
-                if imem == 0:
-                    exwater[it,iz,:,:] = labels
-                cld_sum_mem *= dx*dx  # Rho is now already included
-            else:
-                tmp = identify_clouds(field[iz], thresh, water = args.water)
-                labels, cld_size_mem, cld_sum_mem = tmp
+            
+            if imem == 0:
+                exw[it,:,:] = field
+                exq[it,:,:] = qc
+                tmp = identify_clouds(field, thresh, qc,
+                                    opt_thresh = 0., water = False,
+                                    rho = rho)
+                excld[it,:,:] = tmp[0]
+                
+            tmp = identify_clouds(field, thresh, qc,
+                                    opt_thresh = 0., water = args.water,
+                                    rho = rho)
+            labels, cld_size_mem, cld_sum_mem = tmp
+            if imem == 0:
+                exwater[it,:,:] = labels
+            cld_sum_mem *= dx*dx  # Rho is now already included
             sizelist.append(cld_size_mem)
             sumlist.append(cld_sum_mem)
             
             labelslist.append(labels)
             # Calculate centers of mass
             num = np.unique(labels).shape[0]   # Number of clouds
-            com = np.array(center_of_mass(field[iz], labels, range(1,num)))
+            com = np.array(center_of_mass(field, labels, range(1,num)))
             if com.shape[0] == 0:   # Accout for empty arrays
                 com = np.empty((0,2))
             comlist.append(com)
             
             # Calculate RDF
-            g, r = calc_rdf(labels, field[iz], normalize = True, rmax = 30, 
-                            dr = 2)
+            g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
+                            dr = dr_rdf)
             rdflist.append(g)
-            dr[:] = r * 2.8   # km
-    
+            dr[:] = r   # km
+            
+        # Save lists and mean rdf
+        ntmp = len([i for sl in sumlist for i in sl])
+        print ntmp
+        cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
+        cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
+        rdf[it, :] = np.mean(rdflist, axis = 0)
     
     # End do analysis
     ############################################################################
@@ -504,11 +511,8 @@ for it, t in enumerate(timelist):
             
             
         
-        # Save lists and mean rdf
-        ntmp = len([i for sl in sumlist for i in sl])
-        cld_size[it, iz, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
-        cld_sum[it, iz, :ntmp] = [i for sl in sumlist for i in sl]
-        rdf[it, iz, :] = np.mean(rdflist, axis = 0)
+        
+        
         # End calculate cloud statistics
         ########################################################################
         
