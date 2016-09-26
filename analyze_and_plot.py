@@ -562,327 +562,547 @@ if 'scatter' in args.plot:
              "#ff00ff")
     
     
-    # Load the data: I want to plot mu_2, N, alpha
-    # These list have 3 dims [lev, n, N_box]
-    mu2_list = create2Dlist(len(args.height), len(nlist))
-    N_list = create2Dlist(len(args.height), len(nlist))
-    alpha_list = create2Dlist(len(args.height), len(nlist))
-    beta_list = create2Dlist(len(args.height), len(nlist))
-
+    # Load the data 
+    # These lists have 4 dimensions [time, lev, n, N_box]
+    varM_list = create2Dlist(len(nlist), len(timelist))
+    meanM_list = create2Dlist(len(nlist), len(timelist))
+    varN_list = create2Dlist(len(nlist), len(timelist))
+    meanN_list = create2Dlist(len(nlist), len(timelist))
+    varm_list = create2Dlist(len(nlist), len(timelist))
+    meanm_list = create2Dlist(len(nlist), len(timelist))
     
-    # Loop over dates 
+    # loop over dates 
     for d in args.date:
         # Load dataset 
         print 'Loading date: ', d
         dataset = Dataset(savedir + d + savesuf, 'r')
         
         # Load the required data and put it in list
-        for iz, lev in enumerate(dataset.variables['levs']):
+        for it, time in enumerate(timelist):
             for i_n, n in enumerate(dataset.variables['n']):
                 nmax = 265/n
-                meanM = dataset.variables['meanM'][:,iz,i_n,:nmax,:nmax]
-                varM = dataset.variables['varM'][:,iz,i_n,:nmax,:nmax]
-                meanN = dataset.variables['meanN'][:,iz,i_n,:nmax,:nmax]
-                varN = dataset.variables['varN'][:,iz,i_n,:nmax,:nmax]
-                meanm = dataset.variables['meanm'][:,iz,i_n,:nmax,:nmax]
-                varm = dataset.variables['varm'][:,iz,i_n,:nmax,:nmax]
                 
-                mu2 = np.ravel(varM / (meanM**2))
-                alpha = np.ravel(varN / meanN)
-                beta = np.ravel(varm / (meanm**2))
-                mu2_list[iz][i_n] += list(mu2)
-                N_list[iz][i_n] += list(np.ravel(meanN))
-                alpha_list[iz][i_n] += list(alpha)
-                beta_list[iz][i_n] += list(beta)
+                meanM = dataset.variables['meanM'][it,i_n,:nmax,:nmax]
+                varM = dataset.variables['varM'][it,i_n,:nmax,:nmax]
+                meanN = dataset.variables['meanN'][it,i_n,:nmax,:nmax]
+                varN = dataset.variables['varN'][it,i_n,:nmax,:nmax]
+                meanm = dataset.variables['meanm'][it,i_n,:nmax,:nmax]
+                varm = dataset.variables['varm'][it,i_n,:nmax,:nmax]
+                
+                meanM_list[i_n][it] += list(np.ravel(meanM))
+                varM_list[i_n][it] += list(np.ravel(varM))
+                meanN_list[i_n][it] += list(np.ravel(meanN))
+                varN_list[i_n][it] += list(np.ravel(varN))
+                meanm_list[i_n][it] += list(np.ravel(meanm))
+                varm_list[i_n][it] += list(np.ravel(varm))
 
                 
     # now I have the lists I want in the scatter plot 
+        
+    # Set up the figure 
+    fig, axarr = plt.subplots(5, 3, figsize = (pdfwidth, 12))
+
+    rmselist1 = []
+    rmselist2 = []
+    rmselist3 = []
+    rmselist4 = []
+    rmselist5 = []
+    ####### n loop #######################
+    for i_n, n in enumerate(dataset.variables['n']):
+        print 'n: ', n
+        z_n = 0.1 + (n/256.)*0.1   # for z_order
+        
+        # Extract the arrays
+        M = np.array(meanM_list[i_n])
+        m = np.array(meanm_list[i_n])
+        N = np.array(meanN_list[i_n])
+        varM = np.array(varM_list[i_n])
+        varm = np.array(varm_list[i_n])
+        varN = np.array(varN_list[i_n])
+        alpha = varN/N
+        beta = varm/(m**2)
+        # These now have dimensions [time, date]        
+        
+        # 1. Raw PC08 prediction
+        m_c = 5e7
+        predict = 2*m_c*M
+        
+        frac = varM/predict
+        frac_mean = np.nanmean(frac)
+        frac_std = np.nanstd(frac)
+        nrmse = np.sqrt(np.nanmean(((varM-predict)/varM)**2))
+        rmselist1.append(nrmse)
+        
+        axarr[0,0].scatter(M, frac, marker = 'o', c = clist[i_n], 
+                            s = 4, zorder = z_n, linewidth = 0, 
+                            alpha = 0.8)
+        axarr[0,0].scatter(np.nanmean(M), frac_mean, marker = 'o', 
+                           c = clist[i_n], 
+                           s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        label = r'm:{:.2f}, s:{:.2f}'.format(frac_mean, 
+                                                    frac_std))
+        axarr[0,0].errorbar(np.nanmean(M), frac_mean, marker = 'o', 
+                            mec = clist[i_n], 
+                        ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        yerr = frac_std, c = 'black')
+        
+        frac_time = np.nanmean(frac, axis = 1)
+        axarr[0,1].plot(timelist_plot, frac_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        
+        # 2. CC06 prediction
+        predict = 2*m*M
+        frac = varM/predict
+        frac_mean = np.nanmean(frac)
+        frac_std = np.nanstd(frac)
+        nrmse = np.sqrt(np.nanmean(((varM-predict)/varM)**2))
+        rmselist2.append(nrmse)
+        
+        axarr[1,0].scatter(M, frac, marker = 'o', c = clist[i_n], 
+                            s = 4, zorder = z_n, linewidth = 0, 
+                            alpha = 0.8)
+        axarr[1,0].scatter(np.nanmean(M), frac_mean, marker = 'o', 
+                           c = clist[i_n], 
+                           s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        label = r'm:{:.2f}, s:{:.2f}'.format(frac_mean, 
+                                                    frac_std))
+        axarr[1,0].errorbar(np.nanmean(M), frac_mean, marker = 'o', 
+                            mec = clist[i_n], 
+                        ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        yerr = frac_std, c = 'black')
+        
+        frac_time = np.nanmean(frac, axis = 1)
+        axarr[1,1].plot(timelist_plot, frac_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        var_time = np.nanmean(m, axis = 1)
+        axarr[1,2].plot(timelist_plot, var_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        
+        # 3. alpha adjusted
+        predict = (1+alpha)*m*M
+        frac = varM/predict
+        frac_mean = np.nanmean(frac)
+        frac_std = np.nanstd(frac)
+        nrmse = np.sqrt(np.nanmean(((varM-predict)/varM)**2))
+        rmselist3.append(nrmse)
+        
+        axarr[2,0].scatter(M, frac, marker = 'o', c = clist[i_n], 
+                            s = 4, zorder = z_n, linewidth = 0, 
+                            alpha = 0.8)
+        axarr[2,0].scatter(np.nanmean(M), frac_mean, marker = 'o', 
+                           c = clist[i_n], 
+                           s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        label = r'm:{:.2f}, s:{:.2f}'.format(frac_mean, 
+                                                    frac_std))
+        axarr[2,0].errorbar(np.nanmean(M), frac_mean, marker = 'o', 
+                            mec = clist[i_n], 
+                        ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        yerr = frac_std, c = 'black')
+        
+        frac_time = np.nanmean(frac, axis = 1)
+        axarr[2,1].plot(timelist_plot, frac_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        var_time = np.nanmean(alpha, axis = 1)
+        axarr[2,2].plot(timelist_plot, var_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        
+        # 4. beta adjusted
+        predict = (1+beta)*m*M
+        frac = varM/predict
+        frac_mean = np.nanmean(frac)
+        frac_std = np.nanstd(frac)
+        nrmse = np.sqrt(np.nanmean(((varM-predict)/varM)**2))
+        rmselist4.append(nrmse)
+        
+        axarr[3,0].scatter(M, frac, marker = 'o', c = clist[i_n], 
+                            s = 4, zorder = z_n, linewidth = 0, 
+                            alpha = 0.8)
+        axarr[3,0].scatter(np.nanmean(M), frac_mean, marker = 'o', 
+                           c = clist[i_n], 
+                           s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        label = r'm:{:.2f}, s:{:.2f}'.format(frac_mean, 
+                                                    frac_std))
+        axarr[3,0].errorbar(np.nanmean(M), frac_mean, marker = 'o', 
+                            mec = clist[i_n], 
+                        ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        yerr = frac_std, c = 'black')
+        
+        frac_time = np.nanmean(frac, axis = 1)
+        axarr[3,1].plot(timelist_plot, frac_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        var_time = np.nanmean(beta, axis = 1)
+        axarr[3,2].plot(timelist_plot, var_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        
+        # 5. all
+        predict = (alpha+beta)*m*M
+        frac = varM/predict
+        frac_mean = np.nanmean(frac)
+        frac_std = np.nanstd(frac)
+        nrmse = np.sqrt(np.nanmean(((varM-predict)/varM)**2))
+        rmselist5.append(nrmse)
+        
+        axarr[4,0].scatter(M, frac, marker = 'o', c = clist[i_n], 
+                            s = 4, zorder = z_n, linewidth = 0, 
+                            alpha = 0.8)
+        axarr[4,0].scatter(np.nanmean(M), frac_mean, marker = 'o', 
+                           c = clist[i_n], 
+                           s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        label = r'm:{:.2f}, s:{:.2f}'.format(frac_mean, 
+                                                    frac_std))
+        axarr[4,0].errorbar(np.nanmean(M), frac_mean, marker = 'o', 
+                            mec = clist[i_n], 
+                        ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        yerr = frac_std, c = 'black')
+        
+        frac_time = np.nanmean(frac, axis = 1)
+        axarr[4,1].plot(timelist_plot, frac_time, c = clist[i_n], 
+                        label = str(n*2.8)+'km', linewidth = 1.5)
+        #var_time = np.nanmean(m, axis = 1)
+        #axarr[1,2].plot(timelist_plot, var_time, c = clist[i_n], 
+                        #label = str(n*2.8)+'km', linewidth = 1.5)
+        
+        
+        
+        ## Scatterplots 1
+        #x = np.sqrt(2/N)
+        #y = np.sqrt(mu2)
+        #xmean = np.sqrt(2/np.nanmean(N))
+        
+        #yfrac = mu2 * N / 2
+        #yfrac_mean = np.nanmean(yfrac)
+        #yfrac_std = np.nanstd(yfrac)
+        #ymean = yfrac_mean * xmean
+        #print 'before', yfrac_mean, yfrac_std
+        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+        #print 'rmse before', yfrac_rmse
+        #rmselist1.append(yfrac_rmse)
+
+        #axarr[0,0].scatter(x, y, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #axarr[0,0].scatter(xmean, ymean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        #label = str(n*2.8)+'km')
+        
+        #axarr[0,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #axarr[0,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
+        #axarr[0,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
+                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        #yerr = yfrac_std, c = 'black')
+        
+        ## Scatterplots 2
+        ## Middle
+        #axarr[1,0].scatter(alpha, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #alpha_mean = np.nanmean(alpha)
+        #axarr[1,0].scatter(alpha_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
+        
+        ##x = np.sqrt((1+alpha)/N)
+        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
+        
+        #yfrac = mu2 * N / (1 + alpha)
+        #yfrac_mean = np.nanmean(yfrac)
+        #yfrac_std = np.nanstd(yfrac)
+        #ymean = yfrac_mean * xmean
+        #print 'after', yfrac_mean, yfrac_std
+        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+        #print 'rmse alpha', yfrac_rmse
+        #rmselist2.append(yfrac_rmse)
+        
+        #axarr[1,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #axarr[1,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
+        #axarr[1,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
+                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        #yerr = yfrac_std, c = 'black')
+        
+        ## Scatterplots 3
+        ## Bottom
+        #axarr[2,0].scatter(beta, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #beta_mean = np.nanmean(beta)
+        #axarr[2,0].scatter(beta_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
+        
+        ##x = np.sqrt((1+alpha)/N)
+        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
+        
+        #yfrac = mu2 * N / (1 + beta)
+        #yfrac_mean = np.nanmean(yfrac)
+        #yfrac_std = np.nanstd(yfrac)
+        #ymean = yfrac_mean * xmean
+        #print 'after', yfrac_mean, yfrac_std
+        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+        #print 'rmse beta', yfrac_rmse
+        #rmselist3.append(yfrac_rmse)
+        
+        #axarr[2,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #axarr[2,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
+        #axarr[2,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
+                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        #yerr = yfrac_std, c = 'black')
+        
+        
+        ## Scatterplots 4
+        ## Bottom
+        #axarr[3,0].scatter(alpha+beta, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #ab_mean = np.nanmean(alpha+beta)
+        #axarr[3,0].scatter(ab_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
+        
+        ##x = np.sqrt((1+alpha)/N)
+        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
+        
+        #yfrac = mu2 * N / (alpha + beta)
+        #yfrac_mean = np.nanmean(yfrac)
+        #yfrac_std = np.nanstd(yfrac)
+        #ymean = yfrac_mean * xmean
+        #print 'after', yfrac_mean, yfrac_std
+        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
+        #print 'rmse all', yfrac_rmse
+        #rmselist4.append(yfrac_rmse)
+        
+        #axarr[3,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
+                            #s = 4, zorder = z_n, linewidth = 0, 
+                            #alpha = 0.8)
+        #axarr[3,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
+                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
+                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
+        #axarr[3,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
+                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
+                        #yerr = yfrac_std, c = 'black')
+        
+        
     
+    # Complete the figure
+    axarr[0,0].legend(loc =3, ncol = 2, prop={'size':6})
+    tmp = np.array([0,10])
+    axarr[0,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[0,0].set_xlim(1e6,1e11)
+    axarr[0,0].set_ylim(-1, 2.5)
+    axarr[0,0].set_xscale('log')
+    axarr[0,0].set_xlabel(r'$M$')
+    axarr[0,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[0,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    
+    axarr[0,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[0,1].set_ylim(0, 2)
+    axarr[0,1].set_xlabel('time [h/UTC]')
+    axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,0].legend(loc =3, ncol = 2, prop={'size':6})
+    tmp = np.array([0,10])
+    axarr[1,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[1,0].set_xlim(1e6,1e11)
+    axarr[1,0].set_ylim(-1, 2.5)
+    axarr[1,0].set_xscale('log')
+    axarr[1,0].set_xlabel(r'$M$')
+    axarr[1,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[1,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    
+    axarr[1,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[1,1].set_ylim(0, 2)
+    axarr[1,1].set_xlabel('time [h/UTC]')
+    axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[2,0].legend(loc =3, ncol = 2, prop={'size':6})
+    tmp = np.array([0,10])
+    axarr[2,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[2,0].set_xlim(1e6,1e11)
+    axarr[2,0].set_ylim(-1, 2.5)
+    axarr[2,0].set_xscale('log')
+    axarr[2,0].set_xlabel(r'$M$')
+    axarr[2,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[2,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    
+    axarr[2,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[2,1].set_ylim(0, 2)
+    axarr[2,1].set_xlabel('time [h/UTC]')
+    axarr[2,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[3,0].legend(loc =3, ncol = 2, prop={'size':6})
+    tmp = np.array([0,10])
+    axarr[3,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[3,0].set_xlim(1e6,1e11)
+    axarr[3,0].set_ylim(-1, 2.5)
+    axarr[3,0].set_xscale('log')
+    axarr[3,0].set_xlabel(r'$M$')
+    axarr[3,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[3,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    
+    axarr[3,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[3,1].set_ylim(0, 2)
+    axarr[3,1].set_xlabel('time [h/UTC]')
+    axarr[3,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[4,0].legend(loc =3, ncol = 2, prop={'size':6})
+    tmp = np.array([0,10])
+    axarr[4,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    axarr[4,0].set_xlim(1e6,1e11)
+    axarr[4,0].set_ylim(-1, 2.5)
+    axarr[4,0].set_xscale('log')
+    axarr[4,0].set_xlabel(r'$M$')
+    axarr[4,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[4,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            zorder = 0.1)
+    
+    axarr[4,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[4,1].set_ylim(0, 2)
+    axarr[4,1].set_xlabel('time [h/UTC]')
+    axarr[4,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    #axarr[0,1].legend(loc =3, ncol = 2, prop={'size':6})
+    #axarr[0,1].set_xlim(0.05,5)
+    #axarr[0,1].set_ylim(-1, 2.5)
+    #axarr[0,1].set_xscale('log')
+    ##axarr[0,1].set_yscale('log')
+    #axarr[0,1].invert_xaxis()
+    #axarr[0,1].set_xlabel(r'$\sqrt{2/N}$')
+    #axarr[0,1].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
+    
+    ## Complete the figure, middle row
+    #axarr[1,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[1,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[1,0].set_xlim(0.05,5)
+    #axarr[1,0].set_ylim(0.02,10)
+    #axarr[1,0].set_xscale('log')
+    #axarr[1,0].set_yscale('log')
+    ##axarr[1,0].invert_xaxis()
+    #axarr[1,0].set_xlabel(r'$\alpha$')
+    #axarr[1,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
+    
+    #axarr[1,1].legend(loc =3, ncol = 2, prop={'size':6})
+    #axarr[1,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[1,1].set_xlim(0.05,5)
+    #axarr[1,1].set_ylim(-1, 2.5)
+    #axarr[1,1].set_xscale('log')
+    ##axarr[1,1].set_yscale('log')
+    #axarr[1,1].invert_xaxis()
+    #axarr[1,1].set_xlabel(r'$\sqrt{2/N}$')
+    #axarr[1,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\alpha)$')
+    
+    ## Complete the figure, bottom row
+    #axarr[2,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[2,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[2,0].set_xlim(0.05,5)
+    #axarr[2,0].set_ylim(0.02,10)
+    #axarr[2,0].set_xscale('log')
+    #axarr[2,0].set_yscale('log')
+    ##axarr[1,0].invert_xaxis()
+    #axarr[2,0].set_xlabel(r'$\beta$')
+    #axarr[2,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
+    
+    #axarr[2,1].legend(loc =3, ncol = 2, prop={'size':6})
+    #axarr[2,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[2,1].set_xlim(0.05,5)
+    #axarr[2,1].set_ylim(-1, 2.5)
+    #axarr[2,1].set_xscale('log')
+    ##axarr[2,1].set_yscale('log')
+    #axarr[2,1].invert_xaxis()
+    #axarr[2,1].set_xlabel(r'$\sqrt{2/N}$')
+    #axarr[2,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\beta)$')
+    
+    ## Complete the figure, bottom row
+    #axarr[3,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[3,0].plot([2,2],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[3,0].set_xlim(0.1,10)
+    #axarr[3,0].set_ylim(0.02,10)
+    #axarr[3,0].set_xscale('log')
+    #axarr[3,0].set_yscale('log')
+    ##axarr[1,0].invert_xaxis()
+    #axarr[3,0].set_xlabel(r'$\alpha + \beta$')
+    #axarr[3,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
+    
+    #axarr[3,1].legend(loc =3, ncol = 2, prop={'size':6})
+    #axarr[3,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
+            #zorder = 0.1)
+    #axarr[3,1].set_xlim(0.05,5)
+    #axarr[3,1].set_ylim(-1, 2.5)
+    #axarr[3,1].set_xscale('log')
+    ##axarr[2,1].set_yscale('log')
+    #axarr[3,1].invert_xaxis()
+    #axarr[3,1].set_xlabel(r'$\sqrt{2/N}$')
+    #axarr[3,1].set_ylabel(r'$\mu_2 \langle N \rangle/(\alpha +\beta)$')
+    
+    titlestr = (alldatestr + '\n' + args.ana + 
+                ', water=' + str(args.water) + ', lev= ' + str(int(args.height[0])) + 
+                ', nens=' + str(args.nens))
+    fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout(rect=[0, 0.0, 1, 0.93])
+    
+    plotsavestr = ('scatter_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
 
-    ######## Lev loop #####################
-    for iz, lev in enumerate(dataset.variables['levs']):
-        print 'lev: ', lev
-        
-        # Set up the figure 
-        fig, axarr = plt.subplots(4, 2, figsize = (95./25.4*2, 13))
+    plt.close('all')
+    
+    
+    ##3
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 4))
+    x = np.arange(5)
+    width = 0.1
+    
+    for i_n, n in enumerate(nlist):
+        plt.bar(1+i_n*width, rmselist1[i_n], width, color = clist[i_n])
+        diff2 = rmselist1[i_n] - rmselist2[i_n]
+        diff3 = rmselist1[i_n] - rmselist3[i_n]
+        diff4 = rmselist1[i_n] - rmselist4[i_n]
+        diff5 = rmselist1[i_n] - rmselist5[i_n]
+        plt.bar(2+i_n*width, -diff2, width, color = clist[i_n])
+        plt.bar(3+i_n*width, -diff3, width, color = clist[i_n])
+        plt.bar(4+i_n*width, -diff4, width, color = clist[i_n])
+        plt.bar(5+i_n*width, -diff5, width, color = clist[i_n])
+        plt.bar(6+i_n*width, rmselist5[i_n], width, color = clist[i_n])
+    #plt.scatter(np.log2(nlist)-0.15, rmselist1, c = clist)
+    #plt.scatter(np.log2(nlist)-0.05, rmselist2, c = clist)
+    #plt.scatter(np.log2(nlist)+0.05, rmselist3, c = clist)
+    #plt.scatter(np.log2(nlist)+0.15, rmselist4, c = clist)
+    plotsavestr = ('rmse_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
 
-        rmselist1 = []
-        rmselist2 = []
-        rmselist3 = []
-        rmselist4 = []
-        ####### n loop #######################
-        for i_n, n in enumerate(dataset.variables['n']):
-            print 'n: ', n
-            z_n = 0.1 + (n/256.)*0.1   # for z_order
-            
-            # Extract the arrays
-            N = np.array(N_list[iz][i_n])
-            mu2 = np.array(mu2_list[iz][i_n])
-            alpha = np.array(alpha_list[iz][i_n])
-            beta = np.array(beta_list[iz][i_n])
-
-            
-            
-            
-            # Scatterplots 1
-            x = np.sqrt(2/N)
-            y = np.sqrt(mu2)
-            xmean = np.sqrt(2/np.nanmean(N))
-            
-            yfrac = mu2 * N / 2
-            yfrac_mean = np.nanmean(yfrac)
-            yfrac_std = np.nanstd(yfrac)
-            ymean = yfrac_mean * xmean
-            print 'before', yfrac_mean, yfrac_std
-            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-            print 'rmse before', yfrac_rmse
-            rmselist1.append(yfrac_rmse)
-
-            axarr[0,0].scatter(x, y, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[0,0].scatter(xmean, ymean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                            label = str(n*2.8)+'km')
-            
-            axarr[0,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[0,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                            label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-            axarr[0,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                            ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                            yerr = yfrac_std, c = 'black')
-            
-            # Scatterplots 2
-            # Middle
-            axarr[1,0].scatter(alpha, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            alpha_mean = np.nanmean(alpha)
-            axarr[1,0].scatter(alpha_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-            
-            #x = np.sqrt((1+alpha)/N)
-            #xmean = np.sqrt(np.nanmean((1+alpha)/N))
-            
-            yfrac = mu2 * N / (1 + alpha)
-            yfrac_mean = np.nanmean(yfrac)
-            yfrac_std = np.nanstd(yfrac)
-            ymean = yfrac_mean * xmean
-            print 'after', yfrac_mean, yfrac_std
-            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-            print 'rmse alpha', yfrac_rmse
-            rmselist2.append(yfrac_rmse)
-            
-            axarr[1,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[1,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                            label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-            axarr[1,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                            ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                            yerr = yfrac_std, c = 'black')
-            
-            # Scatterplots 3
-            # Bottom
-            axarr[2,0].scatter(beta, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            beta_mean = np.nanmean(beta)
-            axarr[2,0].scatter(beta_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-            
-            #x = np.sqrt((1+alpha)/N)
-            #xmean = np.sqrt(np.nanmean((1+alpha)/N))
-            
-            yfrac = mu2 * N / (1 + beta)
-            yfrac_mean = np.nanmean(yfrac)
-            yfrac_std = np.nanstd(yfrac)
-            ymean = yfrac_mean * xmean
-            print 'after', yfrac_mean, yfrac_std
-            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-            print 'rmse beta', yfrac_rmse
-            rmselist3.append(yfrac_rmse)
-            
-            axarr[2,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[2,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                            label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-            axarr[2,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                            ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                            yerr = yfrac_std, c = 'black')
-            
-            
-            # Scatterplots 4
-            # Bottom
-            axarr[3,0].scatter(alpha+beta, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            ab_mean = np.nanmean(alpha+beta)
-            axarr[3,0].scatter(ab_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-            
-            #x = np.sqrt((1+alpha)/N)
-            #xmean = np.sqrt(np.nanmean((1+alpha)/N))
-            
-            yfrac = mu2 * N / (alpha + beta)
-            yfrac_mean = np.nanmean(yfrac)
-            yfrac_std = np.nanstd(yfrac)
-            ymean = yfrac_mean * xmean
-            print 'after', yfrac_mean, yfrac_std
-            yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-            print 'rmse all', yfrac_rmse
-            rmselist4.append(yfrac_rmse)
-            
-            axarr[3,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                                s = 4, zorder = z_n, linewidth = 0, 
-                                alpha = 0.8)
-            axarr[3,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                            s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                            label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-            axarr[3,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                            ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                            yerr = yfrac_std, c = 'black')
-            
-            
-        
-        # Complete the figure
-        axarr[0,0].legend(loc =3, ncol = 2, prop={'size':6})
-        tmp = np.array([0,10])
-        axarr[0,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[0,0].set_xlim(0.05,5)
-        axarr[0,0].set_ylim(0.02,10)
-        axarr[0,0].set_xscale('log')
-        axarr[0,0].set_yscale('log')
-        axarr[0,0].invert_xaxis()
-        axarr[0,0].set_xlabel(r'$\sqrt{2/N}$')
-        axarr[0,0].set_ylabel(r'$\sqrt{\mu_2}$')
-        
-        axarr[0,1].legend(loc =3, ncol = 2, prop={'size':6})
-        axarr[0,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[0,1].set_xlim(0.05,5)
-        axarr[0,1].set_ylim(-1, 2.5)
-        axarr[0,1].set_xscale('log')
-        #axarr[0,1].set_yscale('log')
-        axarr[0,1].invert_xaxis()
-        axarr[0,1].set_xlabel(r'$\sqrt{2/N}$')
-        axarr[0,1].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-        
-        # Complete the figure, middle row
-        axarr[1,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[1,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[1,0].set_xlim(0.05,5)
-        axarr[1,0].set_ylim(0.02,10)
-        axarr[1,0].set_xscale('log')
-        axarr[1,0].set_yscale('log')
-        #axarr[1,0].invert_xaxis()
-        axarr[1,0].set_xlabel(r'$\alpha$')
-        axarr[1,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-        
-        axarr[1,1].legend(loc =3, ncol = 2, prop={'size':6})
-        axarr[1,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[1,1].set_xlim(0.05,5)
-        axarr[1,1].set_ylim(-1, 2.5)
-        axarr[1,1].set_xscale('log')
-        #axarr[1,1].set_yscale('log')
-        axarr[1,1].invert_xaxis()
-        axarr[1,1].set_xlabel(r'$\sqrt{2/N}$')
-        axarr[1,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\alpha)$')
-        
-        # Complete the figure, bottom row
-        axarr[2,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[2,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[2,0].set_xlim(0.05,5)
-        axarr[2,0].set_ylim(0.02,10)
-        axarr[2,0].set_xscale('log')
-        axarr[2,0].set_yscale('log')
-        #axarr[1,0].invert_xaxis()
-        axarr[2,0].set_xlabel(r'$\beta$')
-        axarr[2,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-        
-        axarr[2,1].legend(loc =3, ncol = 2, prop={'size':6})
-        axarr[2,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[2,1].set_xlim(0.05,5)
-        axarr[2,1].set_ylim(-1, 2.5)
-        axarr[2,1].set_xscale('log')
-        #axarr[2,1].set_yscale('log')
-        axarr[2,1].invert_xaxis()
-        axarr[2,1].set_xlabel(r'$\sqrt{2/N}$')
-        axarr[2,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\beta)$')
-        
-        # Complete the figure, bottom row
-        axarr[3,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[3,0].plot([2,2],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[3,0].set_xlim(0.1,10)
-        axarr[3,0].set_ylim(0.02,10)
-        axarr[3,0].set_xscale('log')
-        axarr[3,0].set_yscale('log')
-        #axarr[1,0].invert_xaxis()
-        axarr[3,0].set_xlabel(r'$\alpha + \beta$')
-        axarr[3,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-        
-        axarr[3,1].legend(loc =3, ncol = 2, prop={'size':6})
-        axarr[3,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-                zorder = 0.1)
-        axarr[3,1].set_xlim(0.05,5)
-        axarr[3,1].set_ylim(-1, 2.5)
-        axarr[3,1].set_xscale('log')
-        #axarr[2,1].set_yscale('log')
-        axarr[3,1].invert_xaxis()
-        axarr[3,1].set_xlabel(r'$\sqrt{2/N}$')
-        axarr[3,1].set_ylabel(r'$\mu_2 \langle N \rangle/(\alpha +\beta)$')
-        
-        titlestr = (alldatestr + '\n' + args.ana + 
-                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                    ', nens=' + str(args.nens))
-        fig.suptitle(titlestr, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.0, 1, 0.93])
-        
-        plotsavestr = ('scatter_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-
-        plt.close('all')
-        
-        fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1, 4))
-        x = np.arange(4)
-        width = 0.1
-        
-        for i_n, n in enumerate(nlist):
-            plt.bar(1+i_n*width, rmselist1[i_n], width, color = clist[i_n])
-            diff2 = rmselist1[i_n] - rmselist2[i_n]
-            diff3 = rmselist1[i_n] - rmselist3[i_n]
-            diff4 = rmselist1[i_n] - rmselist4[i_n]
-            plt.bar(2+i_n*width, -diff2, width, color = clist[i_n])
-            plt.bar(3+i_n*width, -diff3, width, color = clist[i_n])
-            plt.bar(4+i_n*width, -diff4, width, color = clist[i_n])
-            plt.bar(5+i_n*width, rmselist4[i_n], width, color = clist[i_n])
-        #plt.scatter(np.log2(nlist)-0.15, rmselist1, c = clist)
-        #plt.scatter(np.log2(nlist)-0.05, rmselist2, c = clist)
-        #plt.scatter(np.log2(nlist)+0.05, rmselist3, c = clist)
-        #plt.scatter(np.log2(nlist)+0.15, rmselist4, c = clist)
-        plotsavestr = ('rmse_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-
-        plt.close('all')
+    plt.close('all')
         
 
 
