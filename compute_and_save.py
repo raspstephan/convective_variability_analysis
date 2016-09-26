@@ -30,6 +30,7 @@ parser.add_argument('--nens', metavar = 'nens', type=int, default = 20)
 parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
 parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
+parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 args = parser.parse_args()
 
 
@@ -162,8 +163,8 @@ if args.ana == 'coarse':
     meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
     varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','n','x','y'))
     meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
-    varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
-    meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
+    #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
+    #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
 
 
 # currently not used
@@ -253,12 +254,12 @@ for it, t in enumerate(timelist):
         Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
                                   dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
                                   nfill=1, return_arrays = True)
-        Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                  dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
-                                  nfill=1, return_arrays = True)
+        #Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                  #dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
+                                  #nfill=1, return_arrays = True)
         for i in range(args.nens):
             Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
-            Qtotlist[i] = np.mean(Qtotlist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+            #Qtotlist[i] = np.mean(Qtotlist[i][:, lx1:lx2, ly1:ly2], axis = 0)
 
     if args.ana in ['weather', 'prec', 'spectra']:
         # Load precipitation data
@@ -396,8 +397,7 @@ for it, t in enumerate(timelist):
         speclam[:] = s
         
         
-    if args.ana == 'clouds':
-        # Pick up herer tmr!
+    if args.ana in ['clouds', 'coarse']:
         # Member loop
         sizelist = []
         sumlist = []
@@ -408,7 +408,7 @@ for it, t in enumerate(timelist):
                                   range(len(fieldlist))):
             # Identify clouds
             
-            if imem == 0:
+            if imem == 0 and args.ana == 'clouds':
                 exw[it,:,:] = field
                 exq[it,:,:] = qc
                 tmp = identify_clouds(field, thresh, qc,
@@ -420,7 +420,7 @@ for it, t in enumerate(timelist):
                                     opt_thresh = 0., water = args.water,
                                     rho = rho)
             labels, cld_size_mem, cld_sum_mem = tmp
-            if imem == 0:
+            if imem == 0 and args.ana == 'clouds':
                 exwater[it,:,:] = labels
             cld_sum_mem *= dx*dx  # Rho is now already included
             sizelist.append(cld_size_mem)
@@ -434,216 +434,116 @@ for it, t in enumerate(timelist):
                 com = np.empty((0,2))
             comlist.append(com)
             
-            # Calculate RDF
-            g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
-                            dr = dr_rdf)
-            rdflist.append(g)
-            dr[:] = r   # km
+            if args.ana == 'clouds':
+                # Calculate RDF
+                g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
+                                dr = dr_rdf)
+                rdflist.append(g)
+                dr[:] = r   # km
+        
+        if args.ana == 'clouds':
+            # Save lists and mean rdf
+            ntmp = len([i for sl in sumlist for i in sl])
+            print ntmp
+            cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
+            cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
+            rdf[it, :] = np.mean(rdflist, axis = 0)
+    
+        if args.ana == 'coarse':
+            ########################################################################
+            # Calculate cloud statistics
             
-        # Save lists and mean rdf
-        ntmp = len([i for sl in sumlist for i in sl])
-        print ntmp
-        cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
-        cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
-        rdf[it, :] = np.mean(rdflist, axis = 0)
+            ################
+            ## n loop      #
+            ################
+            for i_n, n in enumerate(nlist):
+                print 'n: ', n
+                ####################################################################
+                # Calculate coarse variances and means
+                # Determine size of coarse arrays
+                nx = int(np.floor(256/n))
+                ny = int(np.floor(256/n))
+
+                # Loop over coarse grid boxes
+                for ico  in range(nx):
+                    for jco in range(ny):
+                        # Get limits for each N box
+                        xmin = ico*n
+                        xmax = (ico+1)*n
+                        ymin = jco*n
+                        ymax = (jco+1)*n
+                        
+                        # These are the ensemble lists for each box
+                        tmp_cldlist = []
+                        tmp_Mlist = []
+                        tmp_Nlist = []
+                        tmp_Qmplist = []
+                        # Loop over members
+                        for field, labels, com, cld_sum_mem, imem, Qmpfield in \
+                                                    zip(fieldlist, 
+                                                        labelslist,
+                                                        comlist, 
+                                                        sumlist,
+                                                        range(args.nens),
+                                                        Qmplist):
+                                                        
+                            # Get the collapsed clouds for each box
+                            bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
+                                        (com[:,1]>=ymin)&(com[:,1]<ymax))
+                            
+                            # This is the array with all clouds for this box and member
+                            box_cld_sum = cld_sum_mem[bool_arr]
+                            
+                            # This lists then contains all clouds for all members in a box
+                            tmp_cldlist += list(box_cld_sum)
+                            
+                            # If the array is empty set M to zero
+                            if len(box_cld_sum) > 0:
+                                tmp_Mlist.append(np.sum(box_cld_sum))
+                            else:
+                                tmp_Mlist.append(0.)
+                            
+                            # This is the number of clouds
+                            tmp_Nlist.append(box_cld_sum.shape[0])
+                            
+                            # This is the MEAN heating rate
+                            tmp_Qmplist.append(np.mean(Qmpfield[ico*n:(ico+1)*n, 
+                                                        jco*n:(jco+1)*n]))
+                            # End member loop #############
+                        
+                        # Now convert the list with all clouds for this box
+                        tmp_cldlist = np.array(tmp_cldlist)
+                        
+                        # Calculate statistics and save them in ncdf file
+                        # Check if x number of members have clouds in them
+                        
+                        if np.sum(np.array(tmp_Nlist)>0) >= args.minmem:
+                            varM[it,i_n,ico,jco] = np.var(tmp_Mlist, ddof = 1)
+                            varN[it,i_n,ico,jco] = np.var(tmp_Nlist, ddof = 1)
+                            varm[it,i_n,ico,jco] = np.var(tmp_cldlist, ddof = 1)
+                            meanM[it,i_n,ico,jco] = np.mean(tmp_Mlist)
+                            meanm[it,i_n,ico,jco] = np.mean(tmp_cldlist)
+                            meanN[it,i_n,ico,jco] = np.mean(tmp_Nlist)
+                        else:
+                            varM[it,i_n,ico,jco] = np.nan
+                            varN[it,i_n,ico,jco] = np.nan
+                            varm[it,i_n,ico,jco] = np.nan
+                            meanM[it,i_n,ico,jco] = np.nan
+                            meanm[it,i_n,ico,jco] = np.nan
+                            meanN[it,i_n,ico,jco] = np.nan
+                        # This means NaNs only appear when minmem criterion is not met    
+                        
+                        varQmp[it,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
+                        meanQmp[it,i_n,ico,jco] = np.mean(tmp_Qmplist)
+
+            
+            # End coarse upscaled variances and means
+            ####################################################################
+    
     
     # End do analysis
     ############################################################################
 
-    
-    
-    
-    
-    
-"""
-    
-    ####################
-    ## lev loop        #
-    ####################
-    for iz, lev in enumerate(levlist):
-        print 'lev: ', lev
-        ########################################################################
-        # Calculate cloud statistics
-        
-        # Member loop
-        sizelist = []
-        sumlist = []
-        rdflist = []
-        labelslist = []   # Save for use later
-        comlist = []      # Save for use later
-        for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
-                                  range(len(fieldlist))):
-            # Identify clouds
-            if args.ana == 'm':
-                if imem == 0:
-                    exw[it,iz,:,:] = field[iz]
-                    exq[it,iz,:,:] = qc[iz]
-                    tmp = identify_clouds(field[iz], thresh, qc[iz],
-                                      opt_thresh = 0., water = False,
-                                      rho = rho[iz])
-                    excld[it,iz,:,:] = tmp[0]
-                tmp = identify_clouds(field[iz], thresh, qc[iz],
-                                      opt_thresh = 0., water = args.water,
-                                      rho = rho[iz])
-                labels, cld_size_mem, cld_sum_mem = tmp
-                if imem == 0:
-                    exwater[it,iz,:,:] = labels
-                cld_sum_mem *= dx*dx  # Rho is now already included
-            else:
-                tmp = identify_clouds(field[iz], thresh, water = args.water)
-                labels, cld_size_mem, cld_sum_mem = tmp
-            sizelist.append(cld_size_mem)
-            sumlist.append(cld_sum_mem)
-            
-            labelslist.append(labels)
-            # Calculate centers of mass
-            num = np.unique(labels).shape[0]   # Number of clouds
-            com = np.array(center_of_mass(field[iz], labels, range(1,num)))
-            if com.shape[0] == 0:   # Accout for empty arrays
-                com = np.empty((0,2))
-            comlist.append(com)
-            
-            # Calculate RDF
-            g, r = calc_rdf(labels, field[iz], normalize = True, rmax = 30, 
-                            dr = 2)
-            rdflist.append(g)
-            dr[:] = r * 2.8   # km
-            
-            
-        
-        
-        
-        # End calculate cloud statistics
-        ########################################################################
-        
-        ################
-        ## n loop      #
-        ################
-        for i_n, n in enumerate(nlist):
-            print 'n: ', n
-            
-            ####################################################################
-            # Calculate coarse variances and means
-            # Determine size of coarse arrays
-            nx = int(np.floor(256/n))
-            ny = int(np.floor(256/n))
-            
-            # Member loop
-            varmlist = []
-            mlist = []
-            Mlist = []
-            Nlist = []
-            
-            # NOTE I need all m's for every coarse box, then I can calculate M, m and var(m) and N
-            
-            # Loop over coarse grid boxes
-            # Allocate coarse arrays
-            nmem = len(fieldlist)
-            Mmem_coarse = np.empty((nmem, nx, ny))# These are for the ACF correlation without the nan filter
-            for ico  in range(nx):
-                for jco in range(ny):
-                    # Get limits for each N box
-                    xmin = ico*n
-                    xmax = (ico+1)*n
-                    ymin = jco*n
-                    ymax = (jco+1)*n
-                    
-                    tmp_cldlist = []
-                    tmp_Mlist = []
-                    tmp_Nlist = []
-                    tmp_Qmplist = []
-                    tmp_Qtotlist = []
-                    tmp_hpbllist = []
-                    # Loop over members
-                    for field, labels, com, cld_sum_mem, imem, Qmpfield, Qtotfield, hpblfield in zip(fieldlist, 
-                                                               labelslist,
-                                                               comlist, 
-                                                               sumlist,
-                                                               range(nmem),
-                                                               Qmplist,
-                                                               Qtotlist,
-                                                               hpbllist):
-                        # Get the collapsed clouds for each box
-                        bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
-                                    (com[:,1]>=ymin)&(com[:,1]<ymax))
-                        # This lists then contains all clouds for all members in a box
-                        box_cld_sum = cld_sum_mem[bool_arr]
-                        tmp_cldlist += list(box_cld_sum)
-                        if len(box_cld_sum) > 0:
-                            tmp_Mlist.append(np.sum(box_cld_sum))
-                            Mmem_coarse[imem, ico, jco] = np.sum(box_cld_sum)
-                        else:
-                            tmp_Mlist.append(0.)
-                            Mmem_coarse[imem, ico, jco] = 0.
-                        tmp_Nlist.append(box_cld_sum.shape[0])
-                        tmp_Qmplist.append(np.mean(Qmpfield[ico*n:(ico+1)*n, 
-                                                       jco*n:(jco+1)*n]))
-                        tmp_Qtotlist.append(np.mean(Qtotfield[ico*n:(ico+1)*n, 
-                                                       jco*n:(jco+1)*n]))
-                        tmp_hpbllist.append(np.mean(hpblfield[ico*n:(ico+1)*n, 
-                                                       jco*n:(jco+1)*n]))
-                        # End member loop
-                    
-                    tmp_cldlist = np.array(tmp_cldlist)
-                    # Calculate statistics and save them in ncdf file
-                    # Check if x number of members have clouds in them
-                    min_mem = 5
-                    if np.sum(np.array(tmp_Nlist)>0) >= min_mem:
-                        varM[it,iz,i_n,ico,jco] = np.var(tmp_Mlist, ddof = 1)
-                        varN[it,iz,i_n,ico,jco] = np.var(tmp_Nlist, ddof = 1)
-                        varm[it,iz,i_n,ico,jco] = np.var(tmp_cldlist, ddof = 1)
-                        meanM[it,iz,i_n,ico,jco] = np.mean(tmp_Mlist)
-                        meanm[it,iz,i_n,ico,jco] = np.mean(tmp_cldlist)
-                        meanN[it,iz,i_n,ico,jco] = np.mean(tmp_Nlist)
-                    else:
-                        varM[it,iz,i_n,ico,jco] = np.nan
-                        varN[it,iz,i_n,ico,jco] = np.nan
-                        varm[it,iz,i_n,ico,jco] = np.nan
-                        meanM[it,iz,i_n,ico,jco] = np.nan
-                        meanm[it,iz,i_n,ico,jco] = np.nan
-                        meanN[it,iz,i_n,ico,jco] = np.nan
-                    varQmp[it,iz,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
-                    meanQmp[it,iz,i_n,ico,jco] = np.mean(tmp_Qmplist)
-                    varQtot[it,iz,i_n,ico,jco] = np.var(tmp_Qtotlist, ddof = 1)
-                    meanQtot[it,iz,i_n,ico,jco] = np.mean(tmp_Qtotlist)
-                    hpbl[it,iz,i_n,ico,jco] = np.mean(tmp_hpbllist)
-            
-            Mmem1[it,iz,i_n,:nx,:ny] = Mmem_coarse[0]
-            if n == 4:
-                Mmem_mean = np.mean(Mmem_coarse, axis = 0)[:nx,:ny]
-                Mmem_south = np.mean(Mmem_coarse, axis = 0)[:nx/2,:ny]
-                Mtot[it,iz] = np.sum(Mmem_mean)
-                Msouth[it,iz] = np.sum(Mmem_south)
-                Mnorth[it,iz] = np.sum(Mmem_mean) - np.sum(Mmem_south)
-                
-            
-            ## Calculate 2dACF 
-            #if n < nlist[1]:
-                #tmp_acflist = []
-                #for imem in range(nmem):
-                    #Mdiff = ((Mmem_coarse[imem] - np.mean(Mmem_coarse, axis = 0))/
-                            #1)
-                            ##np.mean(Mmem_coarse, axis = 0))
-                    #Mdiff[np.isnan(Mdiff)] = 0.
-                    #C = crosscor(Mdiff, Mdiff, minusmean = False)
-                    #tmp_acflist.append(C)
-                ##print Mdiff
-                #Cmean =  np.nanmean(tmp_acflist, axis = 0)
-                #tmp_acf2d = radial_profile(Cmean, (nx/2,ny/2))
-                #print Mdiff[nx/2-2:nx/2+2,nx/2-2:nx/2+2]
-                #print Cmean[nx/2-2:nx/2+2,nx/2-2:nx/2+2]
-                #print tmp_acf2d
-                #acf2d[it,iz,i_n,:tmp_acf2d.shape[0]] = tmp_acf2d
-            #else:
-                #acf2d[it,iz,i_n,0] = np.nan
-            
-                    
-  
-                
-            
-            # End coarse upscaled variances and means
-            ####################################################################
-"""
 if args.ana == 'prec':
     tothist_model = np.mean(tothist_model, axis = 0)
     hist_model[:] = tothist_model
