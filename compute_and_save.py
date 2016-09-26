@@ -82,11 +82,14 @@ lx2 = -(lx1+1) # Number of grid pts to exclude at border
 ly1 = (syo-256-1)/2
 ly2 = -(ly1+1)
 
-#HHcropped = HH.data[-1,lx1:lx2, ly1:ly2]
-#HH50tot = np.mean(HHcropped[:,:])
-#HH50south = np.mean(HHcropped[:256/2, :])
-#HH50north = np.mean(HHcropped[256/2:, :])
-#print 'tot', HH50tot, 'south', HH50south, 'north', HH50north
+if args.ana == 'vert':
+    levlist = range(10, 50, 2)
+
+    HHcropped = HH.data[-1,lx1:lx2, ly1:ly2]
+    HH50tot = np.mean(HHcropped[:,:])
+    HH50south = np.mean(HHcropped[:256/2, :])
+    HH50north = np.mean(HHcropped[256/2:, :])
+    print 'tot', HH50tot, 'south', HH50south, 'north', HH50north
 
 #elif args.ana == 'hypo':
     #levlist = [0]
@@ -165,14 +168,18 @@ if args.ana == 'coarse':
     meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
     #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
     #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
+    
+if args.ana == 'vert':
+    levdim = rootgrp.createDimension('levs', len(levlist))
+    levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
+    levs[:]  = levlist
+    Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time', 'levs'))
+    Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time', 'levs'))
+    Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time', 'levs'))
+
 
 
 # currently not used
-#levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
-#levs[:]  = levlist
-#Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time'))
-#Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time'))
-#Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time'))
 #hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
 #enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
 #acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
@@ -248,6 +255,41 @@ for it, t in enumerate(timelist):
         
         for i in range(args.nens):
             rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
+            
+    if args.ana == 'vert':
+        # Load fields required for mass flux analysis
+        fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = fieldn, 
+                                    nfill=1, levs = levlist, return_arrays=True)
+        
+        # Crop all fields to analysis domain
+        for i in range(args.nens):
+            fieldlist[i] = fieldlist[i][:,lx1:lx2, ly1:ly2]
+            
+        qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'QC', 
+                                  nfill=1, levs = levlist, return_arrays = True)
+        # Add QI and QS
+        qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'QI', 
+                                  nfill=1, levs = levlist, return_arrays = True)
+        qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                  dir_suffix='/OUTPUT/', fieldn = 'QS', 
+                                  nfill=1, levs = levlist, return_arrays = True)
+        for i in range(args.nens):
+            qclist[i] = (qclist[i][:,lx1:lx2, ly1:ly2] + 
+                         qilist[i][:,lx1:lx2, ly1:ly2] + 
+                         qslist[i][:,lx1:lx2, ly1:ly2])
+
+        del qilist
+        del qslist
+        ncdffn_buoy = ncdffn + '_buoy'
+        rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                   dir_suffix='/OUTPUT/', fieldn = 'RHO', 
+                                   nfill=1, levs=levlist, return_arrays=True)
+        
+        for i in range(args.nens):
+            rholist[i] = rholist[i][:,lx1:lx2, ly1:ly2]
             
     if args.ana == 'coarse':
         # Get vertically integrated Q    
@@ -540,7 +582,37 @@ for it, t in enumerate(timelist):
             # End coarse upscaled variances and means
             ####################################################################
     
-    
+    if args.ana == 'vert':
+        for iz, lev in enumerate(levlist):
+            print 'lev', lev
+            # Member loop
+            sumlist = []
+            sumlist_N = []
+            sumlist_S = []
+            for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
+                                    range(len(fieldlist))):
+                # Identify clouds
+                tmp = identify_clouds(field[iz], thresh, qc[iz],
+                                        opt_thresh = 0., water = args.water,
+                                        rho = rho[iz])
+                labels, cld_size_mem, cld_sum_mem = tmp
+                cld_sum_mem *= dx*dx  # Rho is now already included
+                
+                # Calculate centers of mass
+                num = np.unique(labels).shape[0]   # Number of clouds
+                com = np.array(center_of_mass(field, labels, range(1,num)))
+                if com.shape[0] == 0:   # Accout for empty arrays
+                    com = np.empty((0,2))
+                
+                sumlist += list(cld_sum_mem)
+                
+                bool_N = com[:,0]>=256/2
+                sumlist_N += list(cld_sum_mem[bool_N])
+                sumlist_S += list(cld_sum_mem[~bool_N])
+            Mtot[it,iz] = np.sum(sumlist) / args.nens
+            Mnorth[it,iz] = np.sum(sumlist_N) / args.nens
+            Msouth[it,iz] = np.sum(sumlist_S) / args.nens
+        
     # End do analysis
     ############################################################################
 
