@@ -616,6 +616,7 @@ for it, t in enumerate(timelist):
     # End do analysis
     ############################################################################
 
+# Get statistics over time
 if args.ana == 'prec':
     tothist_model = np.mean(tothist_model, axis = 0)
     hist_model[:] = tothist_model
