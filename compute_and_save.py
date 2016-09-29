@@ -18,6 +18,7 @@ from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,\
                              get_totmask,powspec_2d_hor,powspec_2d_hor_alter
 from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
+import os
 
 
 # Setup - Input arguments
@@ -25,14 +26,21 @@ parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--ana', metavar = 'ana', type=str)
 parser.add_argument('--date', metavar = 'date', type=str)
 parser.add_argument('--height', metavar = 'height', type=float, default =3000)
-parser.add_argument('--water', metavar = 'water', type=bool, default = True)
+parser.add_argument('--water', metavar = 'water', type=str, default = 'True')
 parser.add_argument('--nens', metavar = 'nens', type=int, default = 20)
 parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
 parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
+parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
 args = parser.parse_args()
-
+# Convert water to bool 
+if args.water == 'True':
+    args.water = True
+elif args.water == 'False':
+    args.water = False
+else:
+    raise Exception
 
 # Create file str
 savedir = '/home/scratch/users/stephan.rasp/results/'
@@ -41,8 +49,9 @@ heightstr = str(int(args.height))
 savestr = (args.date + '_ana-' + args.ana + '_wat-' + str(args.water) + 
            '_height-' + heightstr +
            '_nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
-           '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + '.nc')
-
+           '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
+           '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr) + '.nc')
+print savestr
 # Convert times to timedelta objects
 tstart = timedelta(hours = args.tstart)   # Cannot be 0 because of tau_c calculation!
 tend = timedelta(hours = args.tend)  
@@ -73,7 +82,7 @@ fieldn = 'W'
 thresh = 1.
 
 rmax_rdf = 36
-dr_rdf = 2
+dr_rdf = args.dr
 
 # Determine analysis domain
 sxo, syo = HH.data.shape[1:]  # Original field shape
@@ -101,6 +110,7 @@ if args.ana == 'vert':
 
 
 ################################################################################
+os.system('rm ' + savedir + savestr)
 # Allocate NetCDF file
 rootgrp = Dataset(savedir + savestr, 'w', format='NETCDF4')
 # Create dimensions
@@ -600,12 +610,11 @@ for it, t in enumerate(timelist):
                 
                 # Calculate centers of mass
                 num = np.unique(labels).shape[0]   # Number of clouds
-                com = np.array(center_of_mass(field, labels, range(1,num)))
+                com = np.array(center_of_mass(field[iz], labels, range(1,num)))
                 if com.shape[0] == 0:   # Accout for empty arrays
                     com = np.empty((0,2))
                 
                 sumlist += list(cld_sum_mem)
-                
                 bool_N = com[:,0]>=256/2
                 sumlist_N += list(cld_sum_mem[bool_N])
                 sumlist_S += list(cld_sum_mem[~bool_N])

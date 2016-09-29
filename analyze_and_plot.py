@@ -25,6 +25,13 @@ from scipy.optimize import leastsq
 pdfwidth = 7.87   # inches for AMetSoc
 mpl.rcParams['font.size'] = 10
 mpl.rcParams['font.family'] = 'sans-serif'
+mpl.rcParams['text.latex.preamble'] = [
+       r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
+       r'\sisetup{detect-all}',   # ...this to force siunitx to actually use your fonts
+       r'\usepackage{helvet}',    # set the normal font here
+       r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
+       r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
+] 
 
 
 # Define functions
@@ -43,7 +50,7 @@ def residual_ab(p, y, x):
 
 def residual_ab_exp(p, y, x):
     a, b = p
-    err = np.abs(y - (a*np.exp(b*x)))
+    err = np.log(np.abs(y - (a*np.exp(b*x))))
     
     return err
 
@@ -71,7 +78,7 @@ parser.add_argument('--ana', metavar = 'ana', type=str, default = 'm')
 parser.add_argument('--date', metavar = 'date', type=str, nargs = '+')
 parser.add_argument('--height', metavar = 'height', type=float, nargs = '+',
                     default = [3000])
-parser.add_argument('--water', metavar = 'water', type=bool, default = True)
+parser.add_argument('--water', metavar = 'water', type=str, default = 'True')
 parser.add_argument('--nens', metavar = 'nens', type=int, default = 20)
 parser.add_argument('--tstart', metavar = 'tstart', type=int, default = 1)
 parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
@@ -79,6 +86,8 @@ parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
 parser.add_argument('--tplot', metavar = 'tplot', type=float, nargs = '+',
                     default = [9,12])
+parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
+parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
 args = parser.parse_args()
 
 if 'all' in args.plot:
@@ -93,16 +102,18 @@ heightstr = ''
 alldatestr = ''
 nlist = [256, 128, 64, 32, 16, 8, 4]
 for h in args.height:
-    heightstr += str(int(h)) + '_'
+    heightstr += str(int(h))
 for d in args.date:
     alldatestr += d + '_'
     print 'Loading date: ', d
     # Create file str
     savedir = '/home/scratch/users/stephan.rasp/results/'
-    savesuf = ('_ana-' + args.ana + '_wat-' + str(args.water) + 
-               '_height-' + heightstr +
-               'nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
-               '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + '.nc')
+    anastr = ('_ana-' + args.ana + '_wat-' + str(args.water) + 
+                '_height-' + heightstr +
+                '_nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
+                '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
+                '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr))
+    savesuf = anastr + '.nc'
     # Load file 
     #datasetlist.append(Dataset(savedir + savestr, 'r'))
 alldatestr = alldatestr[:-1]   # revome final underscore
@@ -162,6 +173,9 @@ if 'cloud_stats' in args.plot:
     # Setup
     sizemax = 4e8
     summax = 10e8
+    if args.water == 'False':
+        sizemax *= 2
+        summax *=2
 
     totlist1 = []
     totlist2 = []
@@ -169,13 +183,13 @@ if 'cloud_stats' in args.plot:
         print d
         dataset = Dataset(savedir + d + savesuf, 'r')
         cld_size_tmp = dataset.variables['cld_size'][:, :]
-        print cld_size_tmp
+        #print cld_size_tmp
         cld_size_tmp = cld_size_tmp[~cld_size_tmp.mask].data
         cld_sum_tmp = dataset.variables['cld_sum'][:, :]
         cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
         totlist1 += list(cld_size_tmp)
         totlist2 += list(cld_sum_tmp)
-    print totlist1
+    #print totlist1
 
 
 
@@ -197,12 +211,12 @@ if 'cloud_stats' in args.plot:
     axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
                 alpha = 0.5)
     ## Fit line
-    #p0 = [1e6, 1e-7]
-    #result = leastsq(residual_ab_exp, p0, args = (sizeedges[:-1], sizehist))
+    #p0 = [1e4, 1e-7]
+    #result = leastsq(residual_ab_exp, p0, args = (sizehist, sizeedges[:-1]))
     #a,b = result[0]
     #print a,b
-    #a = 1e6
-    #b = -0.4e-7
+    ##a = 1e4
+    ##b = -0.4e-7
     #axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
     #print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
     axarr[0].set_xlabel('Cloud size [m^2]')
@@ -251,54 +265,46 @@ if 'rdf' in args.plot:
         rdf_tmp[rdf_tmp > 1e20] = np.nan
         rdf_list.append(rdf_tmp)
     rdf = np.nanmean(rdf_list, axis = 0)
-    
     # Setup
-    ymax = 5
+    ymax = 8
     
     # Get 3 hr averages
     rdf_3hr = []
     tlist_3hr = []
-    dt = 3 * args.tinc/60.
+    dt = int(3 * args.tinc/60.)
     for i in range(len(timelist)/3):
         rdf_3hr.append(np.nanmean(rdf[i*dt:(i+1)*dt], axis = 0))
-        tlist_3hr.append(i*dt+1)
+        tlist_3hr.append(timelist_plot[i*dt+1])
     rdf_3hr = np.array(rdf_3hr)
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
-    ######## Lev loop #####################
-    for iz, lev in enumerate(dataset.variables['levs']):
-        print 'lev: ', lev
-        
-        # Get the data
-        r =   dataset.variables['dr'][:]
-        
-        fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1.25, 4.5))
-        
-        ############# Time loop ##############
-        for it, t in enumerate(tlist_3hr):
-            #print 'time: ', t
-            ax.plot(r/1000., rdf_3hr[it, iz, :], c = cyc[it], 
-                    label = str(t) + 'UTC pm 1h')
-        
-        ax.legend(loc = 1, ncol = 2, prop={'size':6})
-        ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-        ax.set_xlabel('Distance [km]')
-        ax.set_ylabel('Normalized RDF')
-        ax.set_title('Radial distribution function')
-        ax.set_ylim(0, ymax)
-        ax.set_xlim(0, np.max(r)/1000.)
-        
-        titlestr = (alldatestr + '\nlev= ' + str(lev) + 
-                    ', nens=' + str(args.nens))
-        fig.suptitle(titlestr, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.0, 1, 0.85])
-        
-        plotsavestr = ('rdf_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens) + '_tstart-' + 
-                        str(args.tstart) + '_tend-' + str(args.tend) + 
-                        '_tinc-' + str(args.tinc))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-        plt.close('all')
+
+    # Get the data
+    r =   dataset.variables['dr'][:]
+    
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    
+    ############# Time loop ##############
+    for it, t in enumerate(tlist_3hr):
+        #print 'time: ', t
+        ax.plot(r/1000., rdf_3hr[it, :], c = cyc[it], 
+                label = str(t+1) + 'UTC pm 1h')
+    
+    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    ax.set_xlabel('Distance [km]')
+    ax.set_ylabel('Normalized RDF')
+    ax.set_title('Radial distribution function')
+    ax.set_ylim(0, ymax)
+    ax.set_xlim(0, np.max(r)/1000.)
+    
+    titlestr = (alldatestr + 
+                ', nens=' + str(args.nens))
+    #fig.suptitle(titlestr, fontsize='x-large')
+    plt.tight_layout()
+    
+    plotsavestr = ('rdf_' + alldatestr + anastr)
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
         
 
 ################################################################################
@@ -624,7 +630,7 @@ if 'scatter' in args.plot:
         # These now have dimensions [time, date]        
         
         # 1. Raw PC08 prediction
-        m_c = 5e7
+        m_c = 4e7
         predict = 2*m_c*M
         
         frac = varM/predict
@@ -650,7 +656,12 @@ if 'scatter' in args.plot:
         axarr[0,1].plot(timelist_plot, frac_time, c = clist[i_n], 
                         label = str(n*2.8)+'km', linewidth = 1.5)
         
+        axarr[0,2].scatter([0], [0], marker = 'o', c = clist[i_n], 
+                            s = 8, label = str(n*2.8)+'km',
+                            linewidth = 0)  # Ghost plot for labels
+        
         # 2. CC06 prediction
+        print 'mean m', np.nanmean(m)
         predict = 2*m*M
         frac = varM/predict
         frac_mean = np.nanmean(frac)
@@ -763,310 +774,134 @@ if 'scatter' in args.plot:
                         #label = str(n*2.8)+'km', linewidth = 1.5)
         
         
-        
-        ## Scatterplots 1
-        #x = np.sqrt(2/N)
-        #y = np.sqrt(mu2)
-        #xmean = np.sqrt(2/np.nanmean(N))
-        
-        #yfrac = mu2 * N / 2
-        #yfrac_mean = np.nanmean(yfrac)
-        #yfrac_std = np.nanstd(yfrac)
-        #ymean = yfrac_mean * xmean
-        #print 'before', yfrac_mean, yfrac_std
-        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-        #print 'rmse before', yfrac_rmse
-        #rmselist1.append(yfrac_rmse)
 
-        #axarr[0,0].scatter(x, y, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #axarr[0,0].scatter(xmean, ymean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                        #label = str(n*2.8)+'km')
-        
-        #axarr[0,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #axarr[0,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-        #axarr[0,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                        #yerr = yfrac_std, c = 'black')
-        
-        ## Scatterplots 2
-        ## Middle
-        #axarr[1,0].scatter(alpha, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #alpha_mean = np.nanmean(alpha)
-        #axarr[1,0].scatter(alpha_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-        
-        ##x = np.sqrt((1+alpha)/N)
-        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
-        
-        #yfrac = mu2 * N / (1 + alpha)
-        #yfrac_mean = np.nanmean(yfrac)
-        #yfrac_std = np.nanstd(yfrac)
-        #ymean = yfrac_mean * xmean
-        #print 'after', yfrac_mean, yfrac_std
-        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-        #print 'rmse alpha', yfrac_rmse
-        #rmselist2.append(yfrac_rmse)
-        
-        #axarr[1,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #axarr[1,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-        #axarr[1,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                        #yerr = yfrac_std, c = 'black')
-        
-        ## Scatterplots 3
-        ## Bottom
-        #axarr[2,0].scatter(beta, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #beta_mean = np.nanmean(beta)
-        #axarr[2,0].scatter(beta_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-        
-        ##x = np.sqrt((1+alpha)/N)
-        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
-        
-        #yfrac = mu2 * N / (1 + beta)
-        #yfrac_mean = np.nanmean(yfrac)
-        #yfrac_std = np.nanstd(yfrac)
-        #ymean = yfrac_mean * xmean
-        #print 'after', yfrac_mean, yfrac_std
-        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-        #print 'rmse beta', yfrac_rmse
-        #rmselist3.append(yfrac_rmse)
-        
-        #axarr[2,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #axarr[2,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-        #axarr[2,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                        #yerr = yfrac_std, c = 'black')
-        
-        
-        ## Scatterplots 4
-        ## Bottom
-        #axarr[3,0].scatter(alpha+beta, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #ab_mean = np.nanmean(alpha+beta)
-        #axarr[3,0].scatter(ab_mean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1)
-        
-        ##x = np.sqrt((1+alpha)/N)
-        ##xmean = np.sqrt(np.nanmean((1+alpha)/N))
-        
-        #yfrac = mu2 * N / (alpha + beta)
-        #yfrac_mean = np.nanmean(yfrac)
-        #yfrac_std = np.nanstd(yfrac)
-        #ymean = yfrac_mean * xmean
-        #print 'after', yfrac_mean, yfrac_std
-        #yfrac_rmse = np.sqrt(np.nanmean((1-yfrac)**2))
-        #print 'rmse all', yfrac_rmse
-        #rmselist4.append(yfrac_rmse)
-        
-        #axarr[3,1].scatter(x, yfrac, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        #axarr[3,1].scatter(xmean, yfrac_mean, marker = 'o', c = clist[i_n], 
-                        #s = 40, zorder = 0.5, linewidth = 0.8, alpha = 1,
-                        #label = r'mean: {:.2f}, std: {:.2f}'.format(yfrac_mean, yfrac_std))
-        #axarr[3,1].errorbar(xmean, yfrac_mean, marker = 'o', mec = clist[i_n], 
-                        #ms = 0, zorder = 0.4, linewidth = 1.2, alpha = 1,
-                        #yerr = yfrac_std, c = 'black')
-        
-        
     
     # Complete the figure
-    axarr[0,0].legend(loc =3, ncol = 2, prop={'size':6})
+    #axarr[0,0].legend(loc =3, ncol = 2, prop={'size':6})
     tmp = np.array([0,10])
     axarr[0,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[0,0].set_xlim(1e6,1e11)
-    axarr[0,0].set_ylim(-1, 2.5)
+    axarr[0,0].set_ylim(0, 2.5)
     axarr[0,0].set_xscale('log')
+    #axarr[0,0].set_yscale('log')
     axarr[0,0].set_xlabel(r'$M$')
-    axarr[0,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[0,0].set_ylabel(r'$\langle (\delta M)^2 \rangle / 2m_c\langle M \rangle$')
     axarr[0,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     
     axarr[0,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
-    axarr[0,1].set_ylim(0, 2)
+    axarr[0,1].set_ylim(0, 2.5)
     axarr[0,1].set_xlabel('time [h/UTC]')
     axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[1,0].legend(loc =3, ncol = 2, prop={'size':6})
+    axarr[0,2].legend(loc =3, ncol = 2, prop={'size':8})
+    #axarr[0,2].set_xlabel('time [h/UTC]')
+    axarr[0,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    #axarr[1,0].legend(loc =3, ncol = 2, prop={'size':6})
     tmp = np.array([0,10])
     axarr[1,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[1,0].set_xlim(1e6,1e11)
-    axarr[1,0].set_ylim(-1, 2.5)
+    axarr[1,0].set_ylim(0, 2.5)
     axarr[1,0].set_xscale('log')
     axarr[1,0].set_xlabel(r'$M$')
-    axarr[1,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[1,0].set_ylabel(r'$\langle (\delta M)^2 \rangle / 2\langle m \rangle \langle M \rangle$')
     axarr[1,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     
     axarr[1,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
-    axarr[1,1].set_ylim(0, 2)
+    axarr[1,1].set_ylim(0, 2.5)
     axarr[1,1].set_xlabel('time [h/UTC]')
     axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[2,0].legend(loc =3, ncol = 2, prop={'size':6})
+    axarr[1,2].set_ylabel(r'$\langle m \rangle$ [kg/s]')
+    axarr[1,2].set_xlabel('time [h/UTC]')
+    axarr[1,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    #axarr[2,0].legend(loc =3, ncol = 2, prop={'size':6})
     tmp = np.array([0,10])
     axarr[2,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[2,0].set_xlim(1e6,1e11)
-    axarr[2,0].set_ylim(-1, 2.5)
+    axarr[2,0].set_ylim(0, 2.5)
     axarr[2,0].set_xscale('log')
     axarr[2,0].set_xlabel(r'$M$')
-    axarr[2,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[2,0].set_ylabel(r'$\langle (\delta M)^2 \rangle / (1+\alpha)\langle m \rangle \langle M \rangle$')
     axarr[2,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     
     axarr[2,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
-    axarr[2,1].set_ylim(0, 2)
+    axarr[2,1].set_ylim(0, 2.5)
     axarr[2,1].set_xlabel('time [h/UTC]')
     axarr[2,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[3,0].legend(loc =3, ncol = 2, prop={'size':6})
+    
+    axarr[2,2].set_ylim(0, 2.5)
+    axarr[2,2].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[2,2].set_ylabel(r'$\alpha$')
+    axarr[2,2].set_xlabel('time [h/UTC]')
+    axarr[2,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    #axarr[3,0].legend(loc =3, ncol = 2, prop={'size':6})
     tmp = np.array([0,10])
     axarr[3,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[3,0].set_xlim(1e6,1e11)
-    axarr[3,0].set_ylim(-1, 2.5)
+    axarr[3,0].set_ylim(0, 2.5)
     axarr[3,0].set_xscale('log')
     axarr[3,0].set_xlabel(r'$M$')
-    axarr[3,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[3,0].set_ylabel(r'$\langle (\delta M)^2 \rangle / (1+\beta)\langle m \rangle \langle M \rangle$')
     axarr[3,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     
     axarr[3,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
-    axarr[3,1].set_ylim(0, 2)
+    axarr[3,1].set_ylim(0, 2.5)
     axarr[3,1].set_xlabel('time [h/UTC]')
     axarr[3,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    axarr[4,0].legend(loc =3, ncol = 2, prop={'size':6})
+    axarr[3,2].set_ylim(0, 2.5)
+    axarr[3,2].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
+                        zorder = 0.1)
+    axarr[3,2].set_ylabel(r'$\beta$')
+    axarr[3,2].set_xlabel('time [h/UTC]')
+    axarr[3,2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    #axarr[4,0].legend(loc =3, ncol = 2, prop={'size':6})
     tmp = np.array([0,10])
     axarr[4,0].plot(tmp,tmp, c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     axarr[4,0].set_xlim(1e6,1e11)
-    axarr[4,0].set_ylim(-1, 2.5)
+    axarr[4,0].set_ylim(0, 2.5)
     axarr[4,0].set_xscale('log')
     axarr[4,0].set_xlabel(r'$M$')
-    axarr[4,0].set_ylabel(r'$\sqrt{\mu_2}$')
+    axarr[4,0].set_ylabel(r'$\langle (\delta M)^2 \rangle / (\alpha+\beta)\langle m \rangle \langle M \rangle$')
     axarr[4,0].plot([1e6,1e11],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
             zorder = 0.1)
     
     axarr[4,1].plot(timelist_plot, [1.]*len(timelist_plot), c = 'gray', 
                         zorder = 0.1)
-    axarr[4,1].set_ylim(0, 2)
+    axarr[4,1].set_ylim(0, 2.5)
     axarr[4,1].set_xlabel('time [h/UTC]')
     axarr[4,1].set_xlim(timelist_plot[0], timelist_plot[-1])
     
-    #axarr[0,1].legend(loc =3, ncol = 2, prop={'size':6})
-    #axarr[0,1].set_xlim(0.05,5)
-    #axarr[0,1].set_ylim(-1, 2.5)
-    #axarr[0,1].set_xscale('log')
-    ##axarr[0,1].set_yscale('log')
-    #axarr[0,1].invert_xaxis()
-    #axarr[0,1].set_xlabel(r'$\sqrt{2/N}$')
-    #axarr[0,1].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
+    for ax, let in zip(list(np.ravel(axarr)),
+                       ['a','b','c','d','e','f','g','h','i','j','l','m','n','o','p']):
+        ax.text(0.05, 0.9, '('+let+')', transform = ax.transAxes, 
+                    fontsize = 10)
     
-    ## Complete the figure, middle row
-    #axarr[1,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[1,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[1,0].set_xlim(0.05,5)
-    #axarr[1,0].set_ylim(0.02,10)
-    #axarr[1,0].set_xscale('log')
-    #axarr[1,0].set_yscale('log')
-    ##axarr[1,0].invert_xaxis()
-    #axarr[1,0].set_xlabel(r'$\alpha$')
-    #axarr[1,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-    
-    #axarr[1,1].legend(loc =3, ncol = 2, prop={'size':6})
-    #axarr[1,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[1,1].set_xlim(0.05,5)
-    #axarr[1,1].set_ylim(-1, 2.5)
-    #axarr[1,1].set_xscale('log')
-    ##axarr[1,1].set_yscale('log')
-    #axarr[1,1].invert_xaxis()
-    #axarr[1,1].set_xlabel(r'$\sqrt{2/N}$')
-    #axarr[1,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\alpha)$')
-    
-    ## Complete the figure, bottom row
-    #axarr[2,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[2,0].plot([1,1],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[2,0].set_xlim(0.05,5)
-    #axarr[2,0].set_ylim(0.02,10)
-    #axarr[2,0].set_xscale('log')
-    #axarr[2,0].set_yscale('log')
-    ##axarr[1,0].invert_xaxis()
-    #axarr[2,0].set_xlabel(r'$\beta$')
-    #axarr[2,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-    
-    #axarr[2,1].legend(loc =3, ncol = 2, prop={'size':6})
-    #axarr[2,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[2,1].set_xlim(0.05,5)
-    #axarr[2,1].set_ylim(-1, 2.5)
-    #axarr[2,1].set_xscale('log')
-    ##axarr[2,1].set_yscale('log')
-    #axarr[2,1].invert_xaxis()
-    #axarr[2,1].set_xlabel(r'$\sqrt{2/N}$')
-    #axarr[2,1].set_ylabel(r'$\mu_2 \langle N \rangle/(1+\beta)$')
-    
-    ## Complete the figure, bottom row
-    #axarr[3,0].plot([0,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[3,0].plot([2,2],[0,10], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[3,0].set_xlim(0.1,10)
-    #axarr[3,0].set_ylim(0.02,10)
-    #axarr[3,0].set_xscale('log')
-    #axarr[3,0].set_yscale('log')
-    ##axarr[1,0].invert_xaxis()
-    #axarr[3,0].set_xlabel(r'$\alpha + \beta$')
-    #axarr[3,0].set_ylabel(r'$\mu_2 \langle N \rangle/2$')
-    
-    #axarr[3,1].legend(loc =3, ncol = 2, prop={'size':6})
-    #axarr[3,1].plot([0.,10],[1,1], c = 'gray', alpha = 0.5, linestyle = '--',
-            #zorder = 0.1)
-    #axarr[3,1].set_xlim(0.05,5)
-    #axarr[3,1].set_ylim(-1, 2.5)
-    #axarr[3,1].set_xscale('log')
-    ##axarr[2,1].set_yscale('log')
-    #axarr[3,1].invert_xaxis()
-    #axarr[3,1].set_xlabel(r'$\sqrt{2/N}$')
-    #axarr[3,1].set_ylabel(r'$\mu_2 \langle N \rangle/(\alpha +\beta)$')
-    
-    titlestr = (alldatestr + '\n' + args.ana + 
-                ', water=' + str(args.water) + ', lev= ' + str(int(args.height[0])) + 
-                ', nens=' + str(args.nens))
-    fig.suptitle(titlestr, fontsize='x-large')
+
+    #titlestr = (alldatestr + '\n' + args.ana + 
+                #', water=' + str(args.water) + ', lev= ' + str(int(args.height[0])) + 
+                #', nens=' + str(args.nens))
+    #fig.suptitle(titlestr, fontsize='x-large')
+    fig.suptitle('Comparison of simulation results and predictions \nof increasing complexity', fontsize=12)
     plt.tight_layout(rect=[0, 0.0, 1, 0.93])
     
     plotsavestr = ('scatter_' + alldatestr + '_ana-' + args.ana + 
@@ -1092,7 +927,10 @@ if 'scatter' in args.plot:
         plt.bar(3+i_n*width, -diff3, width, color = clist[i_n])
         plt.bar(4+i_n*width, -diff4, width, color = clist[i_n])
         plt.bar(5+i_n*width, -diff5, width, color = clist[i_n])
-        plt.bar(6+i_n*width, rmselist5[i_n], width, color = clist[i_n])
+        plt.bar(2+i_n*width, rmselist2[i_n], width, color = clist[i_n])
+        plt.bar(3+i_n*width, rmselist3[i_n], width, color = clist[i_n])
+        plt.bar(4+i_n*width, rmselist4[i_n], width, color = clist[i_n])
+        plt.bar(5+i_n*width, rmselist5[i_n], width, color = clist[i_n])
     #plt.scatter(np.log2(nlist)-0.15, rmselist1, c = clist)
     #plt.scatter(np.log2(nlist)-0.05, rmselist2, c = clist)
     #plt.scatter(np.log2(nlist)+0.05, rmselist3, c = clist)
@@ -1183,7 +1021,7 @@ if 'std_v_mean' in args.plot:
         nrmse = (np.sqrt(np.mean(residual_b(b, y[mask], x[mask])**2))/
                  np.mean(y[mask]))
         print b, nrmse
-        axarr[0,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse, c = clist[i_n], 
+        axarr[0,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse/2., c = clist[i_n], 
                             fmt = 'o', label = 'SPPT')
         
         # Fit the line, CC06
@@ -1195,7 +1033,7 @@ if 'std_v_mean' in args.plot:
         nrmse = (np.sqrt(np.mean(residual_b_sqrt(b, y[mask], x[mask])**2))/
                  np.mean(y[mask]))
         print b, nrmse
-        axarr[0,1].errorbar(np.log2(n)+0.1, b/1e8, yerr = nrmse, c = clist[i_n], 
+        axarr[0,1].errorbar(np.log2(n)+0.1, b/1e8, yerr = nrmse/2., c = clist[i_n], 
                             fmt = 'x', label = 'CC06 / 1e8')
         
         # Second row Q
@@ -1216,7 +1054,7 @@ if 'std_v_mean' in args.plot:
         nrmse = (np.sqrt(np.mean(residual_b(b, y[mask], x[mask])**2))/
                  np.mean(y[mask]))
         print b, nrmse
-        axarr[2,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse, c = clist[i_n], 
+        axarr[2,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse/2., c = clist[i_n], 
                             fmt = 'o', label = 'SPPT')
         mask = np.isfinite(stdM)
         corr_mean =  np.corrcoef((Qmp* (n*2.8e3)**2)[mask], M[mask])[1,0]
@@ -1244,7 +1082,7 @@ if 'std_v_mean' in args.plot:
         nrmse = (np.sqrt(np.mean(residual_b_sqrt(b, y[mask], x[mask])**2))/
                  np.mean(y[mask]))
         print b, nrmse
-        axarr[2,1].errorbar(np.log2(n)+0.1, b/1e12, yerr = nrmse, c = clist[i_n], 
+        axarr[2,1].errorbar(np.log2(n)+0.1, b/1e12, yerr = nrmse/2., c = clist[i_n], 
                             fmt = 'x', label = 'CC06 / 1e12')
         
 
@@ -1331,122 +1169,114 @@ if 'summary_stats' in args.plot:
     # Setup
     cyc = [plt.cm.bone(i) for i in np.linspace(0.1, 0.9, len(args.date))]
 
-    ######## Lev loop #####################
-    for iz in range(len(args.height)):
-        print 'lev: ', iz
+    ####### date loop #######################
+    compM_list = []
+    compm_list = []
+    compsize_list = []
+    compm_list_tot = []
+    compsize_list_tot = []
+    compN_list = []
+    #compQ_list = []
+    for d in args.date:
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        tmp1 = dataset.variables['cld_size'][:,:]
+        tmp1[tmp1 > 1e20] = np.nan
+        compsize_list.append(np.nanmean(tmp1, axis = 1))
+        compsize_list_tot.append(tmp1)
         
-        ####### date loop #######################
-        compM_list = []
-        compm_list = []
-        compsize_list = []
-        compm_list_tot = []
-        compsize_list_tot = []
-        compN_list = []
-        #compQ_list = []
-        for d in args.date:
-            print 'Loading date: ', d
-            dataset = Dataset(savedir + d + savesuf, 'r')
-            tmp1 = dataset.variables['cld_size'][:,iz,:]
-            tmp1[tmp1 > 1e20] = np.nan
-            compsize_list.append(np.nanmean(tmp1, axis = 1))
-            compsize_list_tot.append(tmp1)
-            
-            tmp2 = dataset.variables['cld_sum'][:,iz,:]
-            tmp2[tmp2 > 1e20] = np.nan
-            compm_list.append(np.nanmean(tmp2, axis = 1))
-            compM_list.append(np.nansum(tmp2, axis = 1))
-            compm_list_tot.append(tmp2)
-            
-            #tmp3 = dataset.variables['meanQmp'][:,iz,0,0,0]
-            #compQ_list.append(tmp3)
-            
-            tmp4 = dataset.variables['meanN'][:,iz,0,0,0]
-            tmp4[tmp4 > 1e20] = np.nan
-            compN_list.append(tmp4)
+        tmp2 = dataset.variables['cld_sum'][:,:]
+        tmp2[tmp2 > 1e20] = np.nan
+        compm_list.append(np.nanmean(tmp2, axis = 1))
+        compM_list.append(np.nansum(tmp2, axis = 1))
+        compm_list_tot.append(tmp2)
+        
+        #tmp3 = dataset.variables['meanQmp'][:,0,0,0]
+        #compQ_list.append(tmp3)
+        
+        tmp4 = dataset.variables['meanN'][:,0,0,0]
+        tmp4[tmp4 > 1e20] = np.nan
+        compN_list.append(tmp4)
 
+    
+    # Get the composite means
+    #compsize = np.nanmean(np.array(compsize_list), axis = 0)
+    #compm = np.nanmean(np.array(compm_list), axis = 0)
+    #compstdm = np.nanstd(np.array(compm_list), axis = 0)
+    #print compm, compstdm
+    compM = np.nanmean(np.array(compM_list), axis = 0)
+    #compQ = np.nanmean(np.array(compQ_list), axis = 0)
+    compN = np.nanmean(np.array(compN_list), axis = 0)
+    
+    compm = []
+    compstdm = []
+    compsize = []
+    for it in range(compsize_list_tot[0].shape[0]):
+        tmp1 = []
+        tmp2 = []
+        for arr1, arr2 in zip(compsize_list_tot, compm_list_tot):
+            tmp1.append(arr1[it])
+            tmp2.append(arr2[it])
+        compsize.append(np.nanmean(tmp1))
+        compm.append(np.nanmean(tmp2))
+        compstdm.append(np.nanstd(tmp2))
         
-        # Get the composite means
-        #compsize = np.nanmean(np.array(compsize_list), axis = 0)
-        #compm = np.nanmean(np.array(compm_list), axis = 0)
-        #compstdm = np.nanstd(np.array(compm_list), axis = 0)
-        #print compm, compstdm
-        compM = np.nanmean(np.array(compM_list), axis = 0)
-        #compQ = np.nanmean(np.array(compQ_list), axis = 0)
-        compN = np.nanmean(np.array(compN_list), axis = 0)
-        
-        compm = []
-        compstdm = []
-        compsize = []
-        for it in range(compsize_list_tot[0].shape[0]):
-            tmp1 = []
-            tmp2 = []
-            for arr1, arr2 in zip(compsize_list_tot, compm_list_tot):
-                tmp1.append(arr1[it])
-                tmp2.append(arr2[it])
-            compsize.append(np.nanmean(tmp1))
-            compm.append(np.nanmean(tmp2))
-            compstdm.append(np.nanstd(tmp2))
-            
-        
-        
-        lev = dataset.variables['levs'][iz]
-        timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
-        timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
-        # Create the figure
-        fig, axarr = plt.subplots(2, 2, figsize = (95./25.4*3, 8))
-        
-        axarr[0,0].plot(timelist_plot, compm, c = 'orangered', linewidth = 2)
-        #axarr[0,0].errorbar(timelist_plot, compm, yerr = compstdm, zorder = 0.1,
-                            #)
-        for ic, yplot in enumerate(compm_list):
-            axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[0,0].set_xlabel('time [h/UTC]')
-        axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[0,0].set_ylabel('Mean cloud mass flux [kg/s]')
-        
-        axarr[0,1].plot(timelist_plot, compsize, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compsize_list):
-            axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[0,1].set_xlabel('time [h/UTC]')
-        axarr[0,1].set_ylabel('Mean cloud size [m^2]')
-        axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        
-        axarr[1,0].plot(timelist_plot, compM, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compM_list):
-            axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[1,0].set_xlabel('time [h/UTC]')
-        axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,0].set_ylabel('Domain total mass flux [kg/s]')
-        
-        
-        axarr[1,1].plot(timelist_plot, compN, c = 'orangered', linewidth = 2)
-        for ic, yplot in enumerate(compN_list):
-            axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        axarr[1,1].set_xlabel('time [h/UTC]')
-        axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        axarr[1,1].set_ylabel('Mean N')
-        
-        #axarr[1,1].plot(timelist_plot, compQ, c = 'orangered', linewidth = 2)
-        #for ic, yplot in enumerate(compQ_list):
-            #axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
-        #axarr[1,1].set_xlabel('time [h/UTC]')
-        #axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
-        #axarr[1,1].set_ylabel('Mean Q [h]')
-        
-        
-        titlestr = (alldatestr + ', ' + args.ana + 
-                    ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                    ', nens=' + str(args.nens))
-        fig.suptitle(titlestr, fontsize='x-large')
-        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        
-        plotsavestr = ('summary_stats_' + alldatestr + '_ana-' + args.ana + 
-                        '_wat-' + str(args.water) + '_lev-' + str(lev) +
-                        '_nens-' + str(args.nens) + '_tstart-' + 
-                        str(args.tstart) + '_tend-' + str(args.tend) + 
-                        '_tinc-' + str(args.tinc))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
-        plt.close('all')
+    
+    
+    lev = dataset.variables['levs'][iz]
+    timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    # Create the figure
+    fig, axarr = plt.subplots(2, 2, figsize = (pdfwidth, 7))
+    
+    axarr[0,0].plot(timelist_plot, compm, c = 'orangered', linewidth = 2)
+    #axarr[0,0].errorbar(timelist_plot, compm, yerr = compstdm, zorder = 0.1,
+                        #)
+    for ic, yplot in enumerate(compm_list):
+        axarr[0,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[0,0].set_xlabel('time [h/UTC]')
+    axarr[0,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[0,0].set_ylabel('Mean cloud mass flux [kg/s]')
+    
+    axarr[0,1].plot(timelist_plot, compsize, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(compsize_list):
+        axarr[0,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[0,1].set_xlabel('time [h/UTC]')
+    axarr[0,1].set_ylabel('Mean cloud size [m^2]')
+    axarr[0,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    
+    axarr[1,0].plot(timelist_plot, compM, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(compM_list):
+        axarr[1,0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[1,0].set_xlabel('time [h/UTC]')
+    axarr[1,0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[1,0].set_ylabel('Domain total mass flux [kg/s]')
+    
+    
+    axarr[1,1].plot(timelist_plot, compN, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(compN_list):
+        axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[1,1].set_xlabel('time [h/UTC]')
+    axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[1,1].set_ylabel('Mean N')
+    
+    #axarr[1,1].plot(timelist_plot, compQ, c = 'orangered', linewidth = 2)
+    #for ic, yplot in enumerate(compQ_list):
+        #axarr[1,1].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    #axarr[1,1].set_xlabel('time [h/UTC]')
+    #axarr[1,1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    #axarr[1,1].set_ylabel('Mean Q [h]')
+    
+    
+    titlestr = (alldatestr + ', ' + args.ana + 
+                ', water=' + str(args.water) + ', lev= ' + str(lev) + 
+                ', nens=' + str(args.nens))
+    fig.suptitle('Temporal evolution of domain averaged quantities', fontsize = 12.)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    
+    plotsavestr = ('summary_stats_' + alldatestr + anastr)
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
             
             
 ################################################################################
@@ -2242,40 +2072,35 @@ if 'M_vert' in args.plot:
     Mnorthlist =  np.mean(Mnorthlist[t1:t2], axis = 0)
 
     levs = dataset.variables['levs'][:]
-
+    
+    print Mtotlist
+    print levs
     # Create the figure
     fig, ax = plt.subplots(1, 1, figsize = (95./25.4*1, 4))
     
 
-    ax.plot(Mtotlist, args.height, c = 'r', 
-                    label = 'all', linewidth = 1.5)
-    ax.plot(Msouthlist, args.height, c = 'g', 
-                    label = 'south', linewidth = 1.5)
-    ax.plot(Mnorthlist, args.height, c = 'b', 
-                    label = 'north', linewidth = 1.5)
+    ax.plot(Mtotlist, levs, c = 'r', 
+                    label = 'Total domain: mean height asl 247m', linewidth = 1.5)
+    ax.plot(Msouthlist, levs, c = 'g', 
+                    label = 'Southern half: mean height asl 415m', linewidth = 1.5)
+    ax.plot(Mnorthlist, levs, c = 'b', 
+                    label = 'Northern half: mean height asl 79m', linewidth = 1.5)
 
     #ax.set_xlim(0, 2)
     #axarr[0,0].set_yscale('log')
-    ax.set_ylabel('height [m]')
-    ax.set_xlabel(r'$M$')
-    ax.set_ylim(args.height[0], args.height[-1])
+    ax.set_ylabel('Vertical model level')
+    ax.set_xlabel(r'$M$[kg/s]')
+    ax.invert_yaxis()
+    ax.plot([0,1e10],[30,30], c = 'gray', zorder = 0.5)
+    #ax.set_ylim(args.height[0], args.height[-1])
     
 
-    ax.legend(loc =4, ncol = 1, prop={'size':6})
+    ax.legend(loc =4, ncol = 1, prop={'size':8})
             
-            
-    titlestr = (alldatestr + '\n' + args.ana + 
-                ', water=' + str(args.water) + 
-                ', nens=' + str(args.nens) + ', from ' + str(UTCstart) + 
-                ' to ' + str(UTCstop))
-    fig.suptitle(titlestr, fontsize='x-large')
-    plt.tight_layout(rect=[0, 0.0, 1, 0.93])
+    fig.suptitle('Vertical mass flux profile', fontsize=12.)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
-    plotsavestr = ('M_vert_' + alldatestr + '_ana-' + args.ana + 
-                    '_wat-' + str(args.water) +
-                    '_nens-' + str(args.nens)+ '_tstart-' + 
-                    str(args.tstart) + '_tend-' + str(args.tend) + 
-                    '_tinc-' + str(args.tinc) + '_tplot-' + str(t1) + 
+    plotsavestr = ('M_vert_' + alldatestr + anastr + '_tplot-' + str(t1) + 
                     '-' + str(t2))
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
@@ -2450,6 +2275,5 @@ if 'identification' in args.plot:
                 '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
-    
     
     
