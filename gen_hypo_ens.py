@@ -11,6 +11,7 @@ import numpy as np
 from datetime import timedelta
 from netCDF4 import Dataset
 from cosmo_utils.helpers import make_timelist, ddhhmmss
+from SubcriticalModel_Stephan import CloudPercolation_cw_i
 
 # Setup
 parser = argparse.ArgumentParser(description = 'Process input')
@@ -28,10 +29,28 @@ sx = 357
 sy = 357
 dalpha = 0.025
 
+#simulation set-up
 
-# Setup for field
-meanN = 4000 * (357**2/256**2)
-meanm = 0.5e8
+N_ensemble = 2                                                                 #Number of calculated fields
+
+#domain set-up 
+
+phys_L_km=357*2.8                                                               #Domain size in km 
+DL=2.8                                                                          #Resolution in km 
+L=int(phys_L_km/DL)                                                             #Number of grid-cells in one direction
+
+r_co_km=2.0                                                                     #Minimal radius of discs in km
+
+#model properties
+
+#coverage_fraction=0.05                                                          
+N_clouds= 200                                                                   #Number of clouds
+
+#Cloud properties
+r_m = 5                                                                       #Mean radius of discs in km
+cs  = 20                                                                        #Factor by which probability is increased within the rings around the clouds
+fac_cw = 3                                                                     #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+ 
 
 ensdir = '/home/scratch/users/stephan.rasp/hypo_' + args.type + '/deout_ceu_pspens/'
 
@@ -42,9 +61,9 @@ for it, t in enumerate(timelist):
     # Loop over ensemble members
     for imem in range(1,args.nens+1):
         print 'Member:', imem
-        ensstr = str(imem) + '/OUTPUT/' + ncdffn
+        ensstr = str(imem) + '/OUTPUT/'
         if not os.path.exists(ensdir + ensstr): os.makedirs(ensdir + ensstr)
-        
+        ensstr += ncdffn
         # Allocate NetCDF file
         rootgrp = Dataset(ensdir + ensstr + '.nc', 'w', 
                         format='NETCDF4')
@@ -66,19 +85,20 @@ for it, t in enumerate(timelist):
         rlat = rootgrp.createVariable('rlat', 'f8', ('rlat'))
         rlat[:] = np.linspace(0,1,sy)
         
-        
-        
+        cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,DL,N_clouds,r_co_km,r_m,fac_cw,cs,plot_field=False) 
+        print cloud_field.shape
         # Create field
-        m[0,0,:,:] = np.zeros((sx,sy))
-        # 1. Draw N from Poisson distribution
-        N = np.random.poisson(meanN, 1)
-        # 2. randomly pick location
-        randx = np.random.randint(0, sx, N)
-        randy = np.random.randint(0, sy, N)
-        # 3. draw m from exponential distribution
-        randm = np.random.exponential(meanm, N)
-        for rx, ry, rm in zip(randx, randy, randm):
-            m[0,0,rx,ry] = rm
+        m[0,0,:,:] = cloud_field
+        
+        ## 1. Draw N from Poisson distribution
+        #N = np.random.poisson(meanN, 1)
+        ## 2. randomly pick location
+        #randx = np.random.randint(0, sx, N)
+        #randy = np.random.randint(0, sy, N)
+        ## 3. draw m from exponential distribution
+        #randm = np.random.exponential(meanm, N)
+        #for rx, ry, rm in zip(randx, randy, randm):
+            #m[0,0,rx,ry] = rm
             
         
         rootgrp.close()

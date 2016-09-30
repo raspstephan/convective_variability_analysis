@@ -72,20 +72,25 @@ radarsufx = '-dwd---bin.nc'
 dx = 2800.   # Grid Spacing ATTENTION: Hard coded and wrong as of now
 
 # Get analysis level
-HH = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
-aslcol = HH.data[:, -1, -1]   # ATTENTION Hard coded colums above sea level 
-lev = np.argmin(np.abs(aslcol-args.height))   # find closest level
-realh = aslcol[np.argmin(np.abs(aslcol-args.height))]
-
-sufx = '.nc_30m'
-fieldn = 'W'
-thresh = 1.
+if not args.ana == 'hypo':
+    HH = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
+    aslcol = HH.data[:, -1, -1]   # ATTENTION Hard coded colums above sea level 
+    lev = np.argmin(np.abs(aslcol-args.height))   # find closest level
+    realh = aslcol[np.argmin(np.abs(aslcol-args.height))]
+    print 'level', lev
+    sxo, syo = HH.data.shape[1:]  # Original field shape
+    sufx = '.nc_30m'
+    fieldn = 'W'
+    thresh = 1.
+else:
+    thresh = 0.
+    sxo, syo = (357, 357)
+    sufx = '.nc'
 
 rmax_rdf = 36
 dr_rdf = args.dr
 
 # Determine analysis domain
-sxo, syo = HH.data.shape[1:]  # Original field shape
 lx1 = (sxo-256-1)/2 # ATTENTION first dimension is actually y
 lx2 = -(lx1+1) # Number of grid pts to exclude at border
 ly1 = (syo-256-1)/2
@@ -93,7 +98,9 @@ ly2 = -(ly1+1)
 
 if args.ana == 'vert':
     levlist = range(10, 50, 2)
-
+    heightlist = []
+    for lev in levlist:
+        heightlist.append(aslcol[lev])
     HHcropped = HH.data[-1,lx1:lx2, ly1:ly2]
     HH50tot = np.mean(HHcropped[:,:])
     HH50south = np.mean(HHcropped[:256/2, :])
@@ -183,11 +190,21 @@ if args.ana == 'vert':
     levdim = rootgrp.createDimension('levs', len(levlist))
     levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
     levs[:]  = levlist
+    height   = rootgrp.createVariable('height', 'i4', ('levs',))
+    height[:]= heightlist
     Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time', 'levs'))
     Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time', 'levs'))
     Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time', 'levs'))
-
-
+    
+if args.ana == 'hypo':
+    cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
+    rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
+    varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
+    varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
+    varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
+    meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
+    meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
+    meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
 
 # currently not used
 #hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
@@ -350,6 +367,13 @@ for it, t in enumerate(timelist):
         for i in range(5):
             ulist[i] = ulist[i][:,lx1:lx2, ly1:ly2]
             vlist[i] = vlist[i][:,lx1:lx2, ly1:ly2]
+    
+    if args.ana == 'hypo':
+        fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'm', 
+                                    nfill=1, return_arrays = True)
+        for i in range(args.nens):
+            fieldlist[i] = fieldlist[i][0,lx1:lx2, ly1:ly2]
     
     # End loading data
     ############################################################################
@@ -588,9 +612,120 @@ for it, t in enumerate(timelist):
                         varQmp[it,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
                         meanQmp[it,i_n,ico,jco] = np.mean(tmp_Qmplist)
 
+    if args.ana == 'hypo':
+        # Member loop
+        sizelist = []
+        rdflist = []
+        labelslist = []   # Save for use later
+        comlist = []      # Save for use later
+        for imem, field in enumerate(fieldlist):
+            # Identify clouds
+            tmp = identify_clouds(field, thresh, water = args.water)
+            labels, cld_size_mem, cld_sum_mem = tmp
+
+            sizelist.append(cld_size_mem)
             
-            # End coarse upscaled variances and means
+            labelslist.append(labels)
+            # Calculate centers of mass
+            num = np.unique(labels).shape[0]   # Number of clouds
+            com = np.array(center_of_mass(field, labels, range(1,num)))
+            if com.shape[0] == 0:   # Accout for empty arrays
+                com = np.empty((0,2))
+            comlist.append(com)
+
+            g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
+                            dr = dr_rdf)
+            rdflist.append(g)
+            dr[:] = r   # km
+        
+        
+        ntmp = len([i for sl in sizelist for i in sl])
+        cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
+        rdf[it, :] = np.mean(rdflist, axis = 0)
+
+        
+        ########################################################################
+        # Calculate cloud statistics
+        
+        ################
+        ## n loop      #
+        ################
+        for i_n, n in enumerate(nlist):
+            print 'n: ', n
             ####################################################################
+            # Calculate coarse variances and means
+            # Determine size of coarse arrays
+            nx = int(np.floor(256/n))
+            ny = int(np.floor(256/n))
+
+            # Loop over coarse grid boxes
+            for ico  in range(nx):
+                for jco in range(ny):
+                    # Get limits for each N box
+                    xmin = ico*n
+                    xmax = (ico+1)*n
+                    ymin = jco*n
+                    ymax = (jco+1)*n
+                    
+                    # These are the ensemble lists for each box
+                    tmp_cldlist = []
+                    tmp_Mlist = []
+                    tmp_Nlist = []
+                    # Loop over members
+                    for field, labels, com, cld_size_mem, imem,  in \
+                                                zip(fieldlist, 
+                                                    labelslist,
+                                                    comlist, 
+                                                    sizelist,
+                                                    range(args.nens),
+                                                    ):
+                                                    
+                        # Get the collapsed clouds for each box
+                        bool_arr = ((com[:,0]>=xmin)&(com[:,0]<xmax)&
+                                    (com[:,1]>=ymin)&(com[:,1]<ymax))
+                        
+                        # This is the array with all clouds for this box and member
+                        box_cld_sum = cld_size_mem[bool_arr]
+                        
+                        # This lists then contains all clouds for all members in a box
+                        tmp_cldlist += list(box_cld_sum)
+                        
+                        # If the array is empty set M to zero
+                        if len(box_cld_sum) > 0:
+                            tmp_Mlist.append(np.sum(box_cld_sum))
+                        else:
+                            tmp_Mlist.append(0.)
+                        
+                        # This is the number of clouds
+                        tmp_Nlist.append(box_cld_sum.shape[0])
+
+                        # End member loop #############
+                    
+                    # Now convert the list with all clouds for this box
+                    tmp_cldlist = np.array(tmp_cldlist)
+                    
+                    # Calculate statistics and save them in ncdf file
+                    # Check if x number of members have clouds in them
+                    
+                    if np.sum(np.array(tmp_Nlist)>0) >= args.minmem:
+                        varM[it,i_n,ico,jco] = np.var(tmp_Mlist, ddof = 1)
+                        varN[it,i_n,ico,jco] = np.var(tmp_Nlist, ddof = 1)
+                        varm[it,i_n,ico,jco] = np.var(tmp_cldlist, ddof = 1)
+                        meanM[it,i_n,ico,jco] = np.mean(tmp_Mlist)
+                        meanm[it,i_n,ico,jco] = np.mean(tmp_cldlist)
+                        meanN[it,i_n,ico,jco] = np.mean(tmp_Nlist)
+                    else:
+                        varM[it,i_n,ico,jco] = np.nan
+                        varN[it,i_n,ico,jco] = np.nan
+                        varm[it,i_n,ico,jco] = np.nan
+                        meanM[it,i_n,ico,jco] = np.nan
+                        meanm[it,i_n,ico,jco] = np.nan
+                        meanN[it,i_n,ico,jco] = np.nan
+                    # This means NaNs only appear when minmem criterion is not met    
+
+
+        # End coarse upscaled variances and means
+        ####################################################################
     
     if args.ana == 'vert':
         for iz, lev in enumerate(levlist):

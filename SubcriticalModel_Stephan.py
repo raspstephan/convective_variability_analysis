@@ -6,6 +6,8 @@ Run SubcriticalModel on local computer.
 
 Version for Stephan.
 
+f2py -c -m CloudPercolation_cwr_stephan CloudPercolation_cwr_stephan.f95
+
 """
 
 import matplotlib
@@ -13,7 +15,7 @@ matplotlib.use("TKAgg")
 import numpy as np
 import CloudPercolation_cwr_stephan
 import matplotlib.pyplot as plt
-import ipdb
+#import ipdb
 
 print CloudPercolation_cwr_stephan.m_percolations_float_stephan.perc.__doc__
 
@@ -45,6 +47,7 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
 
     if plot_field:
         plt.imshow(cloud_field_binary, cmap='Greys_r', interpolation='nearest')
+        plt.colorbar()
         plt.show()
     
     cloud_centers=np.array(cloud_centers)-1                                     #Account for Fortran arrays starting with 1
@@ -55,7 +58,7 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
 
 #simulation set-up
 
-N_ensemble = 50                                                                 #Number of calculated fields
+N_ensemble = 2                                                                 #Number of calculated fields
 
 #domain set-up 
 
@@ -71,9 +74,9 @@ r_co_km=2.0                                                                     
 N_clouds= 200                                                                   #Number of clouds
 
 #Cloud properties
-r_m = 5.6                                                                       #Mean radius of discs in km
-cs  = 1                                                                         #Factor by which probability is increased within the rings around the clouds
-fac_cw = 1                                                                      #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+r_m = 2.8                                                                       #Mean radius of discs in km
+cs  = 20                                                                         #Factor by which probability is increased within the rings around the clouds
+fac_cw = 3                                                                      #Prob. increased within the ring r_disc < r < r_disc*fac_cw
        
 estimated_coverage_fraction= 1.0-np.exp(-N_clouds*(r_m*r_m*np.pi)/(phys_L_km*phys_L_km))  
 print('estimated coverage fraction %.3f'%estimated_coverage_fraction)                                                                                                                                                       
@@ -92,7 +95,7 @@ for i in range(N_ensemble):
 
 #ipdb.set_trace()
 
-for i in range(N_ensemble):
-    cloud_field = cloud_field_stack[i,:,:]
-    plt.imshow(cloud_field, cmap='jet')#, interpolation='nearest')
-    plt.show()
+#for i in range(N_ensemble):
+    #cloud_field = cloud_field_stack[i,:,:]
+    #plt.imshow(cloud_field, cmap='jet', interpolation = 'nearest', origin = 'lower')#, interpolation='nearest')
+    #plt.show()
