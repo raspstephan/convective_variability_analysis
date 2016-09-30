@@ -46,7 +46,7 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
     cloud_field_binary, cloud_centers, cloud_field =CloudPercolation_cwr_stephan.m_percolations_float_stephan.perc(cs,L,len(rA),rA,rA_ring)
 
     if plot_field:
-        plt.imshow(cloud_field_binary, cmap='Greys_r', interpolation='nearest')
+        plt.imshow(cloud_field, cmap='jet', interpolation='nearest')
         plt.colorbar()
         plt.show()
     

@@ -88,7 +88,14 @@ parser.add_argument('--tplot', metavar = 'tplot', type=float, nargs = '+',
                     default = [9,12])
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
+parser.add_argument('--hypo', metavar = 'hypo', type=str, default = 'False')
 args = parser.parse_args()
+
+if args.hypo == 'True':
+    args.hypo = True
+    print 'Hypo'
+else:
+    args.hypo = False
 
 if 'all' in args.plot:
     args.plot = ['cloud_stats', 'rdf', 'scatter', 'summary_stats', 'summary_var',
@@ -185,10 +192,12 @@ if 'cloud_stats' in args.plot:
         cld_size_tmp = dataset.variables['cld_size'][:, :]
         #print cld_size_tmp
         cld_size_tmp = cld_size_tmp[~cld_size_tmp.mask].data
-        cld_sum_tmp = dataset.variables['cld_sum'][:, :]
-        cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
         totlist1 += list(cld_size_tmp)
-        totlist2 += list(cld_sum_tmp)
+        
+        if not args.hypo:
+            cld_sum_tmp = dataset.variables['cld_sum'][:, :]
+            cld_sum_tmp = cld_sum_tmp[~cld_sum_tmp.mask].data
+            totlist2 += list(cld_sum_tmp)
     #print totlist1
 
 
@@ -197,15 +206,17 @@ if 'cloud_stats' in args.plot:
                                         bins = 15, range = [0., sizemax])
     sizemean = np.mean(totlist1)
     sizevar = np.var(totlist1)
-    print 'size beta', sizevar/sizemean**2
-    sumhist, sumedges = np.histogram(totlist2, 
-                                        bins = 15, range = [0., summax])
-    summean = np.mean(totlist2)
-    sumvar = np.var(totlist2)
-    print 'beta', sumvar/summean**2
+    print 'size beta', sizevar/sizemean**2, sizemean
+    
+    if not args.hypo:
+        sumhist, sumedges = np.histogram(totlist2, 
+                                            bins = 15, range = [0., summax])
+        summean = np.mean(totlist2)
+        sumvar = np.var(totlist2)
+        print 'beta', sumvar/summean**2, summean
     
     # Plot the histograms
-    fig, axarr = plt.subplots(1, 2, figsize = (pdfwidth, 3.5))
+    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3.5))
     axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0],
                  color = 'darkgray')
     axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
@@ -226,17 +237,30 @@ if 'cloud_stats' in args.plot:
     axarr[0].set_ylim([1, 1e6])
     axarr[0].set_yscale('log')
     
-    axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
-                 color = 'darkgray')
-    axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
-                alpha = 0.5)
-    axarr[1].set_ylabel('Number of clouds')
-    axarr[1].set_xlim([0., summax])
-    axarr[1].set_ylim([1, 1e6])
-    axarr[1].set_yscale('log')
-    axarr[1].set_xlabel('Cloud mass flux [kg/s]')
-    axarr[1].set_title('Mass flux per cloud', fontsize = 10)
-    
+    if not args.hypo:
+        axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
+                    color = 'darkgray')
+        axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
+                    alpha = 0.5)
+        axarr[1].set_ylabel('Number of clouds')
+        axarr[1].set_xlim([0., summax])
+        axarr[1].set_ylim([1, 1e6])
+        axarr[1].set_yscale('log')
+        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+        axarr[1].set_title('Mass flux per cloud', fontsize = 10)
+        
+        axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0)
+        axarr[2].set_xlim([1e6, sizemax])
+        axarr[2].set_ylim([1e6, summax])
+        tmp = np.logspace(6,9,100)
+        slope = summean/sizemean
+
+        axarr[2].plot(tmp, tmp*slope, c = 'k')
+        axarr[2].set_yscale('log')
+        axarr[2].set_xscale('log')
+        axarr[2].set_xlabel('Cloud size [m^2]')
+        axarr[2].set_ylabel('Cloud mass flux [kg/s]')
+        
     titlestr = (alldatestr  + ', ' + args.ana + 
                 ', water=' + str(args.water) +  
                 ', nens=' + str(args.nens))
@@ -430,7 +454,7 @@ if 'prec_hist' in args.plot:
 
 
 ################################################################################
-if 'spec' in args.plot:
+if 'spectra' in args.plot:
     print 'Plotting spectra'
 
     plotdirsub = plotdir +  '/spectra/'
@@ -438,6 +462,8 @@ if 'spec' in args.plot:
     
     dke_spec_list = []
     bgke_spec_list = []
+    dprec_spec_list = []
+    bgprec_spec_list = []
     for d in args.date:
         dataset = Dataset(savedir + d + savesuf, 'r')
         dke_spec_list.append(dataset.variables['dkespec'][:])
@@ -451,6 +477,8 @@ if 'spec' in args.plot:
 
     
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(timelist))]
+    cyc = ("#E7A7FF","#FF84DB","#EF8974","#AF9300","#529324","#008768",
+          "#006C88","#2D3184")
 
     speclam = dataset.variables['speclam'][:]
     
@@ -1184,13 +1212,14 @@ if 'summary_stats' in args.plot:
         tmp2 = dataset.variables['cld_sum'][:,:]
         tmp2[tmp2 > 1e20] = np.nan
         compm_list.append(np.nanmean(tmp2, axis = 1))
-        compM_list.append(np.nansum(tmp2, axis = 1))
+        compM_list.append(np.nansum(tmp2, axis = 1)/float(args.nens))
         compm_list_tot.append(tmp2)
+
         
         #tmp3 = dataset.variables['meanQmp'][:,0,0,0]
         #compQ_list.append(tmp3)
         
-        tmp4 = dataset.variables['meanN'][:,0,0,0]
+        tmp4 = dataset.variables['totN'][:]
         tmp4[tmp4 > 1e20] = np.nan
         compN_list.append(tmp4)
 
@@ -1219,7 +1248,6 @@ if 'summary_stats' in args.plot:
         
     
     
-    lev = dataset.variables['levs'][iz]
     timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
     timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
     # Create the figure
@@ -1264,9 +1292,6 @@ if 'summary_stats' in args.plot:
     #axarr[1,1].set_ylabel('Mean Q [h]')
     
     
-    titlestr = (alldatestr + ', ' + args.ana + 
-                ', water=' + str(args.water) + ', lev= ' + str(lev) + 
-                ', nens=' + str(args.nens))
     fig.suptitle('Temporal evolution of domain averaged quantities', fontsize = 12.)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     

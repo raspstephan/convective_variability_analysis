@@ -172,6 +172,7 @@ if args.ana == 'clouds':
     #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
     excld    = rootgrp.createVariable('excld', 'f8', ('time', 'x', 'y'))
     exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'x', 'y'))
+    totN     = rootgrp.createVariable('totN', 'f8', ('time',))
 
 # coarse
 if args.ana == 'coarse':
@@ -524,6 +525,7 @@ for it, t in enumerate(timelist):
             cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
             cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
             rdf[it, :] = np.mean(rdflist, axis = 0)
+            totN[it] = ntmp/float(args.nens)
     
         if args.ana == 'coarse':
             ########################################################################

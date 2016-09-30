@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 # Convert times to timedelta objects
 tstart = timedelta(hours = 0)   # Cannot be 0 because of tau_c calculation!
-tend = timedelta(hours = 1)  
+tend = timedelta(hours = 2)  
 tinc = timedelta(minutes = 60)  # temporal resolution for analysis
 timelist = make_timelist(tstart, tend, tinc)
 
@@ -39,16 +39,16 @@ phys_L_km=357*2.8                                                               
 DL=2.8                                                                          #Resolution in km 
 L=int(phys_L_km/DL)                                                             #Number of grid-cells in one direction
 
-r_co_km=2.0                                                                     #Minimal radius of discs in km
+r_co_km=1.4                                                                     #Minimal radius of discs in km
 
 #model properties
 
 #coverage_fraction=0.05                                                          
-N_clouds= 200                                                                   #Number of clouds
+N_clouds= 585                                                                   #Number of clouds
 
 #Cloud properties
-r_m = 5                                                                       #Mean radius of discs in km
-cs  = 20                                                                        #Factor by which probability is increased within the rings around the clouds
+r_m = 2.5                                                                     #Mean radius of discs in km
+cs  = 30                                                                       #Factor by which probability is increased within the rings around the clouds
 fac_cw = 3                                                                     #Prob. increased within the ring r_disc < r < r_disc*fac_cw
  
 
@@ -85,7 +85,7 @@ for it, t in enumerate(timelist):
         rlat = rootgrp.createVariable('rlat', 'f8', ('rlat'))
         rlat[:] = np.linspace(0,1,sy)
         
-        cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,DL,N_clouds,r_co_km,r_m,fac_cw,cs,plot_field=False) 
+        cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,DL,N_clouds,r_co_km,r_m,fac_cw,cs,plot_field=True) 
         print cloud_field.shape
         # Create field
         m[0,0,:,:] = cloud_field
