@@ -1493,6 +1493,9 @@ if 'summary_weather' in args.plot:
         hpbl_tmp = dataset.variables['dihpbl'][:]
         cape_tmp = dataset.variables['dicape'][:]
         prec_tmp = dataset.variables['diprec'][:]
+        hpbl_tmp[hpbl_tmp > 1e10] = np.nan
+        cape_tmp[cape_tmp > 1e10] = np.nan
+        prec_tmp[prec_tmp > 1e10] = np.nan
         comphpbl_list.append(hpbl_tmp)
         compcape_list.append(cape_tmp)
         compprec_list.append(prec_tmp)

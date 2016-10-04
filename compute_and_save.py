@@ -33,6 +33,7 @@ parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
+parser.add_argument('--split', metavar = 'split', type=str, default = 'No')
 args = parser.parse_args()
 # Convert water to bool 
 if args.water == 'True':
@@ -41,6 +42,7 @@ elif args.water == 'False':
     args.water = False
 else:
     raise Exception
+
 
 # Create file str
 savedir = '/home/scratch/users/stephan.rasp/results/'
@@ -60,6 +62,9 @@ tinc = timedelta(minutes = args.tinc)  # temporal resolution for analysis
 
 # Setup - Create or define lists
 timelist = make_timelist(tstart, tend, tinc)
+print len(timelist)
+itlist = range(len(timelist))
+
 nlist = [256, 128, 64, 32, 16, 8, 4]
 histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
 
@@ -117,102 +122,168 @@ if args.ana == 'vert':
 
 
 ################################################################################
-os.system('rm ' + savedir + savestr)
-# Allocate NetCDF file
-rootgrp = Dataset(savedir + savestr, 'w', format='NETCDF4')
-# Create dimensions
-tdim = rootgrp.createDimension('time', len(timelist))
-ndim = rootgrp.createDimension('n', len(nlist))
-xdim = rootgrp.createDimension('x', nlist[0])
-ydim = rootgrp.createDimension('y', nlist[0])
-nclddim = rootgrp.createDimension('N_cld', 1e6)
-drdim = rootgrp.createDimension('dr', rmax_rdf/dr_rdf+1) # For RDF
-drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
-binsdim = rootgrp.createDimension('bins', len(histbinedges)-1)
-specdim = rootgrp.createDimension('spec', 128)
+if not args.split == 'end':
+    os.system('rm ' + savedir + savestr)
+    # Allocate NetCDF file
+    rootgrp = Dataset(savedir + savestr, 'w', format='NETCDF4')
+    # Create dimensions
+    tdim = rootgrp.createDimension('time', len(timelist))
+    ndim = rootgrp.createDimension('n', len(nlist))
+    xdim = rootgrp.createDimension('x', nlist[0])
+    ydim = rootgrp.createDimension('y', nlist[0])
+    nclddim = rootgrp.createDimension('N_cld', 1e6)
+    drdim = rootgrp.createDimension('dr', rmax_rdf/dr_rdf+1) # For RDF
+    drcorrdim = rootgrp.createDimension('drcorr', nlist[0]) # For 2D ACF
+    binsdim = rootgrp.createDimension('bins', len(histbinedges)-1)
+    specdim = rootgrp.createDimension('spec', 128)
 
-# Create variables and add attributes 
-time     = rootgrp.createVariable('time', 'f8', ('time',))
-time[:]  = [td.total_seconds() for td in timelist]
-n        = rootgrp.createVariable('n', 'i4', ('n',))
-n[:]     = nlist
-dr       = rootgrp.createVariable('dr', 'f4', ('dr',))
+    # Create variables and add attributes 
+    time     = rootgrp.createVariable('time', 'f8', ('time',))
+    time[:]  = [td.total_seconds() for td in timelist]
+    n        = rootgrp.createVariable('n', 'i4', ('n',))
+    n[:]     = nlist
+    dr       = rootgrp.createVariable('dr', 'f4', ('dr',))
 
 
-# weather
-if args.ana == 'weather':
-    ditauc   = rootgrp.createVariable('ditauc', 'f8', ('time'))
-    dicape   = rootgrp.createVariable('dicape', 'f8', ('time'))
-    diprec   = rootgrp.createVariable('diprec', 'f8', ('time'))
-    dihpbl   = rootgrp.createVariable('dihpbl', 'f8', ('time'))
+    # weather
+    if args.ana == 'weather':
+        ditauc   = rootgrp.createVariable('ditauc', 'f8', ('time'))
+        dicape   = rootgrp.createVariable('dicape', 'f8', ('time'))
+        diprec   = rootgrp.createVariable('diprec', 'f8', ('time'))
+        dihpbl   = rootgrp.createVariable('dihpbl', 'f8', ('time'))
 
-# prec 
-if args.ana == 'prec':
-    rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
-    rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
-    hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
-    hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
+    # prec 
+    if args.ana == 'prec':
+        rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
+        rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
+        hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
+        hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
 
-# spectra
-if args.ana == 'spectra':
-    bgkespec = rootgrp.createVariable('bgkespec', 'f8', ('time','spec'))
-    dkespec  = rootgrp.createVariable('dkespec', 'f8', ('time','spec'))
-    bgprecspec = rootgrp.createVariable('bgprecspec', 'f8', ('time','spec'))
-    dprecspec  = rootgrp.createVariable('dprecspec', 'f8', ('time','spec'))
-    speck    = rootgrp.createVariable('speck', 'f8', ('spec'))
-    speclam  = rootgrp.createVariable('speclam', 'f8', ('spec'))
+    # spectra
+    if args.ana == 'spectra':
+        bgkespec = rootgrp.createVariable('bgkespec', 'f8', ('time','spec'))
+        dkespec  = rootgrp.createVariable('dkespec', 'f8', ('time','spec'))
+        bgprecspec = rootgrp.createVariable('bgprecspec', 'f8', ('time','spec'))
+        dprecspec  = rootgrp.createVariable('dprecspec', 'f8', ('time','spec'))
+        speck    = rootgrp.createVariable('speck', 'f8', ('spec'))
+        speclam  = rootgrp.createVariable('speclam', 'f8', ('spec'))
 
-# clouds
-if args.ana == 'clouds':
-    cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
-    cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','N_cld'))
-    rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
-    exw      = rootgrp.createVariable('exw', 'f8', ('time', 'x', 'y'))
-    exq      = rootgrp.createVariable('exq', 'f8', ('time', 'x', 'y'))
-    #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
-    excld    = rootgrp.createVariable('excld', 'f8', ('time', 'x', 'y'))
-    exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'x', 'y'))
-    totN     = rootgrp.createVariable('totN', 'f8', ('time',))
+    # clouds
+    if args.ana == 'clouds':
+        cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
+        cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','N_cld'))
+        rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
+        exw      = rootgrp.createVariable('exw', 'f8', ('time', 'x', 'y'))
+        exq      = rootgrp.createVariable('exq', 'f8', ('time', 'x', 'y'))
+        #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
+        excld    = rootgrp.createVariable('excld', 'f8', ('time', 'x', 'y'))
+        exwater  = rootgrp.createVariable('exwater', 'f8', ('time', 'x', 'y'))
+        totN     = rootgrp.createVariable('totN', 'f8', ('time',))
 
-# coarse
-if args.ana == 'coarse':
-    varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
-    varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
-    varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
-    meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
-    meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
-    meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
-    varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','n','x','y'))
-    meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
-    #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
-    #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
-    
-if args.ana == 'vert':
-    levdim = rootgrp.createDimension('levs', len(levlist))
-    levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
-    levs[:]  = levlist
-    height   = rootgrp.createVariable('height', 'i4', ('levs',))
-    height[:]= heightlist
-    Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time', 'levs'))
-    Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time', 'levs'))
-    Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time', 'levs'))
-    
-if args.ana == 'hypo':
-    cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
-    rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
-    varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
-    varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
-    varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
-    meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
-    meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
-    meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
+    # coarse
+    if args.ana == 'coarse':
+        varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
+        varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
+        varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
+        meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
+        meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
+        meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
+        varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','n','x','y'))
+        meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
+        #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
+        #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
+        
+    if args.ana == 'vert':
+        levdim = rootgrp.createDimension('levs', len(levlist))
+        levs     = rootgrp.createVariable('levs', 'i4', ('levs',))
+        levs[:]  = levlist
+        height   = rootgrp.createVariable('height', 'i4', ('levs',))
+        height[:]= heightlist
+        Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time', 'levs'))
+        Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time', 'levs'))
+        Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time', 'levs'))
+        
+    if args.ana == 'hypo':
+        cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
+        rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
+        varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
+        varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
+        varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
+        meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
+        meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
+        meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
 
-# currently not used
-#hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
-#enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
-#acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
-#Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
+    # currently not used
+    #hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
+    #enstauc  = rootgrp.createVariable('enstauc', 'f8', ('time', 'x', 'y'))
+    #acf2d    = rootgrp.createVariable('acf2d', 'f8', ('time','levs','n','drcorr'))
+    #Mmem1    = rootgrp.createVariable('Mmem1', 'f8', ('time','levs','n','x','y'))
+else:
+    rootgrp = Dataset(savedir + savestr, 'r+', format='NETCDF4')
+    # weather
+    if args.ana == 'weather':
+        ditauc   = rootgrp.variables['ditauc']
+        dicape   = rootgrp.variables['dicape']
+        diprec   = rootgrp.variables['diprec']
+        dihpbl   = rootgrp.variables['dihpbl']
 
+    # prec 
+    if args.ana == 'prec':
+        rdf_prec_model = rootgrp.variables['rdf_prec_model']
+        rdf_prec_obs   = rootgrp.variables['rdf_prec_obs']
+        hist_model   = rootgrp.variables['hist_model']
+        hist_obs   = rootgrp.variables['hist_obs']
+
+    # spectra
+    if args.ana == 'spectra':
+        bgkespec = rootgrp.variables['bgkespec']
+        dkespec  = rootgrp.variables['dkespec']
+        bgprecspec = rootgrp.variables['bgprecspec']
+        dprecspec  = rootgrp.variables['dprecspec']
+        speck    = rootgrp.variables['speck']
+        speclam  = rootgrp.variables['speclam']
+
+    # clouds
+    if args.ana == 'clouds':
+        cld_size = rootgrp.variables['cld_size']
+        cld_sum  = rootgrp.variables['cld_sum']
+        rdf      = rootgrp.variables['rdf']
+        exw      = rootgrp.variables['exw']
+        exq      = rootgrp.variables['exq']
+        #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
+        excld    = rootgrp.variables['excld']
+        exwater  = rootgrp.variables['exwater']
+        totN     = rootgrp.variables['totN']
+
+    # coarse
+    if args.ana == 'coarse':
+        varM     = rootgrp.variables['varM']
+        varN     = rootgrp.variables['varN']
+        varm     = rootgrp.variables['varm']
+        meanN    = rootgrp.variables['meanN']
+        meanM    = rootgrp.variables['meanM']
+        meanm    = rootgrp.variables['meanm']
+        varQmp   = rootgrp.variables['varQmp']
+        meanQmp  = rootgrp.variables['meanQmp']
+        #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
+        #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
+        
+    if args.ana == 'vert':
+        levs     = rootgrp.variables['levs']
+        height   = rootgrp.variables['height']
+        Mtot     = rootgrp.variables['Mtot']
+        Msouth   = rootgrp.variables['Msouth']
+        Mnorth   = rootgrp.variables['Mnorth']
+        
+    if args.ana == 'hypo':
+        cld_size = rootgrp.variables['cld_size']
+        rdf      = rootgrp.variables['rdf']
+        varM     = rootgrp.variables['varM']
+        varN     = rootgrp.variables['varN']
+        varm     = rootgrp.variables['varm']
+        meanN    = rootgrp.variables['meanN']
+        meanM    = rootgrp.variables['meanM']
+        meanm    = rootgrp.variables['meanm']
 # End allocation
 ################################################################################
 
@@ -240,10 +311,22 @@ if args.ana == 'prec':
     tothist_obs = []
 
 
+
+nt = len(timelist)
+ht = nt/2
+print nt, ht
+if args.split == 'start':
+    timelist = timelist[:ht]
+    itlist = itlist[:ht]
+elif args.split == 'end':
+    timelist = timelist[ht:]
+    itlist = itlist[ht:]
+
+print itlist
 ###################
 ## Time loop      #
 ###################
-for it, t in enumerate(timelist):
+for it, t in zip(itlist, timelist):
     print 'time: ', t
     ############################################################################
     # Load COSMO data
