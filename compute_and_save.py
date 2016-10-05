@@ -33,7 +33,7 @@ parser.add_argument('--tend', metavar = 'tend', type=int, default = 24)
 parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
-parser.add_argument('--split', metavar = 'split', type=str, default = 'No')
+parser.add_argument('--split', metavar = 'split', type=str, default = 'False')
 args = parser.parse_args()
 # Convert water to bool 
 if args.water == 'True':

@@ -2115,9 +2115,9 @@ if 'M_vert' in args.plot:
     ax[0].set_ylabel('Vertical model level')
     ax[0].set_xlabel(r'$M$[kg/s]')
     ax[0].invert_yaxis()
-    ax[0].plot([0,1e10],[30,30], c = 'gray', zorder = 0.5)
-    ax[0].plot([0,1e10],[27,27], c = 'lightgray', zorder = 0.5)
-    ax[0].plot([0,1e10],[34,34], c = 'lightgray', zorder = 0.5)
+    ax[0].plot([0,1.2e10],[30,30], c = 'gray', zorder = 0.5)
+    ax[0].plot([0,1.2e10],[27,27], c = 'lightgray', zorder = 0.5)
+    ax[0].plot([0,1.2e10],[34,34], c = 'lightgray', zorder = 0.5)
     #ax.set_ylim(args.height[0], args.height[-1])
     
 
@@ -2133,6 +2133,7 @@ if 'M_vert' in args.plot:
     ax[0].set_title('Vertical mass flux profile', fontsize=10)
     ax[1].set_title('Height for a column above sea level', fontsize=10)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    plt.suptitle(UTCstart, fontsize = 12)
     
     plotsavestr = ('M_vert_' + alldatestr + anastr + '_tplot-' + str(t1) + 
                     '-' + str(t2))
