@@ -181,8 +181,8 @@ if 'cloud_stats' in args.plot:
     sizemax = 4e8
     summax = 10e8
     if args.water == 'False':
-        sizemax *= 2
-        summax *=2
+        sizemax *= 3.5
+        summax *=3.5
 
     totlist1 = []
     totlist2 = []
@@ -200,17 +200,17 @@ if 'cloud_stats' in args.plot:
             totlist2 += list(cld_sum_tmp)
     #print totlist1
 
-
+    
 
     sizehist, sizeedges = np.histogram(totlist1, 
-                                        bins = 15, range = [0., sizemax])
+                                        bins = 20, range = [0., sizemax])
     sizemean = np.mean(totlist1)
     sizevar = np.var(totlist1)
     print 'size beta', sizevar/sizemean**2, sizemean
     
     if not args.hypo:
         sumhist, sumedges = np.histogram(totlist2, 
-                                            bins = 15, range = [0., summax])
+                                            bins = 20, range = [0., summax])
         summean = np.mean(totlist2)
         sumvar = np.var(totlist2)
         print 'beta', sumvar/summean**2, summean
@@ -249,9 +249,12 @@ if 'cloud_stats' in args.plot:
         axarr[1].set_xlabel('Cloud mass flux [kg/s]')
         axarr[1].set_title('Mass flux per cloud', fontsize = 10)
         
-        axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0)
+        print 'corr', np.corrcoef(totlist1, totlist2)[1,0]
+        print 'n_cld', len(totlist1)
+        axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
         axarr[2].set_xlim([1e6, sizemax])
         axarr[2].set_ylim([1e6, summax])
+        
         tmp = np.logspace(6,9,100)
         slope = summean/sizemean
 
@@ -261,15 +264,57 @@ if 'cloud_stats' in args.plot:
         axarr[2].set_xlabel('Cloud size [m^2]')
         axarr[2].set_ylabel('Cloud mass flux [kg/s]')
         
+    
+    
+    # # Now the LOG hists
+    # logbins = np.logspace(6, 10, 20)
+    # sizehist, sizeedges = np.histogram(totlist1, bins = logbins)
+    # if not args.hypo:
+    #     sumhist, sumedges = np.histogram(totlist2, bins = logbins)
+        
+    # axarr[1,0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges),
+    #              color = 'darkgray')
+    # axarr[1,0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
+    #             alpha = 0.5)
+    # ## Fit line
+    # #p0 = [1e4, 1e-7]
+    # #result = leastsq(residual_ab_exp, p0, args = (sizehist, sizeedges[:-1]))
+    # #a,b = result[0]
+    # #print a,b
+    # ##a = 1e4
+    # ##b = -0.4e-7
+    # #axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
+    # #print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
+    # axarr[1,0].set_xlabel('Cloud size [m^2]')
+    # axarr[1,0].set_ylabel('Number of clouds')
+    # axarr[1,0].set_title('Cloud size', fontsize = 10)
+    # #axarr[1,0].set_xlim([0., sizemax])
+    # axarr[1,0].set_ylim([1, 1e6])
+    # axarr[1,0].set_yscale('log')
+    # axarr[1,0].set_xscale('log')
+    
+    # if not args.hypo:
+    #     axarr[1,1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges),
+    #                 color = 'darkgray')
+    #     axarr[1,1].plot([summean, summean], [1, 1e6], c = 'red', 
+    #                 alpha = 0.5)
+    #     axarr[1,1].set_ylabel('Number of clouds')
+    #     #axarr[1,1].set_xlim([5e, summax])
+    #     axarr[1,1].set_ylim([1, 1e6])
+    #     axarr[1,1].set_yscale('log')
+    #     axarr[1,1].set_xscale('log')
+    #     axarr[1,1].set_xlabel('Cloud mass flux [kg/s]')
+    #     axarr[1,1].set_title('Mass flux per cloud', fontsize = 10)
+    
+    # axarr[1,2].set_axis_off()
+        
     titlestr = (alldatestr  + ', ' + args.ana + 
                 ', water=' + str(args.water) +  
                 ', nens=' + str(args.nens))
     fig.suptitle('Cloud size and mass flux per cloud distributions', fontsize=12)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
-    plotsavestr = ('cloud_stats_' + alldatestr + '_ana-' + args.ana + 
-                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
-                    '_nens-' + str(args.nens))
+    plotsavestr = ('cloud_stats_' + alldatestr + anastr)
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
@@ -290,18 +335,19 @@ if 'rdf' in args.plot:
         rdf_list.append(rdf_tmp)
     rdf = np.nanmean(rdf_list, axis = 0)
     # Setup
-    ymax = 8
+    ymax = 7
     
     # Get 3 hr averages
     rdf_3hr = []
     tlist_3hr = []
-    dt = int(3 * args.tinc/60.)
-    for i in range(len(timelist)/3):
+    dt = int(3. / (args.tinc/60.))
+    for i in range(len(timelist)/dt):
         rdf_3hr.append(np.nanmean(rdf[i*dt:(i+1)*dt], axis = 0))
-        tlist_3hr.append(timelist_plot[i*dt+1])
+        tlist_3hr.append(timelist_plot[i*dt+2])
     rdf_3hr = np.array(rdf_3hr)
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
-
+    cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
+    
     # Get the data
     r =   dataset.variables['dr'][:]
     
@@ -311,9 +357,9 @@ if 'rdf' in args.plot:
     for it, t in enumerate(tlist_3hr):
         #print 'time: ', t
         ax.plot(r/1000., rdf_3hr[it, :], c = cyc[it], 
-                label = str(t+1) + 'UTC pm 1h')
+                label = str(t+1) + 'UTC pm 1h', linewidth = 1.5)
     
-    ax.legend(loc = 1, ncol = 2, prop={'size':6})
+    ax.legend(loc = 1, ncol = 1, prop={'size':10})
     ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     ax.set_xlabel('Distance [km]')
     ax.set_ylabel('Normalized RDF')
@@ -2276,7 +2322,7 @@ if 'identification' in args.plot:
     
     # ATTENTION For now this just takes one level 
     
-    y1 = 0; y2 = 55; x1 = 160; x2 = 215
+    y1 = 0; y2 = 50; x1 = 180; x2 = 230
     exw = dataset.variables['exw'][args.tplot[0], x1:x2, y1:y2]
     exq = dataset.variables['exq'][args.tplot[0], x1:x2, y1:y2]*1000.
     excld = dataset.variables['excld'][args.tplot[0], x1:x2, y1:y2]
@@ -2285,22 +2331,39 @@ if 'identification' in args.plot:
     exwater[exwater == 0] = np.nan
     exbin = (exw > 1.) * (exq > 0.)
     
-    fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 4.5))
+    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
     
-    colw = []
-    levsw = []
     
-    for ax, field, cm, name, unit in zip(list(np.ravel(axarr)), 
-                        [exw, exq, exbin, excld, exwater],
-                        ['bwr', 'Blues', 'Oranges', 'prism', 'prism'],
-                        ['w', 'qc+qs+qi', 'binary', 'before separation', 'after separation'],
-                        ['m/s', 'g/kg', '', '', '']):
-        C = ax.imshow(field, interpolation = 'nearest', origin = 'lower',
-                  cmap = cm)
-        cb = fig.colorbar(C, ax = ax)
-        cb.set_label(unit)
-        ax.set_title(name, fontsize = 10)
-    axarr[1,2].axis('off')
+    # First plot
+    from matplotlib import colors
+    cmw = ("#0043C1","#405EBF","#6476C5","#808DCC","#99A2D4","#B0B6DC",
+          "#C4C8E3","#D6D8E8","#E4E5ED","#FFFFFF","#FFFFFF","#EEE3E5",
+          "#EAD3D7","#E5C0C7","#DFABB4","#D792A0","#CC7789","#C05A72",
+          "#B23659","#A10040")
+    cmw = colors.ListedColormap(cmw)
+    boundsw = np.arange(-5,5.5,0.5)
+    normw = colors.BoundaryNorm(boundsw, cmw.N)
+    Cw = axarr[0].imshow(exw, interpolation = 'nearest', origin = 'lower',
+                  cmap = cmw, norm = normw, alpha = 0.3)
+    tmp = exw
+    tmp[exbin == 0] == np.nan
+    Cw = axarr[0].imshow(tmp, interpolation = 'nearest', origin = 'lower',
+                  cmap = cmw, norm = normw, alpha = 1, zorder = 2)
+    cb = fig.colorbar(Cw, ax = axarr[0], orientation = 'horizontal')
+    
+    Cq = axarr[1].contour(excld, levels = [0.001], zorder = 10)
+    #for ax, field, cm, norm, name, unit in zip(list(np.ravel(axarr)), 
+                        #[exw, exq, exbin, excld, exwater],
+                        #[cmw, 'Blues', 'Oranges', 'prism', 'prism'],
+                        #[normw],
+                        #['Vertical velocity', 'Cloud water', 'binary', 'before separation', 'after separation'],
+                        #['m/s', 'g/kg', '', '', '']):
+        #C = ax.imshow(field, interpolation = 'nearest', origin = 'lower',
+                  #cmap = cmw, norm = norm)
+        #cb = fig.colorbar(C, ax = ax, orientation = 'horizontal')
+        #cb.set_label(unit)
+        #ax.set_title(name, fontsize = 10)
+    #axarr[1,2].axis('off')
     t = timedelta(hours = args.tplot[0] + args.tstart)
     titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
                 ', water=' + str(args.water) + 
@@ -2308,9 +2371,7 @@ if 'identification' in args.plot:
     fig.suptitle('Example for cloud identification and separation', fontsize=12)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
-    plotsavestr = ('identification_' + args.date[0] + '_ana-' + args.ana + 
-                '_wat-' + str(args.water) +
-                '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t))
+    plotsavestr = ('identification_' + args.date[0] + anastr + '_' + ddhhmmss(t))
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
     

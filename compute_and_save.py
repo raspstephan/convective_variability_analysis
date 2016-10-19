@@ -254,6 +254,7 @@ else:
         excld    = rootgrp.variables['excld']
         exwater  = rootgrp.variables['exwater']
         totN     = rootgrp.variables['totN']
+        dr     = rootgrp.variables['dr']
 
     # coarse
     if args.ana == 'coarse':
