@@ -2322,7 +2322,7 @@ if 'identification' in args.plot:
     
     # ATTENTION For now this just takes one level 
     
-    y1 = 0; y2 = 50; x1 = 180; x2 = 230
+    y1 = 10; y2 = 45; x1 = 180; x2 = 215
     exw = dataset.variables['exw'][args.tplot[0], x1:x2, y1:y2]
     exq = dataset.variables['exq'][args.tplot[0], x1:x2, y1:y2]*1000.
     excld = dataset.variables['excld'][args.tplot[0], x1:x2, y1:y2]
@@ -2331,11 +2331,12 @@ if 'identification' in args.plot:
     exwater[exwater == 0] = np.nan
     exbin = (exw > 1.) * (exq > 0.)
     
-    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
+    fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 7))
     
     
     # First plot
     from matplotlib import colors
+    mpl.rcParams['axes.linewidth'] = 0
     cmw = ("#0043C1","#405EBF","#6476C5","#808DCC","#99A2D4","#B0B6DC",
           "#C4C8E3","#D6D8E8","#E4E5ED","#FFFFFF","#FFFFFF","#EEE3E5",
           "#EAD3D7","#E5C0C7","#DFABB4","#D792A0","#CC7789","#C05A72",
@@ -2343,27 +2344,63 @@ if 'identification' in args.plot:
     cmw = colors.ListedColormap(cmw)
     boundsw = np.arange(-5,5.5,0.5)
     normw = colors.BoundaryNorm(boundsw, cmw.N)
-    Cw = axarr[0].imshow(exw, interpolation = 'nearest', origin = 'lower',
-                  cmap = cmw, norm = normw, alpha = 0.3)
-    tmp = exw
-    tmp[exbin == 0] == np.nan
-    Cw = axarr[0].imshow(tmp, interpolation = 'nearest', origin = 'lower',
-                  cmap = cmw, norm = normw, alpha = 1, zorder = 2)
-    cb = fig.colorbar(Cw, ax = axarr[0], orientation = 'horizontal')
+    print exw
+    Cw = axarr[0,0].imshow(exw, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'bwr', alpha = 1, vmin = -5, vmax = 5)
+    cb = fig.colorbar(Cw, ax = axarr[0,0], orientation = 'horizontal')
+    cb.set_label('[m/s]')
+    cb.set_ticks([-5, -2.5, 0, 2.5, 5])
+    axarr[0,0].set_title('Vertical velocity')
     
-    Cq = axarr[1].contour(excld, levels = [0.001], zorder = 10)
-    #for ax, field, cm, norm, name, unit in zip(list(np.ravel(axarr)), 
-                        #[exw, exq, exbin, excld, exwater],
-                        #[cmw, 'Blues', 'Oranges', 'prism', 'prism'],
-                        #[normw],
-                        #['Vertical velocity', 'Cloud water', 'binary', 'before separation', 'after separation'],
-                        #['m/s', 'g/kg', '', '', '']):
-        #C = ax.imshow(field, interpolation = 'nearest', origin = 'lower',
-                  #cmap = cmw, norm = norm)
-        #cb = fig.colorbar(C, ax = ax, orientation = 'horizontal')
-        #cb.set_label(unit)
-        #ax.set_title(name, fontsize = 10)
-    #axarr[1,2].axis('off')
+    tmp = np.copy(exw)
+    tmp[exbin == False] = np.nan
+    print exbin
+    print tmp
+    Cw = axarr[1,0].imshow(tmp, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'bwr', alpha = 1, vmin = -5, vmax = 5)
+    cb = fig.colorbar(Cw, ax = axarr[1,0], orientation = 'horizontal')
+    
+    tmp2 = np.copy(exq)
+    tmp2[exbin == False] = np.nan
+    Cw = axarr[0,1].imshow(tmp2, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'cool', alpha = 1, vmin = 0, vmax = 3)
+    cb = fig.colorbar(Cw, ax = axarr[0,1], orientation = 'horizontal')
+    cb.set_label('[g/kg]')
+    cb.set_ticks([0, 1, 2, 3])
+    cb.set_ticklabels(['>0', 1, 2, 3])
+    axarr[0,1].set_title('Cloud water')
+    
+    Cw = axarr[1,1].imshow(exbin, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'Greys', alpha = 1, vmin = 0, vmax = 1)
+    cb = fig.colorbar(Cw, ax = axarr[1,1], orientation = 'horizontal')
+    cb.set_label('')
+    axarr[1,1].set_title('Binary field')
+    
+    Cw = axarr[0,2].imshow(excld, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'prism', alpha = 1, vmin = np.nanmin(excld),
+                  vmax = np.nanmax(excld))
+    cb = fig.colorbar(Cw, ax = axarr[0,2], orientation = 'horizontal')
+    cb.set_label('')
+    axarr[0,2].set_title('Clouds identified')
+    
+    Cw = axarr[1,2].imshow(exwater, interpolation = 'nearest', origin = 'lower',
+                  cmap = 'prism', alpha = 1, vmin = np.nanmin(exwater),
+                  vmax = np.nanmax(exwater)*1.1)
+    cb = fig.colorbar(Cw, ax = axarr[1,2], orientation = 'horizontal')
+    cb.set_label('')
+    axarr[1,2].set_title('Clouds separated')
+
+    for ax in list(np.ravel(axarr)):
+        mpl.rcParams['axes.linewidth'] = 0
+        ax.tick_params(bottom='off',
+                       top='off',
+                       left='off',
+                       right='off',
+                       labelbottom='off',
+                       labeltop='off',
+                       labelleft='off',
+                       labelright='off')
+    
     t = timedelta(hours = args.tplot[0] + args.tstart)
     titlestr = (args.date[0] + '+' + ddhhmmss(t) + ', ' + args.ana + 
                 ', water=' + str(args.water) + 
