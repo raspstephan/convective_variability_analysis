@@ -18,13 +18,6 @@ from cosmo_utils.pywgrib import fieldobj
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.diag import mean_spread_fieldobjlist
 import matplotlib as mpl
-import matplotlib.pyplot as plt
-from scipy.optimize import leastsq
-
-# Some plotting setup
-pdfwidth = 7.87   # inches for AMetSoc
-mpl.rcParams['font.size'] = 10
-mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['text.latex.preamble'] = [
        r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
        r'\sisetup{detect-all}',   # ...this to force siunitx to actually use your fonts
@@ -32,6 +25,13 @@ mpl.rcParams['text.latex.preamble'] = [
        r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
        r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
 ] 
+import matplotlib.pyplot as plt
+from scipy.optimize import leastsq
+
+# Some plotting setup
+pdfwidth = 7.87   # inches for AMetSoc
+mpl.rcParams['font.size'] = 10
+mpl.rcParams['font.family'] = 'sans-serif'
 
 
 # Define functions
@@ -69,6 +69,18 @@ def residual_b(p, y, x):
 def residual_b_sqrt(p, y, x):
     b = p
     err = np.abs(y - np.sqrt(b*x))
+    
+    return err
+
+def residual_exp(p, y, x):
+    a,b = p
+    err = np.log(y)-(a-b*x)
+    
+    return err
+
+def residual_pow(p, y, x):
+    a,b = p
+    err = np.log(y)-(a-b*np.log(x))
     
     return err
 
@@ -216,26 +228,41 @@ if 'cloud_stats' in args.plot:
         print 'beta', sumvar/summean**2, summean
     
     # Plot the histograms
-    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3.5))
+    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
     axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0],
                  color = 'darkgray')
     axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
-                alpha = 0.5)
-    ## Fit line
-    #p0 = [1e4, 1e-7]
-    #result = leastsq(residual_ab_exp, p0, args = (sizehist, sizeedges[:-1]))
-    #a,b = result[0]
-    #print a,b
-    ##a = 1e4
-    ##b = -0.4e-7
-    #axarr[0].plot(sizeedges[:-1],a*np.exp(b*sizeedges[:-1]), c = 'orange')
-    #print sizeedges[:-1], a*np.exp(b*sizeedges[:-1])
-    axarr[0].set_xlabel('Cloud size [m^2]')
+                alpha = 0.5, label = 'mean')
+    ## Fit line, 1st exp
+    p0 = [10, 1]
+    mask = sizehist>0
+    xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
+    result = leastsq(residual_exp, p0, args = (sizehist[mask], xfit[mask]))
+    a,b = result[0]
+    axarr[0].plot(xfit,np.exp(a-b*xfit), c = 'orange', label = 'exponential')
+    
+    ## Fit line, 2nd power law
+    p0 = [10, 1]
+    mask = sizehist>0
+    xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
+    print sizehist[mask]
+    print np.log(sizehist[mask])
+    print np.log(xfit)
+    result = leastsq(residual_pow, p0, args = (sizehist[mask], xfit[mask]))
+    a,b = result[0]
+    print a,b
+    print np.exp(a-b*np.log(xfit[mask]))
+    axarr[0].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
+
+    axarr[0].set_xlabel(r'Cloud size [m$^2$]')
     axarr[0].set_ylabel('Number of clouds')
     axarr[0].set_title('Cloud size', fontsize = 10)
     axarr[0].set_xlim([0., sizemax])
     axarr[0].set_ylim([1, 1e6])
     axarr[0].set_yscale('log')
+    axarr[0].legend(prop={'size':8}, loc = 1)
+    axarr[0].text(0.05, 0.9, '(a)', transform = axarr[0].transAxes, 
+                    fontsize = 10)
     
     if not args.hypo:
         axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
@@ -246,9 +273,28 @@ if 'cloud_stats' in args.plot:
         axarr[1].set_xlim([0., summax])
         axarr[1].set_ylim([1, 1e6])
         axarr[1].set_yscale('log')
-        axarr[1].set_xlabel('Cloud mass flux [kg/s]')
+        axarr[1].set_xlabel(r'm [kg s$^{-1}$]')
         axarr[1].set_title('Mass flux per cloud', fontsize = 10)
+        axarr[1].text(0.05, 0.9, '(b)', transform = axarr[1].transAxes, 
+                    fontsize = 10)
         
+        ## Fit line, 1st exp
+        p0 = [10, 1]
+        mask = sumhist>0
+        xfit = (sumedges[:-1] + sumedges[1:]) / 2.
+        result = leastsq(residual_exp, p0, args = (sumhist[mask], xfit[mask]))
+        a,b = result[0]
+        axarr[1].plot(xfit,np.exp(a-b*xfit), c = 'orange', label = 'exponential')
+        
+        ## Fit line, 2nd power law
+        p0 = [10, 1]
+
+        result = leastsq(residual_pow, p0, args = (sumhist[mask], xfit[mask]))
+        a,b = result[0]
+
+        axarr[1].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
+        
+        Rcorr = np.corrcoef(totlist1, totlist2)[1,0]
         print 'corr', np.corrcoef(totlist1, totlist2)[1,0]
         print 'n_cld', len(totlist1)
         axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
@@ -261,8 +307,12 @@ if 'cloud_stats' in args.plot:
         axarr[2].plot(tmp, tmp*slope, c = 'k')
         axarr[2].set_yscale('log')
         axarr[2].set_xscale('log')
-        axarr[2].set_xlabel('Cloud size [m^2]')
-        axarr[2].set_ylabel('Cloud mass flux [kg/s]')
+        axarr[2].set_xlabel(r'Cloud size [m$^2$]')
+        axarr[2].set_ylabel(r'm [kg s$^{-1}$]')
+        axarr[2].text(0.05, 0.9, '(c)', transform = axarr[2].transAxes, 
+                    fontsize = 10)
+        axarr[2].text(0.65, 0.05, 'R={:.2f}'.format(Rcorr), transform = axarr[2].transAxes, 
+                    fontsize = 10)
         
     
     
@@ -2347,7 +2397,8 @@ if 'identification' in args.plot:
     print exw
     Cw = axarr[0,0].imshow(exw, interpolation = 'nearest', origin = 'lower',
                   cmap = 'bwr', alpha = 1, vmin = -5, vmax = 5)
-    cb = fig.colorbar(Cw, ax = axarr[0,0], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[0,0], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     cb.set_label('[m/s]')
     cb.set_ticks([-5, -2.5, 0, 2.5, 5])
     axarr[0,0].set_title('Vertical velocity')
@@ -2358,13 +2409,15 @@ if 'identification' in args.plot:
     print tmp
     Cw = axarr[1,0].imshow(tmp, interpolation = 'nearest', origin = 'lower',
                   cmap = 'bwr', alpha = 1, vmin = -5, vmax = 5)
-    cb = fig.colorbar(Cw, ax = axarr[1,0], orientation = 'horizontal', fraction = 0.5)
+    cb = fig.colorbar(Cw, ax = axarr[1,0], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     
     tmp2 = np.copy(exq)
     tmp2[exbin == False] = np.nan
     Cw = axarr[0,1].imshow(tmp2, interpolation = 'nearest', origin = 'lower',
                   cmap = 'cool', alpha = 1, vmin = 0, vmax = 3)
-    cb = fig.colorbar(Cw, ax = axarr[0,1], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[0,1], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     cb.set_label('[g/kg]')
     cb.set_ticks([0, 1, 2, 3])
     cb.set_ticklabels(['>0', 1, 2, 3])
@@ -2372,21 +2425,24 @@ if 'identification' in args.plot:
     
     Cw = axarr[1,1].imshow(exbin, interpolation = 'nearest', origin = 'lower',
                   cmap = 'Greys', alpha = 1, vmin = 0, vmax = 1)
-    cb = fig.colorbar(Cw, ax = axarr[1,1], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[1,1], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     cb.set_label('')
     axarr[1,1].set_title('Binary field')
     
     Cw = axarr[0,2].imshow(excld, interpolation = 'nearest', origin = 'lower',
                   cmap = 'prism', alpha = 1, vmin = np.nanmin(excld),
                   vmax = np.nanmax(excld))
-    cb = fig.colorbar(Cw, ax = axarr[0,2], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[0,2], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     cb.set_label('')
     axarr[0,2].set_title('Clouds identified')
     
     Cw = axarr[1,2].imshow(exwater, interpolation = 'nearest', origin = 'lower',
                   cmap = 'prism', alpha = 1, vmin = np.nanmin(exwater),
                   vmax = np.nanmax(exwater)*1.1)
-    cb = fig.colorbar(Cw, ax = axarr[1,2], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[1,2], orientation = 'horizontal', 
+                      fraction = 0.05, pad = 0.05)
     cb.set_label('')
     axarr[1,2].set_title('Clouds separated')
 

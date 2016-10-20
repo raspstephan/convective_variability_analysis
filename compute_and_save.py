@@ -19,6 +19,7 @@ from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,\
 from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 import os
+import cPickle
 
 
 # Setup - Input arguments
@@ -334,40 +335,63 @@ for it, t in zip(itlist, timelist):
     ncdffn = 'lfff' + ddhhmmss(t) + sufx
     
     if args.ana in ['clouds', 'coarse']:
-        # Load fields required for mass flux analysis
-        fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                    dir_suffix='/OUTPUT/', fieldn = fieldn, 
-                                    nfill=1, levs = lev, return_arrays=True)
-        
-        # Crop all fields to analysis domain
-        for i in range(args.nens):
-            fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
+        savename = ('fields_' + args.date + '_height-' + heightstr + 
+                    '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) + 
+                    '.cpkl')
+        if os.path.exists(ensdir + savename):
+            print 'Loading pre-saved file', ensdir + savename
+            # numpy load
+            savefile = open(ensdir + savename, 'r')
+            fieldlist = cPickle.load(savefile)
+            qclist = cPickle.load(savefile)
+            rholist = cPickle.load(savefile)
+            savefile.close()
             
-        qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                  dir_suffix='/OUTPUT/', fieldn = 'QC', 
-                                  nfill=1, levs = lev, return_arrays = True)
-        # Add QI and QS
-        qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                  dir_suffix='/OUTPUT/', fieldn = 'QI', 
-                                  nfill=1, levs = lev, return_arrays = True)
-        qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                  dir_suffix='/OUTPUT/', fieldn = 'QS', 
-                                  nfill=1, levs = lev, return_arrays = True)
-        for i in range(args.nens):
-            qclist[i] = (qclist[i][lx1:lx2, ly1:ly2] + 
-                         qilist[i][lx1:lx2, ly1:ly2] + 
-                         qslist[i][lx1:lx2, ly1:ly2])
+        else:
+            print 'No pre-saved file found'
+            
+            # Load fields required for mass flux analysis
+            fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = fieldn, 
+                                        nfill=1, levs = lev, return_arrays=True)
+            
+            # Crop all fields to analysis domain
+            for i in range(args.nens):
+                fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
+                
+            qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'QC', 
+                                    nfill=1, levs = lev, return_arrays = True)
+            # Add QI and QS
+            qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'QI', 
+                                    nfill=1, levs = lev, return_arrays = True)
+            qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'QS', 
+                                    nfill=1, levs = lev, return_arrays = True)
+            for i in range(args.nens):
+                qclist[i] = (qclist[i][lx1:lx2, ly1:ly2] + 
+                            qilist[i][lx1:lx2, ly1:ly2] + 
+                            qslist[i][lx1:lx2, ly1:ly2])
 
-        del qilist
-        del qslist
-        ncdffn_buoy = ncdffn + '_buoy'
-        rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                   dir_suffix='/OUTPUT/', fieldn = 'RHO', 
-                                   nfill=1, levs=lev, return_arrays=True)
-        
-        for i in range(args.nens):
-            rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
+            del qilist
+            del qslist
+            ncdffn_buoy = ncdffn + '_buoy'
+            rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
+                                    nfill=1, levs=lev, return_arrays=True)
             
+            for i in range(args.nens):
+                rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
+                
+            # Save file
+            print 'Saving file', ensdir + savename
+            savefile = open(ensdir + savename, 'w')
+            cPickle.dump(fieldlist, savefile, -1)
+            cPickle.dump(qclist, savefile, -1)
+            cPickle.dump(rholist, savefile, -1)
+            savefile.close()
+
     if args.ana == 'vert':
         # Load fields required for mass flux analysis
         fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
@@ -567,6 +591,7 @@ for it, t in zip(itlist, timelist):
         comlist = []      # Save for use later
         for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
                                   range(len(fieldlist))):
+            print 'mem', imem
             # Identify clouds
             
             if imem == 0 and args.ana == 'clouds':
@@ -576,7 +601,7 @@ for it, t in zip(itlist, timelist):
                                     opt_thresh = 0., water = False,
                                     rho = rho)
                 excld[it,:,:] = tmp[0]
-                
+            print 'a'
             tmp = identify_clouds(field, thresh, qc,
                                     opt_thresh = 0., water = args.water,
                                     rho = rho)
@@ -594,7 +619,7 @@ for it, t in zip(itlist, timelist):
             if com.shape[0] == 0:   # Accout for empty arrays
                 com = np.empty((0,2))
             comlist.append(com)
-            
+            print 'b'
             if args.ana == 'clouds':
                 # Calculate RDF
                 g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
