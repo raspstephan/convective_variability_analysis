@@ -2358,7 +2358,7 @@ if 'identification' in args.plot:
     print tmp
     Cw = axarr[1,0].imshow(tmp, interpolation = 'nearest', origin = 'lower',
                   cmap = 'bwr', alpha = 1, vmin = -5, vmax = 5)
-    cb = fig.colorbar(Cw, ax = axarr[1,0], orientation = 'horizontal')
+    cb = fig.colorbar(Cw, ax = axarr[1,0], orientation = 'horizontal', fraction = 0.5)
     
     tmp2 = np.copy(exq)
     tmp2[exbin == False] = np.nan
