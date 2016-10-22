@@ -345,6 +345,7 @@ for it, t in zip(itlist, timelist):
             fieldlist = cPickle.load(savefile)
             qclist = cPickle.load(savefile)
             rholist = cPickle.load(savefile)
+            Qmplist = cPickle.load(savefile)
             savefile.close()
             
         else:
@@ -384,12 +385,23 @@ for it, t in zip(itlist, timelist):
             for i in range(args.nens):
                 rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
                 
+            # Get vertically integrated Q    
+            Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                    dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
+                                    nfill=1, return_arrays = True)
+            #Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                    #dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
+                                    #nfill=1, return_arrays = True)
+            for i in range(args.nens):
+                Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+                
             # Save file
             print 'Saving file', ensdir + savename
             savefile = open(ensdir + savename, 'w')
             cPickle.dump(fieldlist, savefile, -1)
             cPickle.dump(qclist, savefile, -1)
             cPickle.dump(rholist, savefile, -1)
+            cPickle.dump(Qmplist, savefile, -1)
             savefile.close()
 
     if args.ana == 'vert':
@@ -427,17 +439,6 @@ for it, t in zip(itlist, timelist):
         for i in range(args.nens):
             rholist[i] = rholist[i][:,lx1:lx2, ly1:ly2]
             
-    if args.ana == 'coarse':
-        # Get vertically integrated Q    
-        Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                  dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
-                                  nfill=1, return_arrays = True)
-        #Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                  #dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
-                                  #nfill=1, return_arrays = True)
-        for i in range(args.nens):
-            Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
-            #Qtotlist[i] = np.mean(Qtotlist[i][:, lx1:lx2, ly1:ly2], axis = 0)
 
     if args.ana in ['weather', 'prec', 'spectra']:
         # Load precipitation data
@@ -591,7 +592,6 @@ for it, t in zip(itlist, timelist):
         comlist = []      # Save for use later
         for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
                                   range(len(fieldlist))):
-            print 'mem', imem
             # Identify clouds
             
             if imem == 0 and args.ana == 'clouds':
@@ -601,7 +601,6 @@ for it, t in zip(itlist, timelist):
                                     opt_thresh = 0., water = False,
                                     rho = rho)
                 excld[it,:,:] = tmp[0]
-            print 'a'
             tmp = identify_clouds(field, thresh, qc,
                                     opt_thresh = 0., water = args.water,
                                     rho = rho)
@@ -619,7 +618,6 @@ for it, t in zip(itlist, timelist):
             if com.shape[0] == 0:   # Accout for empty arrays
                 com = np.empty((0,2))
             comlist.append(com)
-            print 'b'
             if args.ana == 'clouds':
                 # Calculate RDF
                 g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
