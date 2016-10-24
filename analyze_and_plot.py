@@ -102,6 +102,7 @@ parser.add_argument('--tplot', metavar = 'tplot', type=float, nargs = '+',
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
 parser.add_argument('--hypo', metavar = 'hypo', type=str, default = 'False')
+parser.add_argument('--det', metavar = 'det', type=str, default = 'False')
 args = parser.parse_args()
 
 if args.hypo == 'True':
@@ -134,12 +135,16 @@ for d in args.date:
                 '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
                 '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr))
     savesuf = anastr + '.nc'
+    if args.det == 'True':
+        savesuf += '_det'
     # Load file 
     #datasetlist.append(Dataset(savedir + savestr, 'r'))
 alldatestr = alldatestr[:-1]   # revome final underscore
 if alldatestr == '2016052800_2016052900_2016053000_2016053100_2016060100_2016060200_2016060300_2016060400_2016060500_2016060600_2016060700_2016060800':
     alldatestr = 'composite'
     print 'Composite!'
+if args.det == 'True':
+    alldatestr += '_det'
 # End load datasets
 ################################################################################
 
@@ -2464,7 +2469,9 @@ if 'prec_stamps' in args.plot:
     ensdir = '/home/scratch/users/stephan.rasp/' + args.date[0] + '/deout_ceu_pspens/'
     t = timedelta(hours = args.tplot[0])
     print t
-    HHobj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
+    #HHobj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff00000000c.nc_30m', 'HHL')
+    TTENSobj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff' + ddhhmmss(t) + 
+                            '.nc_30m', 'QVTENSSTO')
     PREC1obj = getfobj_ncdf(ensdir + '/1/OUTPUT/lfff' + ddhhmmss(t) + 
                             '.nc_30m_surf', 'PREC_ACCUM')
     PREC2obj = getfobj_ncdf(ensdir + '/2/OUTPUT/lfff' + ddhhmmss(t) + 
@@ -2484,15 +2491,15 @@ if 'prec_stamps' in args.plot:
     # Set up the figure 
     fig, axarr = plt.subplots(2, 4, figsize = (pdfwidth, 5))
     plt.sca(axarr[1,0])   # This is necessary for some reason...
-    
-    cf, tmp = ax_contourf(axarr[1,0], HHobj,
-                          cmap = 'gist_earth', pllevels = np.linspace(0, 1000, 100),
-                            ji0=(50, 50),
-                            ji1=(357-51, 357-51),
-                            sp_title='Surface height',
+    print TTENSobj.data.max()
+    cf, tmp = ax_contourf(axarr[1,0], TTENSobj,
+                          cmap = 'bwr',pllevels=np.linspace(-3e-7, 3e-7, 100),
+                            ji0=(110, 160),
+                            ji1=(357-161, 357-111),
+                            sp_title='QV perturbation',
                             Basemap_drawrivers = False,
                             npars = 0, nmers = 0,
-                            lev = 50,
+                            lev =45,
                             extend = 'both')
     #cb = fig.colorbar(cf)
     #cb.set_label(HHobj.unit)

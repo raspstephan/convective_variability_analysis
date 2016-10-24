@@ -11,7 +11,7 @@ from netCDF4 import Dataset, date2num
 import numpy as np
 from datetime import timedelta
 from cosmo_utils.pyncdf import getfobj_ncdf_ens, getfobj_ncdf, \
-                               getfobj_ncdf_timeseries
+                               getfobj_ncdf_timeseries, getfield_ncdf
 from cosmo_utils.helpers import make_timelist, ddhhmmss, yymmddhhmm, \
                                 yyyymmddhh_strtotime
 from cosmo_utils.diag import identify_clouds, calc_rdf, crosscor, int_rad_2d,\
@@ -35,6 +35,7 @@ parser.add_argument('--tinc', metavar = 'tinc', type=int, default = 60)
 parser.add_argument('--minmem', metavar = 'minmem', type=int, default = 5)
 parser.add_argument('--dr', metavar = 'dr', type=int, default = 2)
 parser.add_argument('--split', metavar = 'split', type=str, default = 'False')
+parser.add_argument('--det', metavar = 'det', type=str, default = 'False')
 args = parser.parse_args()
 # Convert water to bool 
 if args.water == 'True':
@@ -44,6 +45,8 @@ elif args.water == 'False':
 else:
     raise Exception
 
+if args.det == 'True':
+    args.nens = 1
 
 # Create file str
 savedir = '/home/scratch/users/stephan.rasp/results/'
@@ -54,6 +57,9 @@ savestr = (args.date + '_ana-' + args.ana + '_wat-' + str(args.water) +
            '_nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
            '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
            '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr) + '.nc')
+if args.det == 'True':
+    savestr += '_det'
+    
 print savestr
 # Convert times to timedelta objects
 tstart = timedelta(hours = args.tstart)   # Cannot be 0 because of tau_c calculation!
@@ -335,74 +341,100 @@ for it, t in zip(itlist, timelist):
     ncdffn = 'lfff' + ddhhmmss(t) + sufx
     
     if args.ana in ['clouds', 'coarse']:
-        savename = ('fields_' + args.date + '_height-' + heightstr + 
-                    '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) + 
-                    '.cpkl')
-        if os.path.exists(ensdir + savename):
-            print 'Loading pre-saved file', ensdir + savename
-            # numpy load
-            savefile = open(ensdir + savename, 'r')
-            fieldlist = cPickle.load(savefile)
-            qclist = cPickle.load(savefile)
-            rholist = cPickle.load(savefile)
-            Qmplist = cPickle.load(savefile)
-            savefile.close()
-            
-        else:
-            print 'No pre-saved file found'
-            
+        if args.det == 'True':
             # Load fields required for mass flux analysis
-            fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                        dir_suffix='/OUTPUT/', fieldn = fieldn, 
-                                        nfill=1, levs = lev, return_arrays=True)
+            fieldlist = [getfield_ncdf(ensdir+'/det/OUTPUT/' + ncdffn, 
+                                  fieldn = fieldn, levs = lev)[lx1:lx2, ly1:ly2]]
             
-            # Crop all fields to analysis domain
-            for i in range(args.nens):
-                fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
-                
-            qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'QC', 
-                                    nfill=1, levs = lev, return_arrays = True)
-            # Add QI and QS
-            qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'QI', 
-                                    nfill=1, levs = lev, return_arrays = True)
-            qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'QS', 
-                                    nfill=1, levs = lev, return_arrays = True)
+            qclist = [getfield_ncdf(ensdir+'/det/OUTPUT/' + ncdffn, 
+                                  fieldn = 'QC', levs = lev)]
+            qilist = [getfield_ncdf(ensdir+'/det/OUTPUT/' + ncdffn, 
+                                  fieldn = 'QI', levs = lev)]
+            qslist = [getfield_ncdf(ensdir+'/det/OUTPUT/' + ncdffn, 
+                                  fieldn = 'QS', levs = lev)]
             for i in range(args.nens):
                 qclist[i] = (qclist[i][lx1:lx2, ly1:ly2] + 
                             qilist[i][lx1:lx2, ly1:ly2] + 
                             qslist[i][lx1:lx2, ly1:ly2])
-
-            del qilist
-            del qslist
+                
             ncdffn_buoy = ncdffn + '_buoy'
-            rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'RHO', 
-                                    nfill=1, levs=lev, return_arrays=True)
+            rholist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_buoy, 
+                                  fieldn = 'RHO', levs = lev).data[lx1:lx2, ly1:ly2]]
             
+            Qmplist = [getfield_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_buoy, 
+                                  fieldn = 'TTENS_MPHY')]
             for i in range(args.nens):
-                rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
+                    Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+            
+        else:
+            savename = ('fields_' + args.date + '_height-' + heightstr + 
+                        '_nens-' + str(args.nens) + '_time-' + ddhhmmss(t) + 
+                        '.cpkl')
+            if os.path.exists(ensdir + savename):
+                print 'Loading pre-saved file', ensdir + savename
+                # numpy load
+                savefile = open(ensdir + savename, 'r')
+                fieldlist = cPickle.load(savefile)
+                qclist = cPickle.load(savefile)
+                rholist = cPickle.load(savefile)
+                Qmplist = cPickle.load(savefile)
+                savefile.close()
                 
-            # Get vertically integrated Q    
-            Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
-                                    nfill=1, return_arrays = True)
-            #Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
-                                    #dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
-                                    #nfill=1, return_arrays = True)
-            for i in range(args.nens):
-                Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+            else:
+                print 'No pre-saved file found'
                 
-            # Save file
-            print 'Saving file', ensdir + savename
-            savefile = open(ensdir + savename, 'w')
-            cPickle.dump(fieldlist, savefile, -1)
-            cPickle.dump(qclist, savefile, -1)
-            cPickle.dump(rholist, savefile, -1)
-            cPickle.dump(Qmplist, savefile, -1)
-            savefile.close()
+                # Load fields required for mass flux analysis
+                fieldlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                            dir_suffix='/OUTPUT/', fieldn = fieldn, 
+                                            nfill=1, levs = lev, return_arrays=True)
+                
+                # Crop all fields to analysis domain
+                for i in range(args.nens):
+                    fieldlist[i] = fieldlist[i][lx1:lx2, ly1:ly2]
+                    
+                qclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'QC', 
+                                        nfill=1, levs = lev, return_arrays = True)
+                # Add QI and QS
+                qilist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'QI', 
+                                        nfill=1, levs = lev, return_arrays = True)
+                qslist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'QS', 
+                                        nfill=1, levs = lev, return_arrays = True)
+                for i in range(args.nens):
+                    qclist[i] = (qclist[i][lx1:lx2, ly1:ly2] + 
+                                qilist[i][lx1:lx2, ly1:ly2] + 
+                                qslist[i][lx1:lx2, ly1:ly2])
+
+                del qilist
+                del qslist
+                ncdffn_buoy = ncdffn + '_buoy'
+                rholist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'RHO', 
+                                        nfill=1, levs=lev, return_arrays=True)
+                
+                for i in range(args.nens):
+                    rholist[i] = rholist[i][lx1:lx2, ly1:ly2]
+                    
+                # Get vertically integrated Q    
+                Qmplist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'TTENS_MPHY', 
+                                        nfill=1, return_arrays = True)
+                #Qtotlist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_buoy, 
+                                        #dir_suffix='/OUTPUT/', fieldn = 'TTENS_DIAB', 
+                                        #nfill=1, return_arrays = True)
+                for i in range(args.nens):
+                    Qmplist[i] = np.mean(Qmplist[i][:, lx1:lx2, ly1:ly2], axis = 0)
+                    
+                # Save file
+                print 'Saving file', ensdir + savename
+                savefile = open(ensdir + savename, 'w')
+                cPickle.dump(fieldlist, savefile, -1)
+                cPickle.dump(qclist, savefile, -1)
+                cPickle.dump(rholist, savefile, -1)
+                cPickle.dump(Qmplist, savefile, -1)
+                savefile.close()
 
     if args.ana == 'vert':
         # Load fields required for mass flux analysis
@@ -443,23 +475,35 @@ for it, t in zip(itlist, timelist):
     if args.ana in ['weather', 'prec', 'spectra']:
         # Load precipitation data
         ncdffn_surf = ncdffn + '_surf'
-        preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                    dir_suffix='/OUTPUT/', fieldn='PREC_ACCUM', 
-                                    nfill=1, return_arrays=True)
+        if args.det == 'True':
+            preclist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'PREC_ACCUM', levs = lev).data]
+        else:
+            preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn='PREC_ACCUM', 
+                                        nfill=1, return_arrays=True)
         for i in range(args.nens):
             preclist[i] = preclist[i][lx1:lx2, ly1:ly2]
         
     if args.ana == 'weather':
         # Load weather info data
-        tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
-                                    nfill=1, return_arrays=True)
-        hpbllist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'HPBL', 
-                                    nfill=1, return_arrays=True)
-        capelist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
-                                    dir_suffix='/OUTPUT/', fieldn = 'CAPE_ML', 
-                                    nfill=1, return_arrays=True)
+        if args.det == 'True':
+            tauclist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'TAU_C', levs = lev).data]
+            hpbllist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'HPBL', levs = lev).data]
+            capelist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'CAPE_ML', levs = lev).data]
+        else:
+            tauclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'TAU_C', 
+                                        nfill=1, return_arrays=True)
+            hpbllist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'HPBL', 
+                                        nfill=1, return_arrays=True)
+            capelist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'CAPE_ML', 
+                                        nfill=1, return_arrays=True)
         for i in range(args.nens):
             tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
             hpbllist[i] = hpbllist[i][lx1:lx2, ly1:ly2]
