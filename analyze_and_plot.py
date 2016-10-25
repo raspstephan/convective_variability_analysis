@@ -250,8 +250,8 @@ if 'cloud_stats' in args.plot:
     fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
     axarr[0].bar(sizeedges[:-1], sizehist, width = np.diff(sizeedges)[0],
                  color = 'darkgray')
-    axarr[0].plot([sizemean, sizemean], [1, 1e6], c = 'red', 
-                alpha = 0.5, label = 'mean')
+    axarr[0].plot([sizemean, sizemean], [1, 1e7], c = 'red', 
+                alpha = 1, label = 'mean')
     ## Fit line, 1st exp
     p0 = [10, 1]
     mask = sizehist>0
@@ -286,8 +286,8 @@ if 'cloud_stats' in args.plot:
     if not args.hypo:
         axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
                     color = 'darkgray')
-        axarr[1].plot([summean, summean], [1, 1e6], c = 'red', 
-                    alpha = 0.5)
+        axarr[1].plot([summean, summean], [1, 1e7], c = 'red', 
+                    alpha = 1)
         axarr[1].set_ylabel('Number of clouds')
         axarr[1].set_xlim([0., summax])
         axarr[1].set_ylim([1, 1e7])
@@ -1161,18 +1161,20 @@ if 'diurnal' in args.plot:
     
     pname = ['CC06','alpha','CC06alpha', 'beta']
     plabel = ['Variance: simulation / prediction',r'$\alpha$',
-              'Variance: simulation / prediction', r'$\beta$']
+              'Variance: simulation / prediction', r'$\beta$','']
     ptitle = ['CC06 prediction',r'Organization parameter $\alpha$',
               r'$\alpha$-adjusted CC06 prediction',
-              r'$m$ distribution parameter $\beta$']
-    pylim = [(0.45, 2.1),(0.7,3),(0.45, 2.1),(0.45, 2.1)]
+              r'$m$ distribution parameter $\beta$','']
+    pylim = [(0.45, 2.1),(0.7,3),(0.45, 2.1),(0.45, 2.1),(0,1)]
     
     for ip in range(len(pname)):
+        print 'ip', ip
         # Set up the figure
         fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
         clist = ['#3366ff', '#009933', '#ff3300']
         labellist = ['SS: 11.2 km', 'MS: 89.6 km', 'LS: 717 km']
         for i, i_n in enumerate([6,3,0]):
+            print 'n', i_n
             # Extract the arrays
             M = np.array(meanM_list[i_n])
             m = np.array(meanm_list[i_n])
@@ -1182,6 +1184,7 @@ if 'diurnal' in args.plot:
             varN = np.array(varN_list[i_n])
             alpha = varN/N
             beta = varm/(m**2)
+                        
             
             if ip == 0:
                 # CC06 unadjusted
@@ -1195,7 +1198,19 @@ if 'diurnal' in args.plot:
                 frac = varM/predict
             if ip == 3:
                 frac = beta
-            
+                print frac.shape
+            #if ip == 4:
+                #tmp = []
+                #for it in range(N.shape[0]):
+                    #Ntmp = N[it]
+                    #mtmp = m[it]
+                    #mask = np.isfinite(Ntmp) * np.isfinite(mtmp)
+                    
+                    #tmp.append([np.corrcoef(Ntmp[mask], mtmp[mask])[1,0]])
+                    
+                #frac = np.array(tmp)
+                #print frac.shape
+                #print frac
             # Get 3 hourly means and percentiles
             mean3h = []
             per5 = []
@@ -1206,6 +1221,7 @@ if 'diurnal' in args.plot:
                 start = (it-1)*2; stop = (it+2)*2
                 data = np.ravel(frac[start:stop])
                 data = data[np.isfinite(data)]
+                #print data
                 mean3h.append(np.mean(data))
                 per5.append(np.percentile(data, 5))
                 per25.append(np.percentile(data, 25))
@@ -1310,14 +1326,7 @@ if 'std_v_mean' in args.plot:
         cPickle.dump(stdQmp_list, savefile, -1)
         cPickle.dump(Qmp_list, savefile, -1)
         savefile.close()
-        
-    #print stdM_list
-    #allstdM = np.ravel(np.array(stdM_list))
-    #print allstdM, allstdM.shape
-    #allstdM = allstdM[np.isfinite(allstdM)]
-    #allM = np.ravel(M_list)
-    #allM = allstdM[np.isfinite(allM)]
-    
+
     
     # Set up the figure 
     tmp = np.logspace(5,12, 1000)
@@ -1345,35 +1354,7 @@ if 'std_v_mean' in args.plot:
         
         allstdM += list(stdM)
         allM += list(M)
-        
-        #stdQmp = np.array(stdQmp_list[i_n]) * 3600. * 24.  # Konvert to K/d
-        #Qmp = np.array(Qmp_list[i_n]) * 3600. * 24. 
-        
-        # M v var(M) 
-        #ax.scatter(M, stdM, marker = 'o', c = clist[i_n], 
-                            #s = 4, zorder = z_n, linewidth = 0, 
-                            #alpha = 0.8)
-        ## Fit the line, SPPT
-        #tmp2 = np.logspace(6, 11, 1000)
-        #result = leastsq(residual_b, p0, args = (y[mask], x[mask]))
-        #b = result[0]
-        #axarr[0,0].plot(tmp2,b*tmp2, c = clist[i_n], alpha = 1, 
-                        #linestyle = '--', zorder = 2, label = 'SPPT')
-        ## How good is the fit
-        #nrmse = (np.sqrt(np.mean(residual_b(b, y[mask], x[mask])**2))/
-                 #np.mean(y[mask]))
-        #print b, nrmse
-        #axarr[0,1].errorbar(np.log2(n)-0.1, b, yerr = nrmse/2., c = clist[i_n], 
-                            #fmt = 'o', label = 'SPPT')
-        
-        #axarr[0,0].plot(tmp2,np.sqrt(b*tmp2), c = clist[i_n], alpha = 1, 
-                        #linestyle = '-.', zorder = 2, label = 'CC06')
-        ## How good is the fit
-        #nrmse = (np.sqrt(np.mean(residual_b_sqrt(b, y[mask], x[mask])**2))/
-                 #np.mean(y[mask]))
-        #print b, nrmse
-        #axarr[0,1].errorbar(np.log2(n)+0.1, b/1e8, yerr = nrmse/2., c = clist[i_n], 
-                            #fmt = 'x', label = 'CC06 / 1e8')
+
         
     allstdM = np.array(allstdM)
     allM = np.array(allM)
@@ -1442,18 +1423,13 @@ if 'std_v_mean' in args.plot:
     ax.set_ylim(4e6,2e9)
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ##axarr[0,0].xaxis.grid(True)
-    ##ax2.invert_xaxis()
+
     ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
     ax.set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
-    #axarr[0,0].set_title('Mass flux: variability against mean', fontsize = 10)
-    #axarr[0,0].legend(loc = 4, ncol = 2, prop={'size':6})
+
     
     ax.set_title('Scaling of standard deviation with mean')
-    #axarr[0,1].set_xlabel(r'log$_2$ n')
-    #axarr[0,1].set_ylabel(r'fit parameter and NRMSE')
-    #axarr[0,1].set_ylim(0,2)
-    #axarr[0,1].set_title('How good are the CC06 and SPPT fits', fontsize = 10)
+
     ax.legend(loc = 2, ncol = 1, prop={'size':8})
     
     ax2 = plt.axes([.65, .3, .2, .2], axisbg='lightgray')
@@ -1471,19 +1447,7 @@ if 'std_v_mean' in args.plot:
     ax2.set_xticklabels([5, 50, 500], fontsize = 8)
     ax2.set_yticks([0.5, 1.5])
     ax2.set_yticklabels([0.5, 1.5], fontsize = 8)
-    #plt.setp(ax2, xticks=[], yticks=[])
-    
-    #axarr[0,0].text(0.05, 0.9, '(a)', transform = axarr[0,0].transAxes, 
-                    #fontsize = 10)
-    #axarr[0,1].text(0.05, 0.9, '(b)', transform = axarr[0,1].transAxes, 
-                    #fontsize = 10)
 
-    
-    titlestr = (alldatestr + '\n' + args.ana + 
-                ', water=' + str(args.water) + ', lev= ' + str(int(args.height[0])) + 
-                ', nens=' + str(args.nens))
-    titlestr += '\nCC06 variance scaling fits data reasonably well'
-    #fig.suptitle(titlestr)
     plt.tight_layout()
     
     plotsavestr = ('std_v_mean_' + alldatestr + '_ana-' + args.ana + 
@@ -1492,7 +1456,212 @@ if 'std_v_mean' in args.plot:
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
+    #### Q ##########################3333333
+    # Set up the figure 
+    tmp = np.logspace(5,12, 1000)
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    
+    blist = []
+    allstdM = []
+    allM = []
+    ####### n loop #######################
+    for i_n, n in enumerate(nlist):
+        print 'n: ', n
+        z_n = 0.1 + (n/256.)*0.1   # for z_order
+        
+        # Get the data
+        stdM = np.array(stdQmp_list[i_n])*((n*2.8e3)**2)
+        M = np.array(Qmp_list[i_n])*((n*2.8e3)**2)
+        #print M
+        p0 = [1]
+        y = np.array(stdM)
+        x = np.array(M)
+        mask = np.isfinite(y)
+        # Fit the line, CC06
+        result = leastsq(residual_b_sqrt, p0, args = (y[mask], x[mask]))
+        b = result[0]
+        blist.append(b)
+        
+        allstdM += list(stdM)
+        allM += list(M)
 
+        
+    allstdM = np.array(allstdM)
+    allM = np.array(allM)
+    
+    p0 = [1]
+    y = np.array(allstdM)
+    x = np.array(allM)
+    mask = np.isfinite(y) * x>0
+    # Fit the line, CC06
+    result = leastsq(residual_b_sqrt, p0, args = (y[mask], x[mask]))
+    b = result[0]
+    print b
+    tmp2 = np.logspace(2, 7, 1000)
+    ax.plot(tmp2,np.sqrt(b*tmp2), alpha = 1, c = 'orangered',
+                    linestyle = '-', zorder = 0.2, label = r'CC06: $y=\sqrt{bx}$')
+    # Fit the line, SPPT
+    result = leastsq(residual_b, p0, args = (y[mask], x[mask]))
+    b = result[0]
+    ax.plot(tmp2,b*tmp2, alpha = 1, color = 'cornflowerblue',
+                    linestyle = '--', zorder = 0.2, label = r'SPPT: $y = bx$')
+    
+    
+    # Bin the data
+    nbins = 10
+    binedges = np.logspace(2, 7, nbins+1)
+    bininds = np.digitize(allM, binedges)
+    binmeans = []
+    bin5 = []
+    bin25 = []
+    bin75 = []
+    bin95 = []
+    binnum = []
+    for i in range(1,nbins+1):
+        num = (allstdM[bininds==i]).shape[0]
+        if num == 0:
+            binmeans.append(np.nan)
+            bin25.append(np.nan)
+            bin75.append(np.nan)
+            bin5.append(np.nan)
+            bin95.append(np.nan)
+        else:
+            binmeans.append(np.average(allstdM[bininds==i]))
+            bin25.append(np.percentile(allstdM[bininds==i],25))
+            bin75.append(np.percentile(allstdM[bininds==i],75))
+            bin5.append(np.percentile(allstdM[bininds==i],5))
+            bin95.append(np.percentile(allstdM[bininds==i],95))
+        binnum.append(num / float((allstdM[np.isfinite(allstdM)]).shape[0]) * 50)
+    xmean = (binedges[:-1] + binedges[1:])/2.
+    logmean = np.exp((np.log(binedges[:-1]) + np.log(binedges[1:])) / 2.)
+    logleft = np.exp(np.log(binedges[:-1])+0.2)
+    logright = np.exp(np.log(binedges[1:])-0.2)
+    height = np.array(bin75)-np.array(bin25)
+    width = logright - logleft
+    ax.bar(logleft, height, width, bin25, linewidth = 0, color = 'gray')
+    for i, binmean in enumerate(binmeans):
+        ax.plot([logleft[i], logright[i]], [binmean, binmean],
+                color = 'black', zorder = 2)
+        ax.plot([logmean[i], logmean[i]], [bin5[i], bin95[i]], 
+                color = 'black', zorder = 0.5)
+        
+        
+        
+        
+        
+
+    ax.set_xlim(1e2,1e7)
+    ax.set_ylim(1e2,5e6)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    ax.set_xlabel(r'$\langle Q \rangle * A$ [kg/s * m^2]')
+    ax.set_ylabel(r'$\langle (\delta Q)^2 \rangle^{1/2} * A$ [kg/s * m^2]')
+
+    
+    ax.set_title('Scaling of standard deviation with mean')
+
+    ax.legend(loc = 2, ncol = 1, prop={'size':8})
+
+
+    plt.tight_layout()
+    
+    plotsavestr = ('std_v_mean_Q_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+
+
+
+################################################################################
+if 'N_v_m' in args.plot:
+    print 'Plotting N_v_m'
+
+    plotdirsub = plotdir +  '/N_v_m/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    dx = 2.8e3
+    # Setup
+    # Clist for n
+    clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
+             "#ff00ff")
+    
+    savename = savedir + 'N_v_m_' + alldatestr + anastr
+    if os.path.exists(savename):
+        print 'Loading pre-saved file', savename
+        # numpy load
+        savefile = open(savename, 'r')
+        m_list = cPickle.load(savefile)
+        N_list = cPickle.load(savefile)
+        savefile.close()
+            
+    else:
+        print 'No pre-saved file found', savename
+    
+        # Load the data: I want to plot mu_2, N, alpha
+        # These list have 3 dims [lev, n, N_box]
+
+        m_list = create1Dlist(len(nlist))
+        N_list = create1Dlist(len(nlist))
+        
+        # Loop over dates 
+        for d in args.date:
+            # Load dataset 
+            print 'Loading date: ', d
+            dataset = Dataset(savedir + d + savesuf, 'r')
+            
+            # Load the required data and put it in list
+            for i_n, n in enumerate(dataset.variables['n']):
+                nmax = 265/n
+                A = float((n*2.8e3)**2)
+                meanm = dataset.variables['meanm'][:,i_n,:nmax,:nmax]
+                meanN = dataset.variables['meanN'][:,i_n,:nmax,:nmax]
+                
+                m_list[i_n] += list(np.ravel(meanm))
+                N_list[i_n] += list(np.ravel(meanN))
+                    
+        # now I have the lists I want in the scatter plot 
+        savefile = open(savename, 'w')
+        cPickle.dump(m_list, savefile, -1)
+        cPickle.dump(N_list, savefile, -1)
+        savefile.close()
+
+    
+    # Set up the figure 
+    tmp = np.logspace(5,12, 1000)
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    
+    blist = []
+    allstdM = []
+    allM = []
+    # Clist for n
+    clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
+             "#ff00ff")
+    ####### n loop #######################
+    for i_n, n in enumerate(nlist):
+        print 'n: ', n
+        z_n = 0.1 + (n/256.)*0.1   # for z_order
+        
+        # Get the data
+        m = np.array(m_list[i_n])
+        N = np.array(N_list[i_n])
+        mask = np.isfinite(m) * np.isfinite(N)
+        Rcorr = np.corrcoef(N[mask], m[mask])[1,0]
+        print Rcorr
+        ax.scatter(N, m, c = clist[i_n], zorder = z_n)
+
+    
+    #ax.set_xlim(1e-12, 1e-8)
+    ax.set_xscale('log')
+    
+    plotsavestr = ('N_v_m_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+
+    plt.close('all')
+    
+    
 
 
 ################################################################################
