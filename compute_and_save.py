@@ -165,6 +165,8 @@ if not args.split == 'end':
         rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
         hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
         hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
+        prec_mask_obs   = rootgrp.createVariable('prec_mask_obs', 'f8', ('time'))
+        prec_mask_model   = rootgrp.createVariable('prec_mask_model', 'f8', ('time'))
 
     # spectra
     if args.ana == 'spectra':
@@ -317,6 +319,9 @@ if args.ana == 'prec':
     # Allocate lists to get time average histograms
     tothist_model = []
     tothist_obs = []
+    
+    # Load tot_mask
+    radar_tot_mask = np.load('./radar_tot_mask.npy')
 
 
 
@@ -579,6 +584,9 @@ for it, t in zip(itlist, timelist):
         rdf_prec_obs[it, :] = g
         dr[:] = r   # km
         # rdf is DONE!!!
+        
+        prec_mask_model[it] = np.mean(np.nanmean(preclist, axis = 0)[~radar_tot_mask])
+        prec_mask_obs[it] = np.mean(radarfield[~radar_tot_mask])
         
     if args.ana == 'spectra':
         # 1. Calculate DKE spectra

@@ -61,15 +61,58 @@ Note that $\langle M \rangle = \langle N \rangle \langle m \rangle$. Equivalentl
 
 
 \section{Simulation Setup}
-% Ensemble setup and period
+\subsection{Ensemble setup and simulation period}
 Simulations were performed for a continuous 12 day period from 28 May to 8 June 2016 over Germany. This period was characterized by heavy convective precipitation, which was associated with several tornado and flooding events. The model used was the COSMO model \citep{Baldauf2011} with a horizontal grid spacing of 2.8\,km. The settings were taken from the operational COSMO-DE setup, with one exception, the stochastic boundary layer scheme which will be described below. Deep convection is treated explicitly. The domain size is 357 grid points in either direction with the domain centered at 10E/50N. For the analysis a 256 by 256 grid point domain (roughly 717\,km) was chosen to allow room for boundary spin-up. The aim of the simulation setup was to create an ensemble of simulations which have sufficiently similar large scale conditions, but displaced convection. This allows then to treat each member representing a different realization of convection associated with the same mean forcing. A 50 member ensemble was initialized at 00UTC for each of the 12 days, and was run for 24\,h. Initial and boundary conditions were the same for all members and were interpolated from the deterministic COSMO-EU analysis and forecast ($\Delta x =$ 7\,km). 
 
-% KC16
+\subsection{Stochastic boundary layer perturbations}
 Each of the members was perturbed using a stochastic boundary layer perturbation scheme \citep{Kober2016}. This scheme adds perturbations to the model tendency equations based on sub-grid variances computed in the boundary layer scheme. 
 
-% Are simulations valid
-To test the realism of our simulations 
+\newpage
+\subsection{Comparing precipitation fields between ensemble with PSP, deterministic runs and observations}
+To test the realism of our simulations we compare the precipitation fields of our ensemble simulations to radar-derived observations and also a deterministic COSMO run without the PSP scheme for each day. First, the domain-integrated precipitation amount (Fig.~\ref{fig:di_prec}). 
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_comp/prec_comp_composite_ana-prec_wat-True_nens-50_tstart-1_tend-24_tinc-60.png}\\
+\caption{Domain integrated hourly precipitation where radar date was available at all time steps. (Left) Ensemble mean precipitation for each day (gray) and the mean for all days (orange). (middle) Difference between deterministic simulations and ensemble mean. (right) Difference between observations and ensemble mean.} \label{fig:di_prec}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item Diurnal cycle: spin up in first hour (not initialized with rain; could leave out); Leftover precipitation from previous day; new convection starting around 10UTC, reaching peak at around 15UTC, then declining.
+ \item Compared to det: Generally more precipitation, but for most times less than 10\%. Only during phase of convective initiation 20\%, earlier triggering caused by PSP.
+ \item Compared to obs (note different scale): strong overestimation at night (100\%), too much/early triggering up to comvective maximum, then strong underestimation of precipitation in evening hours.
+\end{itemize}
 
+\newpage
+Precipitation histogram
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.5\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_hist/prec_hist_composite_ana-prec_wat-True_height-3000_nens-50_tstart-1_tend-24_tinc-60_minmem-5_dr-1.png}\\
+\caption{Precipitation histogram showing the number of grid cells within a specified hourly precipitation range. Values are averaged for all analysis times and days. Additionally the simulation numbers are ensemble averages. The ``no rain'' bin (0--0.1 mm/h) is not shown and accounts for the differences in the total number of shown values.} \label{fig:prec_hist}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item More overall rain in ens with psp compared to det, but distribution not really changed
+ \item Compared to obs: More drizzle in COSMO simulations and also more very heavy rain, but less rain in intermediate values, particularly from 2-5 mm/h. 
+\end{itemize}
+
+
+\newpage
+RDF
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-True_height-3000_nens-50_tstart-1_tend-24_tinc-60_minmem-5_dr-1.png}\\
+\caption{Normalized radial distribution function (RDF) of the hourly precipitation fields for simulations and observations. Every line shown represent a three-hourly average. The maximum search radius is 36$\Delta x$ (approximately 100\,km) a resolution of one $\Delta x$. To identify cloud cloud objects a rain threshold of 1\,mm h$^{-1}$ was used, followed by a separation using the same method described for mass flux objects described in Section~\ref{sec:statistics}. In the bottom plot the maximum value for each time step is shown.} \label{fig:prec_rdf}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item x-location of peak and zero-crossing basically constant with time. Larger values for peak in obs (larger clouds?)
+ \item Diurnal variation visible in all three decreasing from 10UTC to 15UTC and increasing again up to 20 UTC. For obs the minimum is reached about two hours later. 
+ \item Data is relatively noisy. 
+ \item PSP does not seem to change overall behavior, but there are differences to observations. 
+\end{itemize}
+
+
+\newpage
 % Computation of M stuff
 
 
@@ -84,6 +127,9 @@ To test the realism of our simulations
 
 \section{Supplemental Material}
 
-
+\newpage
+\bibliographystyle{ametsoc}
+{\small
+ \bibliography{library}}
  
 \end{document}

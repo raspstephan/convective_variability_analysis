@@ -15,7 +15,7 @@ from datetime import timedelta
 from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime, yymmddhhmm
 from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
 from cosmo_utils.pywgrib import fieldobj
-from cosmo_utils.plot import ax_contourf
+from cosmo_utils.plot import ax_contourf, fig_contourf_1sp
 from cosmo_utils.diag import mean_spread_fieldobjlist
 import matplotlib as mpl
 mpl.rcParams['text.latex.preamble'] = [
@@ -132,6 +132,11 @@ for d in args.date:
     anastr = ('_ana-' + args.ana + '_wat-' + str(args.water) + 
                 '_height-' + heightstr +
                 '_nens-' + str(args.nens) + '_tstart-' + str(args.tstart) + 
+                '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
+                '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr))
+    anastr_det = ('_ana-' + args.ana + '_wat-' + str(args.water) + 
+                '_height-' + heightstr +
+                '_nens-' + str(1) + '_tstart-' + str(args.tstart) + 
                 '_tend-' + str(args.tend) + '_tinc-' + str(args.tinc) + 
                 '_minmem-' + str(args.minmem) + '_dr-' + str(args.dr))
     savesuf = anastr + '.nc'
@@ -458,6 +463,7 @@ if 'prec_rdf' in args.plot:
     
     rdf_model_list = []
     rdf_obs_list = []
+    rdf_det_list = []
     for d in args.date:
         dataset = Dataset(savedir + d + savesuf, 'r')
         rdf_tmp = dataset.variables['rdf_prec_model'][:]
@@ -466,8 +472,13 @@ if 'prec_rdf' in args.plot:
         rdf_tmp = dataset.variables['rdf_prec_obs'][:]
         rdf_tmp[rdf_tmp > 1e20] = np.nan
         rdf_obs_list.append(rdf_tmp)
+        dataset_det = Dataset(savedir + d + anastr_det+ '.nc_det', 'r')
+        rdf_tmp = dataset_det.variables['rdf_prec_model'][:]
+        rdf_tmp[rdf_tmp > 1e20] = np.nan
+        rdf_det_list.append(rdf_tmp)
     rdf_model = np.nanmean(rdf_model_list, axis = 0)
     rdf_obs = np.nanmean(rdf_obs_list, axis = 0)
+    rdf_det = np.nanmean(rdf_det_list, axis = 0)
     r =   dataset.variables['dr'][:]
     
     # Setup
@@ -478,40 +489,65 @@ if 'prec_rdf' in args.plot:
     # Get 3 hr averages
     rdf_3hr_model = []
     rdf_3hr_obs = []
+    rdf_3hr_det = []
     tlist_3hr = []
     dt = int(3 * args.tinc/60.)
     for i in range(len(timelist)/3):
+        print i
         rdf_3hr_model.append(np.nanmean(rdf_model[i*dt:(i+1)*dt], axis = 0))
         rdf_3hr_obs.append(np.nanmean(rdf_obs[i*dt:(i+1)*dt], axis = 0))
+        rdf_3hr_det.append(np.nanmean(rdf_det[i*dt:(i+1)*dt], axis = 0))
         tlist_3hr.append(timelist_plot[i*dt+1])
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
-    cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
-
-    fig, axarr = plt.subplots(1, 2, figsize = (pdfwidth, 3.5))
+    #cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
     
+    rdf_max_model = []
+    rdf_max_obs = []
+    rdf_max_det = []
+    for i in range(len(timelist)):
+        rdf_max_model.append(np.max(rdf_model[i]))
+        rdf_max_obs.append(np.max(rdf_obs[i]))
+        rdf_max_det.append(np.max(rdf_det[i]))
+    
+    fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 7))
     ############# Time loop ##############
     for it, t in enumerate(tlist_3hr):
-        axarr[0].plot(r/1000., rdf_3hr_model[it], c = cyc[it], 
+        axarr[0,0].plot(r/1000., rdf_3hr_model[it], c = cyc[it], 
                         linestyle = '-' , label = str(t+1) + 'UTC pm 1h',
                         linewidth = 1.5)
-        axarr[1].plot(r/1000., rdf_3hr_obs[it], c = cyc[it], 
+        axarr[0,1].plot(r/1000., rdf_3hr_det[it], c = cyc[it], 
+                        linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
+                        linewidth = 1.5)
+        axarr[0,2].plot(r/1000., rdf_3hr_obs[it], c = cyc[it], 
                         linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
                         linewidth = 1.5)
     
-    axarr[1].legend(loc = 1, ncol = 1, prop={'size':10})
-    axarr[0].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    axarr[0].set_xlabel('Distance [km]')
-    axarr[0].set_ylabel('Normalized RDF')
-    axarr[0].set_title('Simulation', fontsize = 10)
-    axarr[0].set_ylim(ymin, ymax)
-    axarr[0].set_xlim(0, np.max(r)/1000.)
+    axarr[0,2].legend(loc = 1, ncol = 1, prop={'size':10})
+    axarr[0,0].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[0,0].set_xlabel('Distance [km]')
+    axarr[0,0].set_ylabel('Normalized RDF')
+    axarr[0,0].set_title('Ensemble with PSP', fontsize = 10)
+    axarr[0,0].set_ylim(ymin, ymax)
+    axarr[0,0].set_xlim(0, np.max(r)/1000.)
     
-    axarr[1].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    axarr[1].set_xlabel('Distance [km]')
+    axarr[0,1].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[0,1].set_xlabel('Distance [km]')
     #axarr[1].set_ylabel('Normalized RDF')
-    axarr[1].set_title('Observation', fontsize = 10)
-    axarr[1].set_ylim(ymin, ymax)
-    axarr[1].set_xlim(0, np.max(r)/1000.)
+    axarr[0,1].set_title('Deterministic', fontsize = 10)
+    axarr[0,1].set_ylim(ymin, ymax)
+    axarr[0,1].set_xlim(0, np.max(r)/1000.)
+    
+    axarr[0,2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[0,2].set_xlabel('Distance [km]')
+    #axarr[1].set_ylabel('Normalized RDF')
+    axarr[0,2].set_title('Observation', fontsize = 10)
+    axarr[0,2].set_ylim(ymin, ymax)
+    axarr[0,2].set_xlim(0, np.max(r)/1000.)
+    
+    axarr[1,0].plot(timelist_plot, rdf_max_model, label = 'Ens with PSP')
+    axarr[1,0].plot(timelist_plot, rdf_max_det, label = 'Deterministic')
+    axarr[1,0].plot(timelist_plot, rdf_max_obs, label = 'Obs')
+    axarr[1,0].legend(prop={'size':8}, loc = 1)
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
@@ -520,6 +556,7 @@ if 'prec_rdf' in args.plot:
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('prec_rdf_' + alldatestr + anastr)
+    print 'Plotting as:' , plotdirsub + plotsavestr
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
@@ -534,25 +571,33 @@ if 'prec_hist' in args.plot:
     
     hist_model = []
     hist_obs = []
+    hist_det = []
     for d in args.date:
         dataset = Dataset(savedir + d + savesuf, 'r')
         hist_model.append(dataset.variables['hist_model'][:])
         hist_obs.append(dataset.variables['hist_obs'][:])
+        dataset_det = Dataset(savedir + d + anastr_det+ '.nc_det', 'r')
+        hist_det.append(dataset_det.variables['hist_model'][:])
     hist_model = np.mean(hist_model, axis = 0)
     hist_obs = np.mean(hist_obs, axis = 0)
+    hist_det = np.mean(hist_det, axis = 0)
     hist_model[0] = hist_model[0]/10.
     hist_obs[0] = hist_obs[0]/10.
+    hist_det[0] = hist_det[0]/10.
     
     # Setup
     histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
     x = np.arange(len(histbinedges)-1)
 
     fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
-    ax.bar(x[1:]+0.2, hist_model[1:], width = 0.3, color = '#d9d9d9', 
-           label = 'Simulations')
-    ax.bar(x[1:]+0.5, hist_obs[1:], width = 0.3, color = '#333333', 
+    ax.bar(x[1:]+0.2, hist_model[1:], width = 0.2, color = '#d9d9d9', 
+           label = 'Ensemble with PSP')
+    ax.bar(x[1:]+0.4, hist_det[1:], width = 0.2, color = 'gray', 
+           label = 'Deterministic')
+    ax.bar(x[1:]+0.6, hist_obs[1:], width = 0.2, color = 'k', 
            label = 'Observations')
     
+    ax.text(0.03,0.7, 'x10', transform=ax.transAxes, fontsize=10)
     
     ax.legend(loc = 1, prop={'size':10})
     ax.set_xlabel('Hourly accumulation [mm/h]')
@@ -566,6 +611,7 @@ if 'prec_hist' in args.plot:
     plt.tight_layout()
     
     plotsavestr = ('prec_hist_' + alldatestr + anastr)
+    print 'Plotting as:', plotdirsub + plotsavestr
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
         
@@ -1131,7 +1177,7 @@ if 'diurnal' in args.plot:
             # Load the required data and put it in list
             for it, time in enumerate(timelist):
                 for i_n, n in enumerate(dataset.variables['n']):
-                    nmax = 265/n
+                    nmax = 256/n
                     
                     meanM = dataset.variables['meanM'][it,i_n,:nmax,:nmax]
                     varM = dataset.variables['varM'][it,i_n,:nmax,:nmax]
@@ -1572,6 +1618,95 @@ if 'std_v_mean' in args.plot:
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
+
+
+################################################################################
+if 'geographical' in args.plot:
+    print 'Plotting diurnal'
+
+    plotdirsub = plotdir +  '/geographical/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    dx = 2.8e3
+    # Setup
+
+    
+    savename = savedir + 'geographical_' + alldatestr + anastr
+    if os.path.exists(savename):
+        print 'Loading pre-saved file', savename
+        # numpy load
+        savefile = open(savename, 'r')
+        array2Dlist = cPickle.load(savefile)
+        savefile.close()
+            
+    else:
+        print 'No pre-saved file found', savename
+    
+        outerlist = []
+        
+        for i_n, n in enumerate(nlist):
+            outerlist.append([])
+            nmax = 256/n
+            for d in args.date:
+                # Load dataset 
+                print 'Loading date: ', d
+                dataset = Dataset(savedir + d + savesuf, 'r')
+            
+                for it, time in enumerate(timelist):
+                    
+                    meanM = dataset.variables['meanM'][it,i_n,:nmax,:nmax]
+                    varM = dataset.variables['varM'][it,i_n,:nmax,:nmax]
+                    meanm = dataset.variables['meanm'][it,i_n,:nmax,:nmax]
+                    
+                    frac = varM/(2*meanm*meanM)
+                    outerlist[-1].append(frac)
+                    
+        array2Dlist = []
+        for innerlist in outerlist:
+            array2Dlist.append(np.nanmean(innerlist, axis = 0))
+        
+        print array2Dlist
+
+                    
+        # now I have the lists I want in the scatter plot 
+        savefile = open(savename, 'w')
+        cPickle.dump(array2Dlist, savefile, -1)
+        savefile.close()
+        
+    # Load a dummy fobj   
+    import copy
+    fn = '/home/scratch/users/stephan.rasp/2016052800/deout_ceu_pspens/1/OUTPUT/lfff00000000.nc_30m_surf'
+    fobj = getfobj_ncdf(fn, fieldn = 'CAPE_ML')
+    lx1 = (357-256-1)/2
+    ly1 = (357-256-1)/2
+    
+    for n, array2D in zip(nlist, array2Dlist):
+        # Upscale field
+        upfield = np.ones((fobj.ny, fobj.nx)) * np.nan
+        nx, ny = array2D.shape
+        for i in range(nx):
+            for j in range(ny):
+                # Get limits for each N box
+                xmin = i*n+lx1
+                xmax = (i+1)*n+lx1
+                ymin = j*n+ly1
+                ymax = (j+1)*n+ly1
+                
+                upfield[xmin:xmax, ymin:ymax] = array2D[i,j]
+        
+        newfobj = copy.deepcopy(fobj)
+        newfobj.data = upfield
+        newfobj.dims = 2
+        newfobj.fieldn = 'Variance fraction'
+        newfobj.unit = ''
+        
+        
+        fig = fig_contourf_1sp(newfobj)
+    
+        plotsavestr = ('geographical_' + alldatestr + '_ana-' + args.ana + 
+                        '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                        '_nens-' + str(args.nens) + '_n-' + str(n))
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        plt.close('all')
 
 
 ################################################################################
@@ -2040,6 +2175,79 @@ if 'summary_weather' in args.plot:
             
 
 
+################################################################################
+if 'prec_comp' in args.plot:
+    print 'Plotting prec_comp'
+
+    plotdirsub = plotdir +  '/prec_comp/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    
+    preclist_obs = []
+    preclist_det = []
+    preclist_psp = []
+    for d in args.date:
+        print 'Loading date: ', d
+        dataset = Dataset(savedir + d + savesuf, 'r')
+        # ugly filename fix becuase det alsways has nens = 1
+        dataset_det = Dataset(savedir + d + anastr_det+ '.nc_det', 'r')
+        
+        preclist_obs.append(dataset.variables['prec_mask_obs'][:])
+        preclist_psp.append(dataset.variables['prec_mask_model'][:])
+        preclist_det.append(dataset_det.variables['prec_mask_model'][:])
+
+    obs_mean = np.nanmean(np.array(preclist_obs), axis = 0)
+    det_mean = np.nanmean(np.array(preclist_det), axis = 0)
+    psp_mean = np.nanmean(np.array(preclist_psp), axis = 0)
+
+    timelist = [timedelta(seconds=ts) for ts in dataset.variables['time']]
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+    
+    # Create the figure
+    fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
+    cyc = [plt.cm.bone(i) for i in np.linspace(0.1, 0.9, len(args.date))]
+    axarr[0].plot(timelist_plot, psp_mean, c = 'orangered', linewidth = 2)
+    for ic, yplot in enumerate(preclist_psp):
+        axarr[0].plot(timelist_plot, yplot, zorder = 0.5, c = cyc[ic])
+    axarr[0].set_xlabel('time [h/UTC]')
+    axarr[0].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[0].set_ylabel('Precipitation [mm/h]')
+    axarr[0].set_title('Ensemble mean with PSP')
+    
+    axarr[1].plot(timelist_plot, det_mean-psp_mean, c = 'orangered', 
+                  linewidth = 2)
+    axarr[1].plot(timelist_plot, [0]*len(timelist_plot), c = 'k', 
+                  linewidth = 0.5, zorder = 0.1)
+    for ic, yplot in enumerate(preclist_det):
+        yplotdiff = yplot - preclist_psp[ic]
+        axarr[1].plot(timelist_plot, yplotdiff, zorder = 0.5, c = cyc[ic])
+    axarr[1].set_xlabel('time [h/UTC]')
+    axarr[1].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[1].set_ylabel('Prec diff det - psp [mm/h]')
+    axarr[1].set_title('Difference det - psp')
+    
+    axarr[2].plot(timelist_plot, obs_mean-psp_mean, c = 'orangered', 
+                  linewidth = 2)
+    axarr[2].plot(timelist_plot, [0]*len(timelist_plot), c = 'k', 
+                  linewidth = 0.5, zorder = 0.1)
+    for ic, yplot in enumerate(preclist_obs):
+        yplotdiff = yplot - preclist_psp[ic]
+        axarr[2].plot(timelist_plot, yplotdiff, zorder = 0.5, c = cyc[ic])
+    axarr[2].set_xlabel('time [h/UTC]')
+    axarr[2].set_xlim(timelist_plot[0], timelist_plot[-1])
+    axarr[2].set_ylabel('Prec diff obs - psp [mm/h]')
+    axarr[2].set_title('Difference obs - psp')
+    
+    plt.tight_layout(rect=[0, 0.0, 1, 1])
+    
+    plotsavestr = ('prec_comp_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) +
+                    '_nens-' + str(args.nens) + '_tstart-' + 
+                    str(args.tstart) + '_tend-' + str(args.tend) + 
+                    '_tinc-' + str(args.tinc))
+    print 'Plotting as:' , plotdirsub + plotsavestr
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+    
 
 ################################################################################
 if 'stamps_var' in args.plot:
