@@ -20,6 +20,7 @@ from scipy.ndimage.measurements import center_of_mass
 from scipy.signal import correlate
 import os
 import cPickle
+from scipy.ndimage.filters import gaussian_filter
 
 
 # Setup - Input arguments
@@ -199,6 +200,7 @@ if not args.split == 'end':
         meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
         varQmp   = rootgrp.createVariable('varQmp', 'f8', ('time','n','x','y'))
         meanQmp  = rootgrp.createVariable('meanQmp', 'f8', ('time','n','x','y'))
+        meantauc  = rootgrp.createVariable('meantauc', 'f8', ('time','n','x','y'))
         #varQtot  = rootgrp.createVariable('varQtot', 'f8', ('time','n','x','y'))
         #meanQtot = rootgrp.createVariable('meanQtot', 'f8', ('time','n','x','y'))
         
@@ -513,6 +515,33 @@ for it, t in zip(itlist, timelist):
             tauclist[i] = tauclist[i][lx1:lx2, ly1:ly2]
             hpbllist[i] = hpbllist[i][lx1:lx2, ly1:ly2]
             capelist[i] = capelist[i][lx1:lx2, ly1:ly2]
+            
+    if args.ana in ['coarse']:
+        # Load ens mean tau_c
+        ncdffn_surf = ncdffn + '_surf'
+        if args.det == 'True':
+            preclist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'PREC_ACCUM', levs = lev).data]
+            capelist = [getfobj_ncdf(ensdir+'/det/OUTPUT/' + ncdffn_surf, 
+                                  fieldn = 'CAPE_ML', levs = lev).data]
+        else:
+            preclist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn='PREC_ACCUM', 
+                                        nfill=1, return_arrays=True)
+            capelist = getfobj_ncdf_ens(ensdir, 'sub', args.nens, ncdffn_surf, 
+                                        dir_suffix='/OUTPUT/', fieldn = 'CAPE_ML', 
+                                        nfill=1, return_arrays=True)
+        meanprec = np.mean(preclist, axis = 0)
+        meancape = np.mean(capelist, axis = 0)
+        
+        sig = 60./2.8/2.
+        prec_field = gaussian_filter(meanprec, sig)
+        cape_field = gaussian_filter(meancape, sig)
+        
+        tauc = 0.5*(49.58/3600.)*cape_field/prec_field
+        tauc[prec_field < 0.05] = np.nan
+        
+        tauc = tauc[lx1:lx2, ly1:ly2]
     
     if args.ana == 'spectra':
         # Load U and V
@@ -761,6 +790,7 @@ for it, t in zip(itlist, timelist):
                             meanM[it,i_n,ico,jco] = np.mean(tmp_Mlist)
                             meanm[it,i_n,ico,jco] = np.mean(tmp_cldlist)
                             meanN[it,i_n,ico,jco] = np.mean(tmp_Nlist)
+                            meantauc[it,i_n,ico,jco] = np.nanmean(tauc[xmin:xmax,ymin:ymax])
                         else:
                             varM[it,i_n,ico,jco] = np.nan
                             varN[it,i_n,ico,jco] = np.nan
@@ -768,6 +798,7 @@ for it, t in zip(itlist, timelist):
                             meanM[it,i_n,ico,jco] = np.nan
                             meanm[it,i_n,ico,jco] = np.nan
                             meanN[it,i_n,ico,jco] = np.nan
+                            meantauc[it,i_n,ico,jco] = np.nan
                         # This means NaNs only appear when minmem criterion is not met    
                         
                         varQmp[it,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
@@ -931,7 +962,7 @@ if args.ana == 'prec':
 rootgrp.close()
             
 
-        
+print 'Done'
         
         
         

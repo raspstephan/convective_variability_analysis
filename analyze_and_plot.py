@@ -1621,6 +1621,124 @@ if 'std_v_mean' in args.plot:
 
 
 ################################################################################
+if 'frac_v_tauc' in args.plot:
+    print 'Plotting frac_v_tauc'
+
+    plotdirsub = plotdir +  '/frac_v_tauc/'
+    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    dx = 2.8e3
+    # Setup
+    # Clist for n
+    clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
+             "#ff00ff")
+    
+    savename = savedir + 'frac_v_tauc_' + alldatestr + anastr
+    if os.path.exists(savename):
+        print 'Loading pre-saved file', savename
+        # numpy load
+        savefile = open(savename, 'r')
+        varM_list = cPickle.load(savefile)
+        M_list = cPickle.load(savefile)
+        m_list = cPickle.load(savefile)
+        tauc_list = cPickle.load(savefile)
+        savefile.close()
+            
+    else:
+        print 'No pre-saved file found', savename
+    
+        # Load the data:
+        # These list have 2 dims [n, N_box]
+
+        varM_list = create1Dlist(len(nlist))
+        M_list = create1Dlist(len(nlist))
+        m_list = create1Dlist(len(nlist))
+        tauc_list = create1Dlist(len(nlist))
+
+        
+        # Loop over dates 
+        for d in args.date:
+            # Load dataset 
+            print 'Loading date: ', d
+            dataset = Dataset(savedir + d + savesuf, 'r')
+            
+            # Load the required data and put it in list
+            for i_n, n in enumerate(dataset.variables['n']):
+                nmax = 256/n
+                meanM = dataset.variables['meanM'][:,i_n,:nmax,:nmax]
+                varM = dataset.variables['varM'][:,i_n,:nmax,:nmax]
+                meanm = dataset.variables['meanm'][:,i_n,:nmax,:nmax]
+                tauc = dataset.variables['meantauc'][:,i_n,:nmax,:nmax]
+                
+                varM_list[i_n] += list(np.ravel(varM))
+                M_list[i_n] += list(np.ravel(meanM))
+                m_list[i_n] += list(np.ravel(meanm))
+                tauc_list[i_n] += list(np.ravel(tauc))
+
+                    
+        # now I have the lists I want in the scatter plot 
+        savefile = open(savename, 'w')
+        cPickle.dump(varM_list, savefile, -1)
+        cPickle.dump(M_list, savefile, -1)
+        cPickle.dump(m_list, savefile, -1)
+        cPickle.dump(tauc_list, savefile, -1)
+        savefile.close()
+
+    
+    # Set up the figure 
+    tmp = np.logspace(5,12, 1000)
+    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    
+    blist = []
+    allstdM = []
+    allM = []
+    ####### n loop #######################
+    for i_n, n in enumerate(nlist):
+        print 'n: ', n
+        z_n = 0.1 + (n/256.)*0.1   # for z_order
+        
+        # Get the data
+        varM = np.array(varM_list[i_n])
+        M = np.array(M_list[i_n])
+        m = np.array(m_list[i_n])
+        tauc = np.array(tauc_list[i_n])
+        
+        frac = varM/(2*m*M)
+        mask2 = M > 1.1 * m / 50.
+        mask = np.isfinite(tauc) * np.isfinite(frac)
+        mask = mask & mask2
+        Rcorr = np.corrcoef(tauc[mask], frac[mask])[1,0]
+        print Rcorr
+        ax.scatter(tauc[mask], frac[mask], c = clist[i_n], zorder = z_n, 
+                   linewidth = 0, s = z_n**2*100,
+                   label = str(n) + ' corr: {:.2f}'.format(Rcorr))
+        
+
+
+    ax.set_xlim(0.01,1e3)
+    ax.set_ylim(0.1,10)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    ax.set_xlabel('tau_c')
+    ax.set_ylabel('variance ratio')
+
+    
+    ax.set_title('Timescale versus variance ratio')
+
+    ax.legend(loc = 3, ncol = 3, prop={'size':6})
+    
+
+    plt.tight_layout()
+    
+    plotsavestr = ('frac_v_tauc_' + alldatestr + '_ana-' + args.ana + 
+                    '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
+                    '_nens-' + str(args.nens))
+    fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+    plt.close('all')
+
+
+
+################################################################################
 if 'geographical' in args.plot:
     print 'Plotting diurnal'
 
@@ -1679,6 +1797,9 @@ if 'geographical' in args.plot:
     lx1 = (357-256-1)/2
     ly1 = (357-256-1)/2
     
+    pllevels = np.exp(np.linspace(np.log(0.75), np.log(1.5), 20))
+    
+    
     for n, array2D in zip(nlist, array2Dlist):
         # Upscale field
         upfield = np.ones((fobj.ny, fobj.nx)) * np.nan
@@ -1700,7 +1821,7 @@ if 'geographical' in args.plot:
         newfobj.unit = ''
         
         
-        fig = fig_contourf_1sp(newfobj)
+        fig = fig_contourf_1sp(newfobj, pllevels = pllevels, extend = 'both')
     
         plotsavestr = ('geographical_' + alldatestr + '_ana-' + args.ana + 
                         '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
