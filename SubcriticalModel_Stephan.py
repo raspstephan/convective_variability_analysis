@@ -27,7 +27,7 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
 
     #Underlying distribution: exponential disc size with shifted mean
 
-    area, area_co=r_m*r_m*np.pi, r_co_km*r_co_km*np.pi           
+    area, area_co=r_m*r_m*np.pi, 0.#r_co_km*r_co_km*np.pi           
 
     effective_mean_area=area-area_co                                            #adapt mean to account for cut-off radius    
     percentage_small=(1-np.exp(-area_co/effective_mean_area))                   #fraction of clouds expected with r<r_co
@@ -35,10 +35,15 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
     
     a=np.random.exponential(effective_mean_area,int(2*N_clouds/estimate_fraction)) #draw massflux from exponential distribution     
     
+    print '1st beta =', np.var(a, ddof = 1)/(np.mean(a)**2)
+    
     rA_km=np.sqrt(a/np.pi)                                                         #radius corresponding to mf [km]
     rA_km=rA_km[np.where(rA_km>r_co_km)][:N_clouds]                                #choose N clouds larger than cut-off radius and sort according to size
     rA_km=np.sort(rA_km)[::-1]  
-        
+    
+    a2 = np.pi*rA_km**2
+    print '2nd beta =', np.var(a2, ddof = 1)/(np.mean(a2)**2)
+    
     rA,rA_ring=rA_km/DL,(rA_km*fac_cw)/DL                                         #radii in units of grid cells
     
     L=int(phys_L/DL)                                                            #number of grid-cells in one direction

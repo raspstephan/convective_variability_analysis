@@ -243,6 +243,7 @@ if 'cloud_stats' in args.plot:
     sizemean = np.mean(totlist1)
     sizevar = np.var(totlist1)
     print 'size beta', sizevar/sizemean**2, sizemean
+    print 'size mean', sizemean
     
     if not args.hypo:
         sumhist, sumedges = np.histogram(totlist2, 
@@ -321,25 +322,34 @@ if 'cloud_stats' in args.plot:
         Rcorr = np.corrcoef(totlist1, totlist2)[1,0]
         print 'corr', np.corrcoef(totlist1, totlist2)[1,0]
         print 'n_cld', len(totlist1)
-        axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
-        tmp = np.logspace(6,10,100)
-        slope = summean/sizemean
+        #axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
+        #tmp = np.logspace(6,10,100)
+        #slope = summean/sizemean
 
-        axarr[2].plot(tmp, tmp*slope, c = 'k')
-        if args.water == 'False':
-            axarr[2].set_xlim([5e6, 3e9])
-            axarr[2].set_ylim([5e6, 5e9])
-        else:
-            axarr[2].set_xlim([5e6, 5e8])
-            axarr[2].set_ylim([5e6, 2e9])
+        #axarr[2].plot(tmp, tmp*slope, c = 'k')
+        #if args.water == 'False':
+            #axarr[2].set_xlim([5e6, 3e9])
+            #axarr[2].set_ylim([5e6, 5e9])
+        #else:
+            #axarr[2].set_xlim([5e6, 5e8])
+            #axarr[2].set_ylim([5e6, 2e9])
+        #axarr[2].set_yscale('log')
+        #axarr[2].set_xscale('log')
+        #axarr[2].set_xlabel('Cloud size [m$^2$]')
+        #axarr[2].set_ylabel(r'm [kg s$^{-1}$]')
+        #axarr[2].text(0.05, 0.9, '(c)', transform = axarr[2].transAxes, 
+                    #fontsize = 10)
+        #axarr[2].text(0.65, 0.05, 'R={:.2f}'.format(Rcorr), transform = axarr[2].transAxes, 
+                    #fontsize = 10)
+        xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
+        axarr[2].scatter(xfit, sizehist)
+        print xfit, sizehist
         axarr[2].set_yscale('log')
         axarr[2].set_xscale('log')
-        axarr[2].set_xlabel('Cloud size [m$^2$]')
-        axarr[2].set_ylabel(r'm [kg s$^{-1}$]')
-        axarr[2].text(0.05, 0.9, '(c)', transform = axarr[2].transAxes, 
-                    fontsize = 10)
-        axarr[2].text(0.65, 0.05, 'R={:.2f}'.format(Rcorr), transform = axarr[2].transAxes, 
-                    fontsize = 10)
+        axarr[2].set_ylim([1, 1e7])
+        axarr[2].set_xlabel(r'Cloud size [m$^2$]')
+        axarr[2].set_ylabel('Number of clouds')
+        axarr[2].set_title('Cloud size on log-log', fontsize = 10)
         
     
     
@@ -392,6 +402,7 @@ if 'cloud_stats' in args.plot:
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
     plotsavestr = ('cloud_stats_' + alldatestr + anastr)
+    print 'Save as', plotdirsub + plotsavestr
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
 
@@ -512,6 +523,15 @@ if 'prec_rdf' in args.plot:
     fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 7))
     ############# Time loop ##############
     for it, t in enumerate(tlist_3hr):
+        # Normalized
+        rdf_a = rdf_3hr_model[it] - 1
+        max_a = np.max(rdf_a) 
+        rdf_a = rdf_a / max_a
+        axarr[1,1].plot(r/1000., rdf_a, c = cyc[it], 
+                        linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
+                        linewidth = 1.5)
+        
+        
         axarr[0,0].plot(r/1000., rdf_3hr_model[it], c = cyc[it], 
                         linestyle = '-' , label = str(t+1) + 'UTC pm 1h',
                         linewidth = 1.5)
@@ -548,6 +568,13 @@ if 'prec_rdf' in args.plot:
     axarr[1,0].plot(timelist_plot, rdf_max_det, label = 'Deterministic')
     axarr[1,0].plot(timelist_plot, rdf_max_obs, label = 'Obs')
     axarr[1,0].legend(prop={'size':8}, loc = 1)
+    
+    axarr[1,1].plot([0, np.max(r)/1000.], [0, 0], c = 'gray', alpha = 0.5)
+    axarr[1,1].set_xlabel('Distance [km]')
+    axarr[1,1].set_ylabel('Normalized RDF scaled by max')
+    axarr[1,1].set_title('Ensemble with PSP', fontsize = 10)
+    #axarr[1,1].set_ylim(ymin, ymax)
+    axarr[1,1].set_xlim(0, np.max(r)/1000.)
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))

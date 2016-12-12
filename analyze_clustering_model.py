@@ -38,7 +38,7 @@ phys_L_km=sx*2.8  #Domain size in km
 DL=2.8  #Resolution in km 
 L=int(phys_L_km/DL)  #Number of grid-cells in one direction
 
-r_co_km=0   #Minimal radius of discs in km
+r_co_km=0.5   #Minimal radius of discs in km
 
 #model properties
 
@@ -47,7 +47,7 @@ N_clouds= 585  #Number of clouds
 
 #Cloud properties
 r_m = 2.5  #Mean radius of discs in km
-cs  = 5   #Factor by which probability is increased within the rings around the clouds
+cs  = 0   #Factor by which probability is increased within the rings around the clouds
 fac_cw = 4 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
  
 
@@ -167,7 +167,7 @@ for l in sizelist:
 print 'mean cloud size =', (np.mean(totlist)/1e6), 'km^2'
 print 'mean cloud radius =', np.sqrt((np.mean(totlist)/1e6)/np.pi), 'km'
 print 'var cld size = ', np.var(totlist, ddof = 1)
-print np.var(totlist, ddof = 1)/(np.mean(totlist)**2)
+print 'beta =', np.var(totlist, ddof = 1)/(np.mean(totlist)**2)
 fig, ax = plt.subplots(1,1)
 ax.hist(totlist)
 ax.set_yscale('log')
