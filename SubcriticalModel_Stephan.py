@@ -61,46 +61,46 @@ def CloudPercolation_cw_i(phys_L,DL,N_clouds,r_co_km,r_m,fac_cw,cs, plot_field=F
     return cloud_field, cloud_centers, rA_km
 
 
-#simulation set-up
+##simulation set-up
 
-N_ensemble = 2                                                                 #Number of calculated fields
+#N_ensemble = 2                                                                 #Number of calculated fields
 
-#domain set-up 
+##domain set-up 
 
-phys_L_km=256*2.8                                                               #Domain size in km 
-DL=2.8                                                                          #Resolution in km 
-L=int(phys_L_km/DL)                                                             #Number of grid-cells in one direction
+#phys_L_km=256*2.8                                                               #Domain size in km 
+#DL=2.8                                                                          #Resolution in km 
+#L=int(phys_L_km/DL)                                                             #Number of grid-cells in one direction
 
-r_co_km=2.0                                                                     #Minimal radius of discs in km
+#r_co_km=2.0                                                                     #Minimal radius of discs in km
 
-#model properties
+##model properties
 
-#coverage_fraction=0.05                                                          
-N_clouds= 200                                                                   #Number of clouds
+##coverage_fraction=0.05                                                          
+#N_clouds= 200                                                                   #Number of clouds
 
-#Cloud properties
-r_m = 2.8                                                                       #Mean radius of discs in km
-cs  = 20                                                                         #Factor by which probability is increased within the rings around the clouds
-fac_cw = 3                                                                      #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+##Cloud properties
+#r_m = 2.8                                                                       #Mean radius of discs in km
+#cs  = 20                                                                         #Factor by which probability is increased within the rings around the clouds
+#fac_cw = 3                                                                      #Prob. increased within the ring r_disc < r < r_disc*fac_cw
        
-estimated_coverage_fraction= 1.0-np.exp(-N_clouds*(r_m*r_m*np.pi)/(phys_L_km*phys_L_km))  
-print('estimated coverage fraction %.3f'%estimated_coverage_fraction)                                                                                                                                                       
+#estimated_coverage_fraction= 1.0-np.exp(-N_clouds*(r_m*r_m*np.pi)/(phys_L_km*phys_L_km))  
+#print('estimated coverage fraction %.3f'%estimated_coverage_fraction)                                                                                                                                                       
 
-cloud_field_stack=np.zeros((N_ensemble, L, L))
-cloud_centers_array=[]
-radii_array=[]
-
-for i in range(N_ensemble):
-    
-    cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,DL,N_clouds,r_co_km,r_m,fac_cw,cs,plot_field=False) 
-    
-    cloud_field_stack[i,:,:]= cloud_field
-    cloud_centers_array.append(cloud_centers) 
-    radii_array.append(rA_km)
-
-#ipdb.set_trace()
+#cloud_field_stack=np.zeros((N_ensemble, L, L))
+#cloud_centers_array=[]
+#radii_array=[]
 
 #for i in range(N_ensemble):
-    #cloud_field = cloud_field_stack[i,:,:]
-    #plt.imshow(cloud_field, cmap='jet', interpolation = 'nearest', origin = 'lower')#, interpolation='nearest')
-    #plt.show()
+    
+    #cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,DL,N_clouds,r_co_km,r_m,fac_cw,cs,plot_field=False) 
+    
+    #cloud_field_stack[i,:,:]= cloud_field
+    #cloud_centers_array.append(cloud_centers) 
+    #radii_array.append(rA_km)
+
+##ipdb.set_trace()
+
+##for i in range(N_ensemble):
+    ##cloud_field = cloud_field_stack[i,:,:]
+    ##plt.imshow(cloud_field, cmap='jet', interpolation = 'nearest', origin = 'lower')#, interpolation='nearest')
+    ##plt.show()

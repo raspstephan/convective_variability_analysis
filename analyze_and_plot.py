@@ -201,7 +201,10 @@ if 'cloud_stats' in args.plot:
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     # Setup
-    sizemax = 4e8
+    dx2 = 2.8e3**2
+    print 'dx2', dx2
+    nbins = 60.
+    sizemax = dx2*nbins
     summax = 10e8
     if args.water == 'False':
         sizemax *= 3.5
@@ -239,7 +242,7 @@ if 'cloud_stats' in args.plot:
         
         
     sizehist, sizeedges = np.histogram(totlist1, 
-                                        bins = 20, range = [0., sizemax])
+                                        bins = nbins, range = [0., sizemax])
     sizemean = np.mean(totlist1)
     sizevar = np.var(totlist1)
     print 'size beta', sizevar/sizemean**2, sizemean
@@ -247,7 +250,7 @@ if 'cloud_stats' in args.plot:
     
     if not args.hypo:
         sumhist, sumedges = np.histogram(totlist2, 
-                                            bins = 20, range = [0., summax])
+                                            bins = nbins, range = [0., summax])
         summean = np.mean(totlist2)
         sumvar = np.var(totlist2)
         print 'beta', sumvar/summean**2, summean
@@ -270,13 +273,8 @@ if 'cloud_stats' in args.plot:
     p0 = [10, 1]
     mask = sizehist>0
     xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
-    print sizehist[mask]
-    print np.log(sizehist[mask])
-    print np.log(xfit)
     result = leastsq(residual_pow, p0, args = (sizehist[mask], xfit[mask]))
     a,b = result[0]
-    print a,b
-    print np.exp(a-b*np.log(xfit[mask]))
     axarr[0].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
 
     axarr[0].set_xlabel(r'Cloud size [m$^2$]')
@@ -343,7 +341,6 @@ if 'cloud_stats' in args.plot:
                     #fontsize = 10)
         xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
         axarr[2].scatter(xfit, sizehist)
-        print xfit, sizehist
         axarr[2].set_yscale('log')
         axarr[2].set_xscale('log')
         axarr[2].set_ylim([1, 1e7])
@@ -416,44 +413,60 @@ if 'rdf' in args.plot:
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     rdf_list = []
+    rdf_ns_list = []
     for d in args.date:
         dataset = Dataset(savedir + d + savesuf, 'r')
         rdf_tmp = dataset.variables['rdf'][:]
         rdf_tmp[rdf_tmp > 1e20] = np.nan
         rdf_list.append(rdf_tmp)
+        rdf_ns_tmp = dataset.variables['rdf_nonscaled'][:]
+        rdf_ns_tmp[rdf_ns_tmp > 1e20] = np.nan
+        rdf_ns_list.append(rdf_ns_tmp)
     rdf = np.nanmean(rdf_list, axis = 0)
+    rdf_ns = np.nanmean(rdf_ns_list, axis = 0)
     # Setup
     ymax = 7
     
     # Get 3 hr averages
     rdf_3hr = []
+    rdf_ns_3hr = []
     tlist_3hr = []
     dt = int(3. / (args.tinc/60.))
     for i in range(len(timelist)/dt):
         rdf_3hr.append(np.nanmean(rdf[i*dt:(i+1)*dt], axis = 0))
+        rdf_ns_3hr.append(np.nanmean(rdf_ns[i*dt:(i+1)*dt], axis = 0))
         tlist_3hr.append(timelist_plot[i*dt+2])
     rdf_3hr = np.array(rdf_3hr)
+    rdf_ns_3hr = np.array(rdf_ns_3hr)
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
     cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
     
     # Get the data
     r =   dataset.variables['dr'][:]
     
-    fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+    fig, axarr = plt.subplots(1, 2, figsize = (pdfwidth, 3.5))
     
     ############# Time loop ##############
     for it, t in enumerate(tlist_3hr):
         #print 'time: ', t
-        ax.plot(r/1000., rdf_3hr[it, :], c = cyc[it], 
+        axarr[0].plot(r/1000., rdf_3hr[it, :], c = cyc[it], 
+                label = str(t+1) + 'UTC pm 1h', linewidth = 1.5)
+        axarr[1].plot(r/1000., rdf_ns_3hr[it, :], c = cyc[it], 
                 label = str(t+1) + 'UTC pm 1h', linewidth = 1.5)
     
-    ax.legend(loc = 1, ncol = 1, prop={'size':10})
-    ax.plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    ax.set_xlabel('Distance [km]')
-    ax.set_ylabel('Normalized RDF')
-    ax.set_title('Radial distribution function')
-    ax.set_ylim(0, ymax)
-    ax.set_xlim(0, np.max(r)/1000.)
+    axarr[0].legend(loc = 1, ncol = 1, prop={'size':10})
+    axarr[0].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
+    axarr[0].set_xlabel('Distance [km]')
+    axarr[0].set_ylabel('Normalized RDF')
+    axarr[0].set_title('Radial distribution function')
+    axarr[0].set_ylim(0, ymax)
+    axarr[0].set_xlim(0, np.max(r)/1000.)
+    
+    axarr[1].set_xlabel('Distance [km]')
+    axarr[1].set_ylabel('Non-normalized RDF')
+    axarr[1].set_title('Radial distribution function (not scaled)')
+    #axarr[1].set_ylim(0, ymax)
+    axarr[1].set_xlim(0, np.max(r)/1000.)
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
@@ -461,6 +474,7 @@ if 'rdf' in args.plot:
     plt.tight_layout()
     
     plotsavestr = ('rdf_' + alldatestr + anastr)
+    print 'Save as', plotdirsub + plotsavestr
     fig.savefig(plotdirsub + plotsavestr, dpi = 300)
     plt.close('all')
         

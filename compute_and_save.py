@@ -183,6 +183,7 @@ if not args.split == 'end':
         cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
         cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','N_cld'))
         rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
+        rdf_nonscaled = rootgrp.createVariable('rdf_nonscaled', 'f8', ('time','dr'))
         exw      = rootgrp.createVariable('exw', 'f8', ('time', 'x', 'y'))
         exq      = rootgrp.createVariable('exq', 'f8', ('time', 'x', 'y'))
         #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
@@ -259,6 +260,7 @@ else:
         cld_size = rootgrp.variables['cld_size']
         cld_sum  = rootgrp.variables['cld_sum']
         rdf      = rootgrp.variables['rdf']
+        rdf_nonscaled = rootgrp.variables['rdf_nonscaled']
         exw      = rootgrp.variables['exw']
         exq      = rootgrp.variables['exq']
         #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
@@ -669,6 +671,7 @@ for it, t in zip(itlist, timelist):
         sizelist = []
         sumlist = []
         rdflist = []
+        rdflist_nonscaled = []
         labelslist = []   # Save for use later
         comlist = []      # Save for use later
         for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
@@ -705,6 +708,10 @@ for it, t in zip(itlist, timelist):
                                 dr = dr_rdf)
                 rdflist.append(g)
                 dr[:] = r   # km
+                
+                g, r = calc_rdf(labels, field, normalize = False, rmax = rmax_rdf, 
+                                dr = dr_rdf)
+                rdflist_nonscaled.append(g)
         
         if args.ana == 'clouds':
             # Save lists and mean rdf
@@ -713,6 +720,7 @@ for it, t in zip(itlist, timelist):
             cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
             cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
             rdf[it, :] = np.mean(rdflist, axis = 0)
+            rdf_nonscaled[it, :] = np.mean(rdflist_nonscaled, axis = 0)
             totN[it] = ntmp/float(args.nens)
     
         if args.ana == 'coarse':

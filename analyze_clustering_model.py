@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 # Setup
 parser = argparse.ArgumentParser(description = 'Process input')
-parser.add_argument('--nens', metavar = 'nens', type=int, default = 20)
+parser.add_argument('--nens', metavar = 'nens', type=int, default = 4)
 parser.add_argument('--water', metavar = 'water', type=str, default = 'True')
 args = parser.parse_args()
 # Convert water to bool 
@@ -27,6 +27,9 @@ elif args.water == 'False':
     args.water = False
 else:
     raise Exception
+
+plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/'
+
 
 # 1. Create the hypothetical ensemble
 sx = 256
@@ -38,53 +41,67 @@ phys_L_km=sx*2.8  #Domain size in km
 DL=2.8  #Resolution in km 
 L=int(phys_L_km/DL)  #Number of grid-cells in one direction
 
-r_co_km=0.5   #Minimal radius of discs in km
+r_co_km=0.   #Minimal radius of discs in km
 
 #model properties
 
 #coverage_fraction=0.05                                                          
-N_clouds= 585  #Number of clouds
+N_clouds= 120  #Number of clouds
 
 #Cloud properties
-r_m = 2.5  #Mean radius of discs in km
-cs  = 0   #Factor by which probability is increased within the rings around the clouds
-fac_cw = 4 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+r_m = 2.4  #Mean radius of discs in km
+cs  = 15   #Factor by which probability is increased within the rings around the clouds
+fac_cw = 5 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
  
 
 #ensdir = '/home/scratch/users/stephan.rasp/hypo_' + args.type + '/deout_ceu_pspens/'
 
 
 
+
+# Draw one big field
+Nx = args.nens
+Nens = Nx*Nx
+phys_L_km *= Nx
+L *= Nx
+print N_clouds * Nens
+cloud_field_big, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,
+                                                             DL,N_clouds*Nens,
+                                                             r_co_km,r_m,fac_cw,
+                                                             cs,
+                                                             plot_field=False)
+
+
 # Loop over ensemble members
 sizelist = []
 comlist = []
 glist = []
-for imem in range(1,args.nens+1):
-    print 'Member:', imem
-    
-    # Draw actual N cloud from Poisson distribution
-    N_rand = np.random.poisson(N_clouds)
-    
-    cloud_field, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,
-                                                             DL,N_rand,
-                                                             r_co_km,r_m,fac_cw,
-                                                             cs,plot_field=False) 
-    # cloud field is the cloud field
-    # cloud centers is a N_cld (-1???) by (x,y) array with the coordinates of the centers
-    # rA_km is ???
-    
-    tmp = identify_clouds(cloud_field, thresh = 0, water = args.water)
-    
-    labels, cld_size_mem, cld_sum_mem = tmp
-    num = np.unique(labels).shape[0]   # Number of clouds
-    com = np.array(center_of_mass(cloud_field, labels, range(1,num)))
-    
-    g, r = calc_rdf(labels, cloud_field, normalize = True, rmax = 36, 
-                            dr = 1)
-    glist.append(g)
-    comlist.append(com)
-    sizelist.append(cld_size_mem)
+numlist = []
+for i in range(Nx):
+    for j in range(Nx):
+        xmin = i*sx
+        xmax = (i+1)*sx
+        ymin = j*sx
+        ymax = (j+1)*sx
+        cloud_field = cloud_field_big[xmin:xmax,ymin:ymax]
+        
+        #plt.imshow(cloud_field, cmap='jet', interpolation='nearest')
+        #plt.colorbar()
+        #plt.show()
+        
+        tmp = identify_clouds(cloud_field, thresh = 0, water = args.water)
+        
+        labels, cld_size_mem, cld_sum_mem = tmp
+        num = np.unique(labels).shape[0]   # Number of clouds
+        com = np.array(center_of_mass(cloud_field, labels, range(1,num)))
+        numlist.append(num)
+        g, r = calc_rdf(labels, cloud_field, normalize = False, rmax = 36, 
+                                dr = 1)
+        glist.append(g)
+        comlist.append(com)
+        sizelist.append(cld_size_mem)
 
+print 'Actual N mean', np.mean(num)
 # Loop over n
 varMlist = []
 varmlist = []
@@ -164,14 +181,16 @@ for i_n, n in enumerate(nlist):
 totlist = []
 for l in sizelist:
     totlist += list(l)
+print 'N clouds', len(totlist)/Nens
 print 'mean cloud size =', (np.mean(totlist)/1e6), 'km^2'
 print 'mean cloud radius =', np.sqrt((np.mean(totlist)/1e6)/np.pi), 'km'
 print 'var cld size = ', np.var(totlist, ddof = 1)
 print 'beta =', np.var(totlist, ddof = 1)/(np.mean(totlist)**2)
 fig, ax = plt.subplots(1,1)
-ax.hist(totlist)
+dx2 = 2.8e3**2
+ax.hist(totlist, bins = 30, range = [0,dx2*30])
 ax.set_yscale('log')
-plt.show()
+plt.savefig(plotdir + 'hist')
 plt.close('all')
 
 
@@ -179,14 +198,16 @@ plt.close('all')
 fig, ax = plt.subplots(1,1)
 meang = np.mean(glist, axis = 0)
 ax.plot(r/1.e3, g)
-plt.show()
-
+plt.savefig(plotdir + 'rdf')
+plt.close('all')
 
 
 # Std_v_mean and parameters
 clist = ("#ff0000", "#ff8000", "#e6e600","#40ff00","#00ffff","#0040ff",
          "#ff00ff")
-#fig, axarr = plt.subplots(1,2)
+alphalist = []
+betalist = []
+fraclist = []
 for i_n, n in enumerate(nlist):
     print n
     varM = np.ravel(varMlist[i_n])
@@ -200,31 +221,53 @@ for i_n, n in enumerate(nlist):
     print 'var m =', np.nanmean(varm)
     
     alpha = varN/meanN 
+    alphalist.append(np.nanmean(alpha))
     print 'alpha =', np.nanmean(alpha)
     beta = varm/(meanm**2) 
+    betalist.append(np.nanmean(beta))
     print 'beta =', np.nanmean(beta)
     predict = 2 * meanm * meanM
     frac = varM/predict 
+    fraclist.append(np.nanmean(frac))
     print 'frac =', np.nanmean(frac)
-    
-    
-    #axarr[0].scatter(x, np.sqrt(y), c = clist[i_n])
-    
-    #predict = 2 * np.ravel(meanMlist[i_n]) * np.ravel(meanmlist[i_n])
-    #frac = y/predict
-    
-    #axarr[1].scatter(x, frac, c = clist[i_n])
-    
-#axarr[0].set_xscale('log')
+
+fig, axarr = plt.subplots(1, 3, figsize = (12, 4))
+
+axarr[0].plot(range(len(nlist)), alphalist, linewidth = 2)
+axarr[0].set_ylabel('alpha')
+axarr[0].set_xlabel('scale [km]')
+axarr[0].set_xticks(range(len(nlist)))
+axarr[0].set_xticklabels(np.array(nlist) * 2.8)
+axarr[0].invert_xaxis()
 #axarr[0].set_yscale('log')
-#axarr[0].set_xlim(1e6, 1e11)
-#axarr[0].set_ylim(4e6, 2e9)
+axarr[0].set_ylim(0.1, 5)
+axarr[0].plot([0, len(nlist)-1],[1,1], c = 'gray', zorder = 0.5)
 
-#axarr[1].set_xscale('log')
-#axarr[1].set_yscale('log')
+axarr[1].plot(range(len(nlist)), betalist, linewidth = 2) 
+axarr[1].set_ylabel('beta')
+axarr[1].set_xlabel('scale [km]')
+axarr[1].set_xticks(range(len(nlist)))
+axarr[1].set_xticklabels(np.array(nlist) * 2.8)
+axarr[1].invert_xaxis()
+axarr[1].set_ylim(0.1, 2)
+axarr[1].plot([0, len(nlist)-1],[1,1], c = 'gray', zorder = 0.5)
 
-##plt.show()
-#plt.close('all')
+
+axarr[2].plot(range(len(nlist)), fraclist, linewidth = 2) 
+axarr[2].set_ylabel('variance ratio')
+axarr[2].set_xlabel('scale [km]')
+axarr[2].set_xticks(range(len(nlist)))
+axarr[2].set_xticklabels(np.array(nlist) * 2.8)
+axarr[2].invert_xaxis()
+axarr[2].set_ylim(0.1, 5)
+axarr[2].plot([0, len(nlist)-1],[1,1], c = 'gray', zorder = 0.5)
+
+
+print 'here'
+
+
+plt.tight_layout()
+fig.savefig(plotdir + 'prediction')
 
 
 
