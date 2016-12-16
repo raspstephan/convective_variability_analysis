@@ -459,7 +459,7 @@ if 'rdf' in args.plot:
     axarr[0].set_xlabel('Distance [km]')
     axarr[0].set_ylabel('Normalized RDF')
     axarr[0].set_title('Radial distribution function')
-    axarr[0].set_ylim(0, ymax)
+    #axarr[0].set_ylim(0, ymax)
     axarr[0].set_xlim(0, np.max(r)/1000.)
     
     axarr[1].set_xlabel('Distance [km]')
@@ -561,21 +561,21 @@ if 'prec_rdf' in args.plot:
     axarr[0,0].set_xlabel('Distance [km]')
     axarr[0,0].set_ylabel('Normalized RDF')
     axarr[0,0].set_title('Ensemble with PSP', fontsize = 10)
-    axarr[0,0].set_ylim(ymin, ymax)
+    #axarr[0,0].set_ylim(ymin, ymax)
     axarr[0,0].set_xlim(0, np.max(r)/1000.)
     
     axarr[0,1].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     axarr[0,1].set_xlabel('Distance [km]')
     #axarr[1].set_ylabel('Normalized RDF')
     axarr[0,1].set_title('Deterministic', fontsize = 10)
-    axarr[0,1].set_ylim(ymin, ymax)
+    #axarr[0,1].set_ylim(ymin, ymax)
     axarr[0,1].set_xlim(0, np.max(r)/1000.)
     
     axarr[0,2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     axarr[0,2].set_xlabel('Distance [km]')
     #axarr[1].set_ylabel('Normalized RDF')
     axarr[0,2].set_title('Observation', fontsize = 10)
-    axarr[0,2].set_ylim(ymin, ymax)
+    #axarr[0,2].set_ylim(ymin, ymax)
     axarr[0,2].set_xlim(0, np.max(r)/1000.)
     
     axarr[1,0].plot(timelist_plot, rdf_max_model, label = 'Ens with PSP')

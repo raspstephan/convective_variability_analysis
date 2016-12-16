@@ -164,6 +164,8 @@ if not args.split == 'end':
     if args.ana == 'prec':
         rdf_prec_model = rootgrp.createVariable('rdf_prec_model', 'f8', ('time','dr'))
         rdf_prec_obs   = rootgrp.createVariable('rdf_prec_obs', 'f8', ('time','dr'))
+        rdf_prec_model_ns = rootgrp.createVariable('rdf_prec_model_ns', 'f8', ('time','dr'))
+        rdf_prec_obs_ns   = rootgrp.createVariable('rdf_prec_obs_ns', 'f8', ('time','dr'))
         hist_model   = rootgrp.createVariable('hist_model', 'f8', ('bins'))
         hist_obs   = rootgrp.createVariable('hist_obs', 'f8', ('bins'))
         prec_mask_obs   = rootgrp.createVariable('prec_mask_obs', 'f8', ('time'))
@@ -183,7 +185,7 @@ if not args.split == 'end':
         cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
         cld_sum  = rootgrp.createVariable('cld_sum', 'f8', ('time','N_cld'))
         rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
-        rdf_nonscaled = rootgrp.createVariable('rdf_nonscaled', 'f8', ('time','dr'))
+        rdf_ns = rootgrp.createVariable('rdf_ns', 'f8', ('time','dr'))
         exw      = rootgrp.createVariable('exw', 'f8', ('time', 'x', 'y'))
         exq      = rootgrp.createVariable('exq', 'f8', ('time', 'x', 'y'))
         #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
@@ -214,16 +216,7 @@ if not args.split == 'end':
         Mtot     = rootgrp.createVariable('Mtot', 'f8', ('time', 'levs'))
         Msouth   = rootgrp.createVariable('Msouth', 'f8', ('time', 'levs'))
         Mnorth   = rootgrp.createVariable('Mnorth', 'f8', ('time', 'levs'))
-        
-    if args.ana == 'hypo':
-        cld_size = rootgrp.createVariable('cld_size', 'f8', ('time','N_cld'))
-        rdf      = rootgrp.createVariable('rdf', 'f8', ('time','dr'))
-        varM     = rootgrp.createVariable('varM', 'f8', ('time','n','x','y'))
-        varN     = rootgrp.createVariable('varN', 'f8', ('time','n','x','y'))
-        varm     = rootgrp.createVariable('varm', 'f8', ('time','n','x','y'))
-        meanN    = rootgrp.createVariable('meanN', 'f8', ('time','n','x','y'))
-        meanM    = rootgrp.createVariable('meanM', 'f8', ('time','n','x','y'))
-        meanm    = rootgrp.createVariable('meanm', 'f8', ('time','n','x','y'))
+
 
     # currently not used
     #hpbl     = rootgrp.createVariable('hpbl', 'f8', ('time','levs','n','x','y'))
@@ -243,6 +236,8 @@ else:
     if args.ana == 'prec':
         rdf_prec_model = rootgrp.variables['rdf_prec_model']
         rdf_prec_obs   = rootgrp.variables['rdf_prec_obs']
+        rdf_prec_model_ns = rootgrp.variables['rdf_prec_model_ns']
+        rdf_prec_obs_ns   = rootgrp.variables['rdf_prec_obs_ns']
         hist_model   = rootgrp.variables['hist_model']
         hist_obs   = rootgrp.variables['hist_obs']
 
@@ -260,7 +255,7 @@ else:
         cld_size = rootgrp.variables['cld_size']
         cld_sum  = rootgrp.variables['cld_sum']
         rdf      = rootgrp.variables['rdf']
-        rdf_nonscaled = rootgrp.variables['rdf_nonscaled']
+        rdf_ns = rootgrp.variables['rdf_ns']
         exw      = rootgrp.variables['exw']
         exq      = rootgrp.variables['exq']
         #exbin    = rootgrp.createVariable('exbin', 'f8', ('time', 'levs', 'x', 'y'))
@@ -288,16 +283,7 @@ else:
         Mtot     = rootgrp.variables['Mtot']
         Msouth   = rootgrp.variables['Msouth']
         Mnorth   = rootgrp.variables['Mnorth']
-        
-    if args.ana == 'hypo':
-        cld_size = rootgrp.variables['cld_size']
-        rdf      = rootgrp.variables['rdf']
-        varM     = rootgrp.variables['varM']
-        varN     = rootgrp.variables['varN']
-        varm     = rootgrp.variables['varm']
-        meanN    = rootgrp.variables['meanN']
-        meanM    = rootgrp.variables['meanM']
-        meanm    = rootgrp.variables['meanm']
+
 # End allocation
 ################################################################################
 
@@ -594,6 +580,7 @@ for it, t in zip(itlist, timelist):
         
         # 2. rdf
         rdf_prec_modellist = []
+        rdf_prec_modellist_ns = []
         for field in preclist:
             # Identify clouds
             tmpfield = field
@@ -603,7 +590,11 @@ for it, t in zip(itlist, timelist):
             g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = rmax_rdf, 
                             dr = dr_rdf)
             rdf_prec_modellist.append(g)
+            g, r = calc_rdf(labels, tmpfield, normalize = False, rmax = rmax_rdf, 
+                            dr = dr_rdf)
+            rdf_prec_modellist_ns.append(g)
         rdf_prec_model[it, :] = np.mean(rdf_prec_modellist, axis = 0)
+        rdf_prec_model_ns[it, :] = np.mean(rdf_prec_modellist_ns, axis = 0)
         
         # Now for the observation field
         tmpfield = radarfield
@@ -613,6 +604,9 @@ for it, t in zip(itlist, timelist):
         g, r = calc_rdf(labels, tmpfield, normalize = True, rmax = rmax_rdf, 
                         dr = dr_rdf)
         rdf_prec_obs[it, :] = g
+        g, r = calc_rdf(labels, tmpfield, normalize = False, rmax = rmax_rdf, 
+                        dr = dr_rdf)
+        rdf_prec_obs_ns[it, :] = g
         dr[:] = r   # km
         # rdf is DONE!!!
         
@@ -671,7 +665,7 @@ for it, t in zip(itlist, timelist):
         sizelist = []
         sumlist = []
         rdflist = []
-        rdflist_nonscaled = []
+        rdflist_ns = []
         labelslist = []   # Save for use later
         comlist = []      # Save for use later
         for field, qc, rho, imem in zip(fieldlist, qclist, rholist, 
@@ -711,7 +705,7 @@ for it, t in zip(itlist, timelist):
                 
                 g, r = calc_rdf(labels, field, normalize = False, rmax = rmax_rdf, 
                                 dr = dr_rdf)
-                rdflist_nonscaled.append(g)
+                rdflist_ns.append(g)
         
         if args.ana == 'clouds':
             # Save lists and mean rdf
@@ -720,7 +714,7 @@ for it, t in zip(itlist, timelist):
             cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
             cld_sum[it, :ntmp] = [i for sl in sumlist for i in sl]
             rdf[it, :] = np.mean(rdflist, axis = 0)
-            rdf_nonscaled[it, :] = np.mean(rdflist_nonscaled, axis = 0)
+            rdf_ns[it, :] = np.mean(rdflist_ns, axis = 0)
             totN[it] = ntmp/float(args.nens)
     
         if args.ana == 'coarse':
@@ -811,37 +805,6 @@ for it, t in zip(itlist, timelist):
                         
                         varQmp[it,i_n,ico,jco] = np.var(tmp_Qmplist, ddof = 1)
                         meanQmp[it,i_n,ico,jco] = np.mean(tmp_Qmplist)
-
-    if args.ana == 'hypo':
-        # Member loop
-        sizelist = []
-        rdflist = []
-        labelslist = []   # Save for use later
-        comlist = []      # Save for use later
-        for imem, field in enumerate(fieldlist):
-            # Identify clouds
-            tmp = identify_clouds(field, thresh, water = args.water)
-            labels, cld_size_mem, cld_sum_mem = tmp
-
-            sizelist.append(cld_size_mem)
-            
-            labelslist.append(labels)
-            # Calculate centers of mass
-            num = np.unique(labels).shape[0]   # Number of clouds
-            com = np.array(center_of_mass(field, labels, range(1,num)))
-            if com.shape[0] == 0:   # Accout for empty arrays
-                com = np.empty((0,2))
-            comlist.append(com)
-
-            g, r = calc_rdf(labels, field, normalize = True, rmax = rmax_rdf, 
-                            dr = dr_rdf)
-            rdflist.append(g)
-            dr[:] = r   # km
-        
-        
-        ntmp = len([i for sl in sizelist for i in sl])
-        cld_size[it, :ntmp] = [i for sl in sizelist for i in sl]  # Flatten
-        rdf[it, :] = np.mean(rdflist, axis = 0)
 
         
         ########################################################################

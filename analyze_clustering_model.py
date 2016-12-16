@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--nens', metavar = 'nens', type=int, default = 4)
 parser.add_argument('--water', metavar = 'water', type=str, default = 'True')
+parser.add_argument('--str', metavar = 'str', type=str, default = '')
 args = parser.parse_args()
 # Convert water to bool 
 if args.water == 'True':
@@ -28,7 +29,7 @@ elif args.water == 'False':
 else:
     raise Exception
 
-plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/'
+plotdir = '/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/' + args.str
 
 
 # 1. Create the hypothetical ensemble
@@ -46,12 +47,12 @@ r_co_km=0.   #Minimal radius of discs in km
 #model properties
 
 #coverage_fraction=0.05                                                          
-N_clouds= 120  #Number of clouds
+N_clouds= 280  #Number of clouds
 
 #Cloud properties
 r_m = 2.4  #Mean radius of discs in km
-cs  = 15   #Factor by which probability is increased within the rings around the clouds
-fac_cw = 5 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+cs  = 1  #Factor by which probability is increased within the rings around the clouds
+fac_cw = 4 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
  
 
 #ensdir = '/home/scratch/users/stephan.rasp/hypo_' + args.type + '/deout_ceu_pspens/'
@@ -95,7 +96,7 @@ for i in range(Nx):
         num = np.unique(labels).shape[0]   # Number of clouds
         com = np.array(center_of_mass(cloud_field, labels, range(1,num)))
         numlist.append(num)
-        g, r = calc_rdf(labels, cloud_field, normalize = False, rmax = 36, 
+        g, r = calc_rdf(labels, cloud_field, normalize = True, rmax = 36, 
                                 dr = 1)
         glist.append(g)
         comlist.append(com)
@@ -190,6 +191,8 @@ fig, ax = plt.subplots(1,1)
 dx2 = 2.8e3**2
 ax.hist(totlist, bins = 30, range = [0,dx2*30])
 ax.set_yscale('log')
+ax.set_xlabel('Cloud size [m^2]')
+ax.set_ylabel('Number')
 plt.savefig(plotdir + 'hist')
 plt.close('all')
 
@@ -198,6 +201,8 @@ plt.close('all')
 fig, ax = plt.subplots(1,1)
 meang = np.mean(glist, axis = 0)
 ax.plot(r/1.e3, g)
+ax.set_xlabel('Distance [km]')
+ax.set_ylabel('Normalized RDF')
 plt.savefig(plotdir + 'rdf')
 plt.close('all')
 
@@ -226,6 +231,7 @@ for i_n, n in enumerate(nlist):
     beta = varm/(meanm**2) 
     betalist.append(np.nanmean(beta))
     print 'beta =', np.nanmean(beta)
+    #predict = (alpha + beta) * meanm * meanM
     predict = 2 * meanm * meanM
     frac = varM/predict 
     fraclist.append(np.nanmean(frac))

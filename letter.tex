@@ -100,7 +100,7 @@ Precipitation histogram
 RDF
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-True_height-3000_nens-50_tstart-1_tend-24_tinc-60_minmem-5_dr-1.png}\\
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-60_minmem-5_dr-1.png}\\
 \caption{Normalized radial distribution function (RDF) of the hourly precipitation fields for simulations and observations. Every line shown represent a three-hourly average. The maximum search radius is 36$\Delta x$ (approximately 100\,km) a resolution of one $\Delta x$. To identify cloud cloud objects a rain threshold of 1\,mm h$^{-1}$ was used, followed by a separation using the same method described for mass flux objects described in Section~\ref{sec:statistics}. In the bottom plot the maximum value for each time step is shown.} \label{fig:prec_rdf}
 \end{figure}
 % Describe the stuff
@@ -121,21 +121,41 @@ RDF
 \subsection{Cloud statistics}
 \begin{figure}[h!]
 \noindent \centering
-With cloud separation
+With cloud separation\\
+Beta(size) = 0.72, Beta(m) = 1.15\\
 \includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/cloud_stats/cloud_stats_composite_ana-clouds_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
-Without cloud separation
+Without cloud separation\\
+Beta(size) = 1.78, Beta(m) = 2.31\\
 \includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/cloud_stats/cloud_stats_composite_ana-clouds_wat-False_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
-With cloud separation for DET
-\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite_det//cloud_stats/cloud_stats_composite_det_ana-clouds_wat-True_height-3000_nens-1_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}\\
-\caption{} \label{fig:geographical}
+\caption{}
 \end{figure}
 % Describe the stuff
 \begin{itemize}
  \item Mean cloud size with separation for PSP ensemble: 1.96e7, for DET: 1.90e7
 \end{itemize}
-
 \newpage
 
+
+
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/rdf/rdf_composite_ana-clouds_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item 
+\end{itemize}
+\newpage
+
+\begin{figure}[h!]
+\noindent \centering
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/summary_stats/summary_stats_composite_ana-clouds_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item 
+\end{itemize}
+\newpage
 
 % Std vs mean
 \subsection{Scaling of standard deviation with mean}
@@ -200,21 +220,21 @@ With cloud separation for DET
 
 \newpage
 
-% Geographical 
-\subsection{Geographical distribution of variance ratio}
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-4.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-16.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-64.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-128.png}\\
-\caption{Mean variance fraction averaged over all times and days for four different coarsening scales (n = 4, 16, 64, 128)} \label{fig:geographical}
-\end{figure}
-% Describe the stuff
-\begin{itemize}
- \item Larger variance fractions over Western Germany
- \item Mainly easterly flow for this period
-\end{itemize}
+% % Geographical 
+% \subsection{Geographical distribution of variance ratio}
+% \begin{figure}[h!]
+% \noindent \centering
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-4.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-16.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-64.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/geographical/geographical_composite_ana-coarse_wat-True_lev-3000_nens-50_n-128.png}\\
+% \caption{Mean variance fraction averaged over all times and days for four different coarsening scales (n = 4, 16, 64, 128)} \label{fig:geographical}
+% \end{figure}
+% % Describe the stuff
+% \begin{itemize}
+%  \item Larger variance fractions over Western Germany
+%  \item Mainly easterly flow for this period
+% \end{itemize}
 
 \newpage
 \subsection{Correlation with the convective timescale}
@@ -228,6 +248,8 @@ With cloud separation for DET
  \item Correlation pretty weak for all scales
 \end{itemize}
 \newpage
+
+
 
 \section{Discussion and Conclustions}
 
