@@ -100,17 +100,13 @@ Precipitation histogram
 RDF
 \begin{figure}[h!]
 \noindent \centering
-\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-60_minmem-5_dr-1.png}\\
-\caption{Normalized radial distribution function (RDF) of the hourly precipitation fields for simulations and observations. Every line shown represent a three-hourly average. The maximum search radius is 36$\Delta x$ (approximately 100\,km) a resolution of one $\Delta x$. To identify cloud cloud objects a rain threshold of 1\,mm h$^{-1}$ was used, followed by a separation using the same method described for mass flux objects described in Section~\ref{sec:statistics}. In the bottom plot the maximum value for each time step is shown.} \label{fig:prec_rdf}
+With cloud separation\\
+\includegraphics[width=0.7\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-60_minmem-5_dr-1.png}\\
+Without cloud separation\\
+\includegraphics[width=0.7\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite//prec_rdf/prec_rdf_composite_ana-prec_wat-False_height-3000_nens-50_tstart-6_tend-24_tinc-60_minmem-5_dr-1.png}\\
+% \caption{Normalized radial distribution function (RDF) of the hourly precipitation fields for simulations and observations. Every line shown represent a three-hourly average. The maximum search radius is 36$\Delta x$ (approximately 100\,km) a resolution of one $\Delta x$. To identify cloud cloud objects a rain threshold of 1\,mm h$^{-1}$ was used, followed by a separation using the same method described for mass flux objects described in Section~\ref{sec:statistics}. In the bottom plot the maximum value for each time step is shown.} \label{fig:prec_rdf}
 \end{figure}
 % Describe the stuff
-\begin{itemize}
- \item x-location of peak and zero-crossing basically constant with time. Larger values for peak in obs (larger clouds?)
- \item Diurnal variation visible in all three decreasing from 10UTC to 15UTC and increasing again up to 20 UTC. For obs the minimum is reached about two hours later. 
- \item Data is relatively noisy. 
- \item PSP does not seem to change overall behavior, but there are differences to observations. 
-\end{itemize}
-
 
 \newpage
 % Computation of M stuff
@@ -139,7 +135,10 @@ Beta(size) = 1.78, Beta(m) = 2.31\\
 
 \begin{figure}[h!]
 \noindent \centering
+With cloud separation\\
 \includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/rdf/rdf_composite_ana-clouds_wat-True_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
+Without cloud separation\\
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/rdf/rdf_composite_ana-clouds_wat-False_height-3000_nens-50_tstart-6_tend-24_tinc-30_minmem-5_dr-1.png}
 \end{figure}
 % Describe the stuff
 \begin{itemize}
@@ -156,6 +155,46 @@ Beta(size) = 1.78, Beta(m) = 2.31\\
  \item 
 \end{itemize}
 \newpage
+
+\begin{figure}[h!]
+\noindent \centering
+mean size = 22.4 km; mean N = 225; cs = 1; cw = N/A\\
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/REFhist.png}
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/REFrdf.png}
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/REFprediction.png}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item 
+\end{itemize}
+\newpage
+
+\begin{figure}[h!]
+\noindent \centering
+mean size = 23.4 km; mean N = 212; cs = 40; cw = 3\\
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/14UTChist.png}
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/14UTCrdf.png}
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/14UTCprediction.png}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item 
+\end{itemize}
+\newpage
+
+\begin{figure}[h!]
+\noindent \centering
+mean size = 23.9 km; mean N = 95; cs = 100; cw = 2.5\\
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/20UTChist.png}
+\includegraphics[width=0.6\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/20UTCrdf.png}
+\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/perc_model/20UTCprediction.png}
+\end{figure}
+% Describe the stuff
+\begin{itemize}
+ \item 
+\end{itemize}
+\newpage
+
 
 % Std vs mean
 \subsection{Scaling of standard deviation with mean}
@@ -188,37 +227,37 @@ Beta(size) = 1.78, Beta(m) = 2.31\\
 
 \newpage
 
-
-% Std vs mean
-\subsection{Scaling of standard deviation with mean - without cloud separation}
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/std_v_mean/std_v_mean_composite_ana-coarse_wat-False_lev-3000_nens-50.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/std_v_mean/std_v_mean_Q_composite_ana-coarse_wat-False_lev-3000_nens-50.png}\\
-\caption{Standard deviation versus mean} \label{fig:geographical}
-\end{figure}
-% Describe the stuff
-\begin{itemize}
- \item 
-\end{itemize}
-
-\newpage
-
-\subsection{Diurnal variation of parameters - without cloud separation}
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/CC06composite_ana-coarse_wat-False_lev-3000_nens-50.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/CC06alphacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/alphacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}
-\includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/betacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}\\
-\caption{} \label{fig:geographical}
-\end{figure}
-% Describe the stuff
-\begin{itemize}
- \item 
-\end{itemize}
-
-\newpage
+% 
+% % Std vs mean
+% \subsection{Scaling of standard deviation with mean - without cloud separation}
+% \begin{figure}[h!]
+% \noindent \centering
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/std_v_mean/std_v_mean_composite_ana-coarse_wat-False_lev-3000_nens-50.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/std_v_mean/std_v_mean_Q_composite_ana-coarse_wat-False_lev-3000_nens-50.png}\\
+% \caption{Standard deviation versus mean} \label{fig:geographical}
+% \end{figure}
+% % Describe the stuff
+% \begin{itemize}
+%  \item 
+% \end{itemize}
+% 
+% \newpage
+% 
+% \subsection{Diurnal variation of parameters - without cloud separation}
+% \begin{figure}[h!]
+% \noindent \centering
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/CC06composite_ana-coarse_wat-False_lev-3000_nens-50.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/CC06alphacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/alphacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}
+% \includegraphics[width=0.45\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/diurnal/betacomposite_ana-coarse_wat-False_lev-3000_nens-50.png}\\
+% \caption{} \label{fig:geographical}
+% \end{figure}
+% % Describe the stuff
+% \begin{itemize}
+%  \item 
+% \end{itemize}
+% 
+% \newpage
 
 % % Geographical 
 % \subsection{Geographical distribution of variance ratio}
@@ -236,18 +275,18 @@ Beta(size) = 1.78, Beta(m) = 2.31\\
 %  \item Mainly easterly flow for this period
 % \end{itemize}
 
-\newpage
-\subsection{Correlation with the convective timescale}
-\begin{figure}[h!]
-\noindent \centering
-\includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/frac_v_tauc/frac_v_tauc_composite_ana-coarse_wat-True_lev-3000_nens-50.png}\\
-\caption{Scatter plot of variance fraction with the ensemble mean convective timescale.} \label{fig:frac_v_tauc}
-\end{figure}
-% Describe the stuff
-\begin{itemize}
- \item Correlation pretty weak for all scales
-\end{itemize}
-\newpage
+% \newpage
+% \subsection{Correlation with the convective timescale}
+% \begin{figure}[h!]
+% \noindent \centering
+% \includegraphics[width=0.98\textwidth]{/home/s/S.Rasp/Dropbox/figures/PhD/variance/composite/frac_v_tauc/frac_v_tauc_composite_ana-coarse_wat-True_lev-3000_nens-50.png}\\
+% \caption{Scatter plot of variance fraction with the ensemble mean convective timescale.} \label{fig:frac_v_tauc}
+% \end{figure}
+% % Describe the stuff
+% \begin{itemize}
+%  \item Correlation pretty weak for all scales
+% \end{itemize}
+% \newpage
 
 
 

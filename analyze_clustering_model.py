@@ -20,6 +20,9 @@ parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--nens', metavar = 'nens', type=int, default = 4)
 parser.add_argument('--water', metavar = 'water', type=str, default = 'True')
 parser.add_argument('--str', metavar = 'str', type=str, default = '')
+parser.add_argument('--cs', metavar = 'cs', type=float)
+parser.add_argument('--cw', metavar = 'cw', type=float)
+parser.add_argument('--N', metavar = 'N', type=int)
 args = parser.parse_args()
 # Convert water to bool 
 if args.water == 'True':
@@ -47,12 +50,12 @@ r_co_km=0.   #Minimal radius of discs in km
 #model properties
 
 #coverage_fraction=0.05                                                          
-N_clouds= 280  #Number of clouds
+N_clouds= args.N  #Number of clouds
 
 #Cloud properties
 r_m = 2.4  #Mean radius of discs in km
-cs  = 1  #Factor by which probability is increased within the rings around the clouds
-fac_cw = 4 #Prob. increased within the ring r_disc < r < r_disc*fac_cw
+cs  = args.cs  #Factor by which probability is increased within the rings around the clouds
+fac_cw = args.cw #Prob. increased within the ring r_disc < r < r_disc*fac_cw
  
 
 #ensdir = '/home/scratch/users/stephan.rasp/hypo_' + args.type + '/deout_ceu_pspens/'
@@ -77,6 +80,7 @@ cloud_field_big, cloud_centers, rA_km =CloudPercolation_cw_i(phys_L_km,
 sizelist = []
 comlist = []
 glist = []
+glist_ns = []
 numlist = []
 for i in range(Nx):
     for j in range(Nx):
@@ -99,10 +103,13 @@ for i in range(Nx):
         g, r = calc_rdf(labels, cloud_field, normalize = True, rmax = 36, 
                                 dr = 1)
         glist.append(g)
+        g, r = calc_rdf(labels, cloud_field, normalize = False, rmax = 36, 
+                                dr = 1)
+        glist_ns.append(g)
         comlist.append(com)
         sizelist.append(cld_size_mem)
 
-print 'Actual N mean', np.mean(num)
+print 'Actual N mean', np.mean(numlist)
 # Loop over n
 varMlist = []
 varmlist = []
@@ -198,11 +205,16 @@ plt.close('all')
 
 
 # RDF
-fig, ax = plt.subplots(1,1)
+fig, axarr = plt.subplots(1,2)
 meang = np.mean(glist, axis = 0)
-ax.plot(r/1.e3, g)
-ax.set_xlabel('Distance [km]')
-ax.set_ylabel('Normalized RDF')
+meang_ns = np.mean(glist_ns, axis = 0)
+axarr[0].plot(r/1.e3, meang)
+axarr[0].set_xlabel('Distance [km]')
+axarr[0].set_ylabel('Normalized RDF')
+axarr[1].plot(r/1.e3, meang_ns)
+axarr[1].set_xlabel('Distance [km]')
+axarr[1].set_ylabel('Non-Normalized RDF')
+plt.tight_layout()
 plt.savefig(plotdir + 'rdf')
 plt.close('all')
 

@@ -36,6 +36,13 @@ mpl.rcParams['font.family'] = 'sans-serif'
 
 
 # Define functions
+def residual_linear(p, y, x):
+    
+    a,b = p
+    err = y - (a+b*x)
+    
+    return err
+
 def residual_bc(p, y, x):
     
     b,c = p
@@ -155,10 +162,13 @@ if args.det == 'True':
 
 
 # Some preliminaries
-print savedir + args.date[0] + savesuf
-tmp_dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
-timelist = [timedelta(seconds=ts) for ts in tmp_dataset.variables['time']]
-timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+try:
+    print savedir + args.date[0] + savesuf
+    tmp_dataset = Dataset(savedir + args.date[0] + savesuf, 'r')
+    timelist = [timedelta(seconds=ts) for ts in tmp_dataset.variables['time']]
+    timelist_plot = [(dt.total_seconds()/3600) for dt in timelist]
+except:
+    print 'No saved file found.'
 plotdir = ('/home/s/S.Rasp/Dropbox/figures/PhD/variance/' + alldatestr + 
            '/')
 
@@ -254,6 +264,33 @@ if 'cloud_stats' in args.plot:
         summean = np.mean(totlist2)
         sumvar = np.var(totlist2)
         print 'beta', sumvar/summean**2, summean
+    
+    # Fit linear regression for log
+    print '###### m ######'
+    p0 = [10, 1]
+    mask = sumhist>0
+    xfit = (sumedges[:-1] + sumedges[1:]) / 2.
+    result = leastsq(residual_linear, p0, args = (np.log(sumhist[mask]), xfit[mask]))
+    a,b = result[0]
+    print 'a,b', a, b
+    print 'b-1', -1./b
+    print 'mean m', summean
+    print 'binwidth', np.diff(xfit)[0]
+    print 'a->N', -1./b/np.diff(xfit)[0] * np.exp(a)
+    print 'actual N', len(totlist2)
+    
+    print '###### size ######'
+    p0 = [10, 1]
+    mask = sizehist>0
+    xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
+    result = leastsq(residual_linear, p0, args = (np.log(sizehist[mask]), xfit[mask]))
+    a,b = result[0]
+    print 'a,b', a, b
+    print 'b-1', -1./b
+    print 'mean size', sizemean
+    print 'binwidth', np.diff(xfit)[0]
+    print 'a->N', -1./b/np.diff(xfit)[0] * np.exp(a)
+    print 'actual N', len(totlist1)
     
     # Plot the histograms
     fig, axarr = plt.subplots(1, 3, figsize = (pdfwidth, 3))
@@ -419,7 +456,7 @@ if 'rdf' in args.plot:
         rdf_tmp = dataset.variables['rdf'][:]
         rdf_tmp[rdf_tmp > 1e20] = np.nan
         rdf_list.append(rdf_tmp)
-        rdf_ns_tmp = dataset.variables['rdf_nonscaled'][:]
+        rdf_ns_tmp = dataset.variables['rdf_ns'][:]
         rdf_ns_tmp[rdf_ns_tmp > 1e20] = np.nan
         rdf_ns_list.append(rdf_ns_tmp)
     rdf = np.nanmean(rdf_list, axis = 0)
@@ -439,7 +476,7 @@ if 'rdf' in args.plot:
     rdf_3hr = np.array(rdf_3hr)
     rdf_ns_3hr = np.array(rdf_ns_3hr)
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
-    cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
+    #cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
     
     # Get the data
     r =   dataset.variables['dr'][:]
@@ -488,7 +525,8 @@ if 'prec_rdf' in args.plot:
     
     rdf_model_list = []
     rdf_obs_list = []
-    rdf_det_list = []
+    rdf_model_list_ns = []
+    rdf_obs_list_ns = []
     for d in args.date:
         dataset = Dataset(savedir + d + savesuf, 'r')
         rdf_tmp = dataset.variables['rdf_prec_model'][:]
@@ -497,13 +535,16 @@ if 'prec_rdf' in args.plot:
         rdf_tmp = dataset.variables['rdf_prec_obs'][:]
         rdf_tmp[rdf_tmp > 1e20] = np.nan
         rdf_obs_list.append(rdf_tmp)
-        dataset_det = Dataset(savedir + d + anastr_det+ '.nc_det', 'r')
-        rdf_tmp = dataset_det.variables['rdf_prec_model'][:]
+        rdf_tmp = dataset.variables['rdf_prec_model_ns'][:]
         rdf_tmp[rdf_tmp > 1e20] = np.nan
-        rdf_det_list.append(rdf_tmp)
+        rdf_model_list_ns.append(rdf_tmp)
+        rdf_tmp = dataset.variables['rdf_prec_obs_ns'][:]
+        rdf_tmp[rdf_tmp > 1e20] = np.nan
+        rdf_obs_list_ns.append(rdf_tmp)
     rdf_model = np.nanmean(rdf_model_list, axis = 0)
     rdf_obs = np.nanmean(rdf_obs_list, axis = 0)
-    rdf_det = np.nanmean(rdf_det_list, axis = 0)
+    rdf_model_ns = np.nanmean(rdf_model_list_ns, axis = 0)
+    rdf_obs_ns = np.nanmean(rdf_obs_list_ns, axis = 0)
     r =   dataset.variables['dr'][:]
     
     # Setup
@@ -514,49 +555,51 @@ if 'prec_rdf' in args.plot:
     # Get 3 hr averages
     rdf_3hr_model = []
     rdf_3hr_obs = []
-    rdf_3hr_det = []
+    rdf_3hr_model_ns = []
+    rdf_3hr_obs_ns = []
     tlist_3hr = []
     dt = int(3 * args.tinc/60.)
     for i in range(len(timelist)/3):
-        print i
         rdf_3hr_model.append(np.nanmean(rdf_model[i*dt:(i+1)*dt], axis = 0))
         rdf_3hr_obs.append(np.nanmean(rdf_obs[i*dt:(i+1)*dt], axis = 0))
-        rdf_3hr_det.append(np.nanmean(rdf_det[i*dt:(i+1)*dt], axis = 0))
+        rdf_3hr_model_ns.append(np.nanmean(rdf_model_ns[i*dt:(i+1)*dt], axis = 0))
+        rdf_3hr_obs_ns.append(np.nanmean(rdf_obs_ns[i*dt:(i+1)*dt], axis = 0))
         tlist_3hr.append(timelist_plot[i*dt+1])
     cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, len(tlist_3hr))]
     #cyc = ("#FFE698","#BEE15B","#00D38B","#00B3C2","#0074D6","#9600AA")
     
     rdf_max_model = []
     rdf_max_obs = []
-    rdf_max_det = []
+    rdf_max_model_ns = []
+    rdf_max_obs_ns = []
     for i in range(len(timelist)):
         rdf_max_model.append(np.max(rdf_model[i]))
         rdf_max_obs.append(np.max(rdf_obs[i]))
-        rdf_max_det.append(np.max(rdf_det[i]))
-    
+        rdf_max_model_ns.append(np.max(rdf_model_ns[i]))
+        rdf_max_obs_ns.append(np.max(rdf_obs_ns[i]))
+        
     fig, axarr = plt.subplots(2, 3, figsize = (pdfwidth, 7))
     ############# Time loop ##############
     for it, t in enumerate(tlist_3hr):
         # Normalized
-        rdf_a = rdf_3hr_model[it] - 1
-        max_a = np.max(rdf_a) 
-        rdf_a = rdf_a / max_a
-        axarr[1,1].plot(r/1000., rdf_a, c = cyc[it], 
-                        linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
-                        linewidth = 1.5)
-        
         
         axarr[0,0].plot(r/1000., rdf_3hr_model[it], c = cyc[it], 
                         linestyle = '-' , label = str(t+1) + 'UTC pm 1h',
                         linewidth = 1.5)
-        axarr[0,1].plot(r/1000., rdf_3hr_det[it], c = cyc[it], 
+
+        axarr[0,1].plot(r/1000., rdf_3hr_obs[it], c = cyc[it], 
                         linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
                         linewidth = 1.5)
-        axarr[0,2].plot(r/1000., rdf_3hr_obs[it], c = cyc[it], 
+        
+        axarr[1,0].plot(r/1000., rdf_3hr_model_ns[it], c = cyc[it], 
+                        linestyle = '-' , label = str(t+1) + 'UTC pm 1h',
+                        linewidth = 1.5)
+
+        axarr[1,1].plot(r/1000., rdf_3hr_obs_ns[it], c = cyc[it], 
                         linestyle = '-' , label = str(int(t+1)).zfill(2) + 'UTC pm 1h',
                         linewidth = 1.5)
     
-    axarr[0,2].legend(loc = 1, ncol = 1, prop={'size':10})
+    axarr[0,0].legend(loc = 1, ncol = 1, prop={'size':8})
     axarr[0,0].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     axarr[0,0].set_xlabel('Distance [km]')
     axarr[0,0].set_ylabel('Normalized RDF')
@@ -567,28 +610,30 @@ if 'prec_rdf' in args.plot:
     axarr[0,1].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
     axarr[0,1].set_xlabel('Distance [km]')
     #axarr[1].set_ylabel('Normalized RDF')
-    axarr[0,1].set_title('Deterministic', fontsize = 10)
-    #axarr[0,1].set_ylim(ymin, ymax)
+    axarr[0,1].set_title('Observation', fontsize = 10)
+    #axarr[0,2].set_ylim(ymin, ymax)
     axarr[0,1].set_xlim(0, np.max(r)/1000.)
     
-    axarr[0,2].plot([0, np.max(r)/1000.], [1, 1], c = 'gray', alpha = 0.5)
-    axarr[0,2].set_xlabel('Distance [km]')
-    #axarr[1].set_ylabel('Normalized RDF')
-    axarr[0,2].set_title('Observation', fontsize = 10)
-    #axarr[0,2].set_ylim(ymin, ymax)
-    axarr[0,2].set_xlim(0, np.max(r)/1000.)
+    axarr[1,0].set_xlabel('Distance [km]')
+    axarr[1,0].set_ylabel('Non-Normalized RDF')
+    axarr[1,0].set_title('Ensemble with PSP', fontsize = 10)
+    #axarr[0,0].set_ylim(ymin, ymax)
+    axarr[1,0].set_xlim(0, np.max(r)/1000.)
     
-    axarr[1,0].plot(timelist_plot, rdf_max_model, label = 'Ens with PSP')
-    axarr[1,0].plot(timelist_plot, rdf_max_det, label = 'Deterministic')
-    axarr[1,0].plot(timelist_plot, rdf_max_obs, label = 'Obs')
-    axarr[1,0].legend(prop={'size':8}, loc = 1)
-    
-    axarr[1,1].plot([0, np.max(r)/1000.], [0, 0], c = 'gray', alpha = 0.5)
     axarr[1,1].set_xlabel('Distance [km]')
-    axarr[1,1].set_ylabel('Normalized RDF scaled by max')
-    axarr[1,1].set_title('Ensemble with PSP', fontsize = 10)
-    #axarr[1,1].set_ylim(ymin, ymax)
+    #axarr[1].set_ylabel('Normalized RDF')
+    axarr[1,1].set_title('Observation', fontsize = 10)
+    #axarr[0,2].set_ylim(ymin, ymax)
     axarr[1,1].set_xlim(0, np.max(r)/1000.)
+    
+    axarr[0,2].plot(timelist_plot, rdf_max_model, label = 'Ens with PSP')
+    axarr[0,2].plot(timelist_plot, rdf_max_obs, label = 'Obs')
+    axarr[0,2].legend(prop={'size':8}, loc = 1)
+    
+    axarr[1,2].plot(timelist_plot, rdf_max_model_ns, label = 'Ens with PSP')
+    axarr[1,2].plot(timelist_plot, rdf_max_obs_ns, label = 'Obs')
+    axarr[1,2].legend(prop={'size':8}, loc = 1)
+    
     
     titlestr = (alldatestr + 
                 ', nens=' + str(args.nens))
