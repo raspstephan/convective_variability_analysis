@@ -313,7 +313,7 @@ if 'cloud_stats' in args.plot:
     result = leastsq(residual_pow, p0, args = (sizehist[mask], xfit[mask]))
     a,b = result[0]
     axarr[0].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
-
+    axarr[2].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
     axarr[0].set_xlabel(r'Cloud size [m$^2$]')
     axarr[0].set_ylabel('Number of clouds')
     axarr[0].set_title('Cloud size', fontsize = 10)
@@ -324,66 +324,66 @@ if 'cloud_stats' in args.plot:
     axarr[0].text(0.05, 0.9, '(a)', transform = axarr[0].transAxes, 
                     fontsize = 10)
     
-    if not args.hypo:
-        axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
-                    color = 'darkgray')
-        axarr[1].plot([summean, summean], [1, 1e7], c = 'red', 
-                    alpha = 1)
-        axarr[1].set_ylabel('Number of clouds')
-        axarr[1].set_xlim([0., summax])
-        axarr[1].set_ylim([1, 1e7])
-        axarr[1].set_yscale('log')
-        axarr[1].set_xlabel(r'm [kg s$^{-1}$]')
-        axarr[1].set_title('Mass flux per cloud', fontsize = 10)
-        axarr[1].text(0.05, 0.9, '(b)', transform = axarr[1].transAxes, 
-                    fontsize = 10)
-        
-        ## Fit line, 1st exp
-        p0 = [10, 1]
-        mask = sumhist>0
-        xfit = (sumedges[:-1] + sumedges[1:]) / 2.
-        result = leastsq(residual_exp, p0, args = (sumhist[mask], xfit[mask]))
-        a,b = result[0]
-        axarr[1].plot(xfit,np.exp(a-b*xfit), c = 'orange', label = 'exponential')
-        
-        ## Fit line, 2nd power law
-        p0 = [10, 1]
+    
+    axarr[1].bar(sumedges[:-1], sumhist, width = np.diff(sumedges)[0],
+                color = 'darkgray')
+    axarr[1].plot([summean, summean], [1, 1e7], c = 'red', 
+                alpha = 1)
+    axarr[1].set_ylabel('Number of clouds')
+    axarr[1].set_xlim([0., summax])
+    axarr[1].set_ylim([1, 1e7])
+    axarr[1].set_yscale('log')
+    axarr[1].set_xlabel(r'm [kg s$^{-1}$]')
+    axarr[1].set_title('Mass flux per cloud', fontsize = 10)
+    axarr[1].text(0.05, 0.9, '(b)', transform = axarr[1].transAxes, 
+                fontsize = 10)
+    
+    ## Fit line, 1st exp
+    p0 = [10, 1]
+    mask = sumhist>0
+    xfit = (sumedges[:-1] + sumedges[1:]) / 2.
+    result = leastsq(residual_exp, p0, args = (sumhist[mask], xfit[mask]))
+    a,b = result[0]
+    axarr[1].plot(xfit,np.exp(a-b*xfit), c = 'orange', label = 'exponential')
+    
+    ## Fit line, 2nd power law
+    p0 = [10, 1]
 
-        result = leastsq(residual_pow, p0, args = (sumhist[mask], xfit[mask]))
-        a,b = result[0]
+    result = leastsq(residual_pow, p0, args = (sumhist[mask], xfit[mask]))
+    a,b = result[0]
 
-        axarr[1].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
-        
-        Rcorr = np.corrcoef(totlist1, totlist2)[1,0]
-        print 'corr', np.corrcoef(totlist1, totlist2)[1,0]
-        print 'n_cld', len(totlist1)
-        #axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
-        #tmp = np.logspace(6,10,100)
-        #slope = summean/sizemean
+    axarr[1].plot(xfit,np.exp(a-b*np.log(xfit)), c = 'blue', label = 'power law')
+    
+    Rcorr = np.corrcoef(totlist1, totlist2)[1,0]
+    print 'corr', np.corrcoef(totlist1, totlist2)[1,0]
+    print 'n_cld', len(totlist1)
+    #axarr[2].scatter(totlist1, totlist2, c = 'grey', linewidth = 0.1, s=4)
+    #tmp = np.logspace(6,10,100)
+    #slope = summean/sizemean
 
-        #axarr[2].plot(tmp, tmp*slope, c = 'k')
-        #if args.water == 'False':
-            #axarr[2].set_xlim([5e6, 3e9])
-            #axarr[2].set_ylim([5e6, 5e9])
-        #else:
-            #axarr[2].set_xlim([5e6, 5e8])
-            #axarr[2].set_ylim([5e6, 2e9])
-        #axarr[2].set_yscale('log')
-        #axarr[2].set_xscale('log')
-        #axarr[2].set_xlabel('Cloud size [m$^2$]')
-        #axarr[2].set_ylabel(r'm [kg s$^{-1}$]')
-        #axarr[2].text(0.05, 0.9, '(c)', transform = axarr[2].transAxes, 
-                    #fontsize = 10)
-        #axarr[2].text(0.65, 0.05, 'R={:.2f}'.format(Rcorr), transform = axarr[2].transAxes, 
-                    #fontsize = 10)
-        xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
-        axarr[2].scatter(xfit, sizehist)
-        axarr[2].set_yscale('log')
-        axarr[2].set_xscale('log')
-        axarr[2].set_ylim([1, 1e7])
-        axarr[2].set_xlabel(r'Cloud size [m$^2$]')
-        axarr[2].set_ylabel('Number of clouds')
-        axarr[2].set_title('Cloud size on log-log', fontsize = 10)
+    #axarr[2].plot(tmp, tmp*slope, c = 'k')
+    #if args.water == 'False':
+        #axarr[2].set_xlim([5e6, 3e9])
+        #axarr[2].set_ylim([5e6, 5e9])
+    #else:
+        #axarr[2].set_xlim([5e6, 5e8])
+        #axarr[2].set_ylim([5e6, 2e9])
+    #axarr[2].set_yscale('log')
+    #axarr[2].set_xscale('log')
+    #axarr[2].set_xlabel('Cloud size [m$^2$]')
+    #axarr[2].set_ylabel(r'm [kg s$^{-1}$]')
+    #axarr[2].text(0.05, 0.9, '(c)', transform = axarr[2].transAxes, 
+                #fontsize = 10)
+    #axarr[2].text(0.65, 0.05, 'R={:.2f}'.format(Rcorr), transform = axarr[2].transAxes, 
+                #fontsize = 10)
+    xfit = (sizeedges[:-1] + sizeedges[1:]) / 2.
+    axarr[2].scatter(xfit, sizehist)
+    axarr[2].set_yscale('log')
+    axarr[2].set_xscale('log')
+    axarr[2].set_ylim([1, 1e7])
+    axarr[2].set_xlabel(r'Cloud size [m$^2$]')
+    axarr[2].set_ylabel('Number of clouds')
+    axarr[2].set_title('Cloud size on log-log', fontsize = 10)
         
     
     
@@ -1291,20 +1291,21 @@ if 'diurnal' in args.plot:
         
     timelist3h = [1, 4, 7, 10, 13, 16]
     
-    pname = ['CC06','alpha','CC06alpha', 'beta']
-    plabel = ['Variance: simulation / prediction',r'$\alpha$',
-              'Variance: simulation / prediction', r'$\beta$','']
-    ptitle = ['CC06 prediction',r'Organization parameter $\alpha$',
-              r'$\alpha$-adjusted CC06 prediction',
-              r'$m$ distribution parameter $\beta$','']
-    pylim = [(0.45, 2.1),(0.7,3),(0.45, 2.1),(0.45, 2.1),(0,1)]
+    pname = ['CC06','alpha','CC06alpha', 'beta', 'CC06beta', 'CC06ab']
+    plabel = [r'$R_V$',r'$\alpha$',
+              r'$\alpha$-adjusted $R_V$', r'$\beta$',
+              r'$\beta$-adjusted $R_V$', 
+              r'$\alpha$ and $\beta$-adjusted $R_V$']
+    ptitle = ['(a)','(b)','(e)','(c)','(f)','(d)']
+    pylim = [(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),
+             (0.45, 2.2)]
     
     for ip in range(len(pname)):
         print 'ip', ip
         # Set up the figure
-        fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/2., 3.5))
+        fig, ax = plt.subplots(1, 1, figsize = (pdfwidth/3., 2.5))
         clist = ['#3366ff', '#009933', '#ff3300']
-        labellist = ['SS: 11.2 km', 'MS: 89.6 km', 'LS: 717 km']
+        labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
         for i, i_n in enumerate([6,3,0]):
             print 'n', i_n
             # Extract the arrays
@@ -1331,6 +1332,12 @@ if 'diurnal' in args.plot:
             if ip == 3:
                 frac = beta
                 print frac.shape
+            if ip == 4:
+                predict = (1+beta)*m*M
+                frac = varM/predict
+            if ip == 5:
+                predict = (alpha+beta)*m*M
+                frac = varM/predict
             #if ip == 4:
                 #tmp = []
                 #for it in range(N.shape[0]):
@@ -1377,8 +1384,9 @@ if 'diurnal' in args.plot:
                 ax.plot([mid[j]-0.1, mid[j]+0.1],[per75[j],per75[j]], c = clist[i],
                         linewidth = 0.7, zorder = 3)
             
-        ax.plot([6,24], [1,1], c = 'gray', zorder = 0.5, label = 'perfect')
-        ax.legend(loc = 2, fontsize = 8)
+        ax.plot([6,24], [1,1], c = 'gray', zorder = 0.5)
+        if ip ==3:
+            ax.legend(loc = 1, fontsize = 8)
         ax.set_xticks([6,9,12,15,18,21,24])
         ax.set_xticklabels([6,9,12,15,18,21,24])
         ax.set_xlabel('Time [h/UTC]')
@@ -1387,14 +1395,17 @@ if 'diurnal' in args.plot:
         
         ax.set_yscale('log')
         ax.set_yticks([0.5,1,2])
-        ax.set_yticklabels(['.5', '1', '2'])
+        ax.set_yticklabels([0.5,1,2])
+        ax.set_yticks(np.arange(0.1, 3, 0.1), minor='True')
         ax.set_ylim(pylim[ip])
-        ax.set_title(ptitle[ip])
+        #ax.set_title(ptitle[ip])
+        ax.text(0.05, 0.9, ptitle[ip], transform = ax.transAxes, 
+                    fontsize = 10)
         plt.tight_layout()
         plotsavestr = (pname[ip] + alldatestr + '_ana-' + args.ana + 
                         '_wat-' + str(args.water) + '_lev-' + str(int(args.height[0])) +
                         '_nens-' + str(args.nens))
-        fig.savefig(plotdirsub + plotsavestr, dpi = 300)
+        fig.savefig(plotdirsub + plotsavestr, dpi = 300, bbox_inches = 'tight')
 
         plt.close('all')
 
