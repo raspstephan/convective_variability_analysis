@@ -12,11 +12,6 @@ import argparse
 from netCDF4 import Dataset
 import numpy as np
 from datetime import timedelta
-from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime, yymmddhhmm
-from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
-from cosmo_utils.pywgrib import fieldobj
-from cosmo_utils.plot import ax_contourf, fig_contourf_1sp
-from cosmo_utils.diag import mean_spread_fieldobjlist
 import matplotlib as mpl
 mpl.rcParams['text.latex.preamble'] = [
        r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
@@ -26,6 +21,11 @@ mpl.rcParams['text.latex.preamble'] = [
        r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
 ] 
 import matplotlib.pyplot as plt
+from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime, yymmddhhmm
+from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
+from cosmo_utils.pywgrib import fieldobj
+from cosmo_utils.plot import ax_contourf, fig_contourf_1sp
+from cosmo_utils.diag import mean_spread_fieldobjlist
 from scipy.optimize import leastsq
 import cPickle
 
@@ -1291,14 +1291,14 @@ if 'diurnal' in args.plot:
         
     timelist3h = [1, 4, 7, 10, 13, 16]
     
-    pname = ['CC06','alpha','CC06alpha', 'beta', 'CC06beta', 'CC06ab']
+    pname = ['CC06','alpha','CC06alpha', 'beta', 'CC06beta', 'CC06ab','beta_adj']
     plabel = [r'$R_V$',r'$\alpha$',
               r'$\alpha$-adjusted $R_V$', r'$\beta$',
               r'$\beta$-adjusted $R_V$', 
-              r'$\alpha$ and $\beta$-adjusted $R_V$']
-    ptitle = ['(a)','(b)','(e)','(c)','(f)','(d)']
+              r'$\alpha$ and $\beta$-adjusted $R_V$', 'adjusted beta']
+    ptitle = ['(a)','(b)','(e)','(c)','(f)','(d)','',]
     pylim = [(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),(0.45, 2.2),
-             (0.45, 2.2)]
+             (0.45, 2.2),(0.45, 2.2)]
     
     for ip in range(len(pname)):
         print 'ip', ip
@@ -1338,6 +1338,14 @@ if 'diurnal' in args.plot:
             if ip == 5:
                 predict = (alpha+beta)*m*M
                 frac = varM/predict
+            if ip == 6:
+                frac = beta
+                totN = N*args.nens
+                n_sample, sample_beta = np.load('./beta_lookup.npy')
+                for i1 in range(frac.shape[0]):
+                    for i2 in range(frac.shape[1]):
+                        ind = np.argmin(np.abs(n_sample - totN[i1,i2]))
+                        frac[i1,i2] = frac[i1,i2]/sample_beta[ind]
             #if ip == 4:
                 #tmp = []
                 #for it in range(N.shape[0]):

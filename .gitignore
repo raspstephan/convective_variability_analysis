@@ -1,6 +1,9 @@
-results/*
+jobs/*
 *.aux
 *.bbl
 *.blg
 *.log
 *.backup
+*.png
+*.so
+*.pyc
