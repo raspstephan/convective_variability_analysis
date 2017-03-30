@@ -1,0 +1,3 @@
+# YAML file with all configuration
+paths:
+    raw_dir: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/raw_data/
