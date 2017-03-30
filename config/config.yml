@@ -1,3 +1,4 @@
 # YAML file with all configuration
-paths:
-    raw_dir: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/raw_data/
+paths:   # Note: All paths should have a "/" at the end!
+    raw_data: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/raw_data/
+    preproc_data: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/preproc_data/
