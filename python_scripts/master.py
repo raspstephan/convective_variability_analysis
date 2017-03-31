@@ -12,40 +12,22 @@ https://github.com/DamienIrving
 
 # Import modules
 
-import sys, os
-import yaml
+import sys
 import argparse
 import datetime
 from git import Repo
 from preprocessing import preprocess
+from helpers import get_config
 
 
-# Define functions
-def read_config_file(config_file):
-    """
-    Reads the config JSON file
-    
-    Parameters
-    ----------
-    config_file : str 
-      Path to config file
-      
-    Returns
-    -------
-    config : dict
-      Dictionary with all config settings
-    """
-    config = yaml.safe_load(open('../config/' + config_file))
-    return config
 
 
-def get_pp_fn(config, inargs):
+
+def get_pp_fn(inargs):
     """
     Creates a filename for the pre-processed NetCDF file
     Parameters
     ----------
-    config : dict
-      Configuration dictionary
     inargs : argparse object
       Argparse object with all input arguments
 
@@ -55,7 +37,7 @@ def get_pp_fn(config, inargs):
       Filename with path of pre-processed NetCDF file
 
     """
-    pp_fn = config['paths']['preproc_data']
+    pp_fn = get_config(inargs, 'paths', 'preproc_data')
     for key, value in vars(inargs).items():
         pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1]   # remove last '_'
@@ -100,9 +82,8 @@ def main(inargs):
     """
 
     # Some preliminary setup
-    config = read_config_file(inargs.config_file)
     create_log_str(inargs)
-    pp_fn = get_pp_fn(config, inargs)
+    pp_fn = get_pp_fn(inargs)
 
 
     # Step 2: Call preprocessing routine with arguments
