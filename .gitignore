@@ -1,3 +1,4 @@
 *.pyc
 *.so
 figures/*
+python_scripts/.idea

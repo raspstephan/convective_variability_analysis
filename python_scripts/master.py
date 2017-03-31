@@ -17,6 +17,7 @@ import yaml
 import argparse
 import datetime
 from git import Repo
+from preprocessing import preprocess
 
 
 # Define functions
@@ -74,8 +75,14 @@ def main(inargs):
     inargs : argparse object
       Argparse object with all input arguments
     """
+
+    # Step 1
     config = read_config_file(inargs.config_file)
     create_log_file(inargs)
+
+    # Step 2: Call preprocessing routine with arguments
+    preprocess()
+
 
 
 if __name__ == '__main__':
