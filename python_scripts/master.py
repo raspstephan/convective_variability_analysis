@@ -35,11 +35,36 @@ def read_config_file(config_file):
     config : dict
       Dictionary with all config settings
     """
-    config = yaml.safe_load(open(config_file))
+    config = yaml.safe_load(open('../config/' + config_file))
     return config
 
 
-def create_log_file(inargs):
+def get_pp_fn(config, inargs):
+    """
+    Creates a filename for the pre-processed NetCDF file
+    Parameters
+    ----------
+    config : dict
+      Configuration dictionary
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+    pp_fn : str
+      Filename with path of pre-processed NetCDF file
+
+    """
+    pp_fn = config['paths']['preproc_data']
+    for key, value in vars(inargs).items():
+        pp_fn += key + '-' + str(value) + '_'
+    pp_fn = pp_fn[:-1]   # remove last '_'
+    print('Pre-processed file: ' + pp_fn)
+    return pp_fn
+
+
+
+def create_log_str(inargs):
     """
     Function to create a log file tracking all steps from initial call to
     figure.
@@ -63,8 +88,6 @@ def create_log_file(inargs):
                    %(time_stamp, exe, args, py_vers, str(git_hash)[0:7]))
     log_file.close()
     
-    
-
 
 def main(inargs):
     """
@@ -76,13 +99,14 @@ def main(inargs):
       Argparse object with all input arguments
     """
 
-    # Step 1
+    # Some preliminary setup
     config = read_config_file(inargs.config_file)
-    create_log_file(inargs)
+    create_log_str(inargs)
+    pp_fn = get_pp_fn(config, inargs)
+
 
     # Step 2: Call preprocessing routine with arguments
-    preprocess()
-
+    preprocess(inargs, pp_fn)
 
 
 if __name__ == '__main__':
@@ -93,14 +117,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = description,
                                      epilog = extra_info)
     
-    parser.add_argument('--config_file', 
-                        type = str, 
-                        default = '../config/config.yml',
+    parser.add_argument('--date_start',
+                        type = str,
+                        help = 'Start date of analysis in yyyymmdd')
+    parser.add_argument('--date_end',
+                        type = str,
+                        help = 'End date of analysis in yyyymmdd')
+    parser.add_argument('--nens',
+                        type = int,
+                        help = 'Number of ensemble members')
+    parser.add_argument('--config_file',
+                        type = str,
+                        default = 'config.yml',
                         help = 'Config file')
-    
+
     args = parser.parse_args()
-    
-    
+
     main(args)
 
 
