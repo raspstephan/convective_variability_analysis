@@ -10,6 +10,7 @@ netCDF File.
 # Import modules
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
+from cosmo_utils.helpers import yyyymmddhh_strtotime
 from helpers import get_config, make_datelist_yyyymmddhh
 from datetime import timedelta
 import numpy as np
@@ -18,6 +19,7 @@ import numpy as np
 def create_netcdf_weather_ts(pp_fn, inargs):
     """
     Creates a NetCDF object to store weather time series data.
+    
     3 groups : obs, det, ens
     3 dimensions : date, time, ens_no (1 for det and obs)
     4 variables : mean_prec, mean_cape, mean_tauc, mean_hpbl
@@ -78,6 +80,7 @@ def create_netcdf_weather_ts(pp_fn, inargs):
 def domain_mean_weather_ts(inargs, pp_fn):
     """
     Calculate hourly time-series for domain mean variables:
+    
     - hourly precipitation
     - CAPE
     - convective adjustment timescale
@@ -121,10 +124,29 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                                            return_arrays=True,
                                                            fieldn=var)
 
-                        # Compute domain mean and save in NetCDF file
-                        mean_ts = np.mean(datalist, axis=(1, 2))
-                        rootgroup.groups[group].variables[var][id, :, ie] =\
-                            mean_ts
+                elif group == 'obs':
+                    var = 'PREC_ACCUM'
+                    radarpref = (get_config(inargs, 'paths', 'radar_data') +
+                                 'raa01-rw_10000-')
+                    radarsufx = '-dwd---bin.nc'
+                    dtradar = timedelta(minutes=10)
+                    dateobj = yyyymmddhh_strtotime(date)
+
+                    datalist  = getfobj_ncdf_timeseries(radarpref,
+                                                       dateobj + timedelta(hours=inargs.time_start) - dtradar,
+                                                       dateobj + timedelta(hours=inargs.time_end) - dtradar,
+                                                       timedelta(hours=inargs.time_inc),
+                                                       reftime=dateobj,
+                                                       ncdffn_sufx=radarsufx,
+                                                       fieldn='pr',
+                                                       abs_datestr='yymmddhhmm',
+                                                       dwdradar=True,
+                                                       return_arrays=True)
+                else:
+                    raise Exception('Wrong group!')
+                # Compute domain mean and save in NetCDF file
+                mean_ts = np.mean(datalist, axis=(1, 2))
+                rootgroup.groups[group].variables[var][id, :, ie] = mean_ts
 
     # Close NetCDF file
     rootgroup.close()
