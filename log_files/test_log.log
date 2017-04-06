@@ -1,2 +1,2 @@
-2017-04-06T12:40:03: /home/s/S.Rasp/anaconda2/envs/py_env/bin/python Namespace(config_file='config.yml', date_end='2016052800', date_start='2016052800', nens=5, time_end=24, time_inc=1, time_start=1) 2.7.13 |Continuum Analytics, Inc.| (default, Dec 20 2016, 23:09:15) 
-[GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] (Git hash: 6b8776f)
+2017-04-06T12:50:13: /home/s/S.Rasp/anaconda2/envs/py_env/bin/python Namespace(config_file='config.yml', date_end='2016052800', date_start='2016052800', nens=5, time_end=24, time_inc=1, time_start=1) 2.7.13 |Continuum Analytics, Inc.| (default, Dec 20 2016, 23:09:15) 
+[GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] (Git hash: 0926322)

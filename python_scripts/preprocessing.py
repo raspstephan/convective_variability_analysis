@@ -43,10 +43,10 @@ def create_netcdf_weather_ts(pp_fn, inargs):
         'date': int(inargs.date_end) - int(inargs.date_end) + 1,
     }
     variables = {
-        'mean_prec': ['date', 'time'],
-        'mean_cape': ['date', 'time'],
-        'mean_tauc': ['date', 'time'],
-        'mean_hpbl': ['date', 'time'],
+        'PREC_ACCUM': ['date', 'time'],
+        'CAPE_ML': ['date', 'time'],
+        'TAU_C': ['date', 'time'],
+        'HPBL': ['date', 'time'],
     }
 
     # Create root dimensions and variables
@@ -112,18 +112,19 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                    date + '/deout_ceu_pspens/' + ens_str +
                                    '/OUTPUT/lfff')
 
-                    preclist = getfobj_ncdf_timeseries(ncdffn_pref,
-                                                       timedelta(hours=inargs.time_start),
-                                                       timedelta(hours=inargs.time_end),
-                                                       timedelta(hours=inargs.time_inc),
-                                                       ncdffn_sufx='.nc_30m_surf',
-                                                       return_arrays=True,
-                                                       fieldn='TOT_PREC')
+                    for var in rootgroup.groups[group].variables:
+                        datalist = getfobj_ncdf_timeseries(ncdffn_pref,
+                                                           timedelta(hours=inargs.time_start),
+                                                           timedelta(hours=inargs.time_end),
+                                                           timedelta(hours=inargs.time_inc),
+                                                           ncdffn_sufx='.nc_30m_surf',
+                                                           return_arrays=True,
+                                                           fieldn=var)
 
-                    # Compute domain mean and save in NetCDF file
-                    mean_ts = np.mean(preclist, axis=(1, 2))
-                    rootgroup.groups[group].variables['mean_prec'][id, :, ie] =\
-                        mean_ts
+                        # Compute domain mean and save in NetCDF file
+                        mean_ts = np.mean(datalist, axis=(1, 2))
+                        rootgroup.groups[group].variables[var][id, :, ie] =\
+                            mean_ts
 
     # Close NetCDF file
     rootgroup.close()
