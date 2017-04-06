@@ -100,10 +100,10 @@ if __name__ == '__main__':
     
     parser.add_argument('--date_start',
                         type = str,
-                        help = 'Start date of analysis in yyyymmdd')
+                        help = 'Start date of analysis in yyyymmddhh')
     parser.add_argument('--date_end',
                         type = str,
-                        help = 'End date of analysis in yyyymmdd')
+                        help = 'End date of analysis in yyyymmddhh')
     parser.add_argument('--nens',
                         type = int,
                         help = 'Number of ensemble members')

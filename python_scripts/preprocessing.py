@@ -10,7 +10,7 @@ netCDF File.
 # Import modules
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
-from helpers import get_config
+from helpers import get_config, make_datelist_yyyymmddhh
 from datetime import timedelta
 import numpy as np
 
@@ -68,6 +68,7 @@ def create_netcdf_weather_ts(pp_fn, inargs):
             rootgroup.groups[g].createVariable(var_name, 'f8', var_dims)
     return rootgroup
 
+
 def domain_mean_weather_ts(inargs, pp_fn):
     """
     Calculate hourly time-series for domain mean variables:
@@ -93,21 +94,22 @@ def domain_mean_weather_ts(inargs, pp_fn):
     rootgroup = create_netcdf_weather_ts(pp_fn, inargs)
 
     # Load analysis data and store in NetCDF
-    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') + inargs.date_start +
-                   '/deout_ceu_pspens/det/OUTPUT/lfff')
-    tstart = timedelta(hours=1)
-    tend = timedelta(hours=24)
-    tinc = timedelta(hours=1)
-    detpreclist = getfobj_ncdf_timeseries(ncdffn_pref, tstart, tend, tinc,
-                                          ncdffn_sufx='.nc_30m_surf',
-                                          return_arrays=True,
-                                          fieldn='TOT_PREC')
+    for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
+        ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') + date +
+                       '/deout_ceu_pspens/det/OUTPUT/lfff')
+        tstart = timedelta(hours=1)
+        tend = timedelta(hours=24)
+        tinc = timedelta(hours=1)
+        detpreclist = getfobj_ncdf_timeseries(ncdffn_pref, tstart, tend, tinc,
+                                              ncdffn_sufx='.nc_30m_surf',
+                                              return_arrays=True,
+                                              fieldn='TOT_PREC')
 
-    # Compute means
-    det_mean_ts = np.mean(detpreclist, axis = (1, 2))
+        # Compute means
+        det_mean_ts = np.mean(detpreclist, axis = (1, 2))
 
-    # Save in NetCDF file
-    rootgroup.groups['det'].variables['mean_prec'][0,:] = det_mean_ts   # TEST
+        # Save in NetCDF file
+        rootgroup.groups['det'].variables['mean_prec'][id,:] = det_mean_ts   # TEST
 
     # Close NetCDF file
     rootgroup.close()
