@@ -40,7 +40,7 @@ def get_pp_fn(inargs):
     pp_fn = get_config(inargs, 'paths', 'preproc_data')
     for key, value in vars(inargs).items():
         pp_fn += key + '-' + str(value) + '_'
-    pp_fn = pp_fn[:-1]   # remove last '_'
+    pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
     print('Pre-processed file: ' + pp_fn)
     return pp_fn
 

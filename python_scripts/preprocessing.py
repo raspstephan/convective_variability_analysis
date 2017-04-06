@@ -17,7 +17,11 @@ import numpy as np
 # Define functions
 def create_netcdf_weather_ts(pp_fn, inargs):
     """
-
+    Creates a NetCDF object to store weather time series data.
+    3 groups : obs, det, ens
+    3 dimensions : date, time, ens_no (1 for det and obs)
+    4 variables : mean_prec, mean_cape, mean_tauc, mean_hpbl
+    
     Parameters
     ----------
     pp_fn : str
@@ -53,11 +57,13 @@ def create_netcdf_weather_ts(pp_fn, inargs):
     rootgroup.createVariable('date', 'i4', ('date'))
 
     # Create group dimensions and variables
+    [b.append('ens_no') for a, b in variables.items()]
+    dimensions['ens_no'] = 1
+
     for g in groups:
         rootgroup.createGroup(g)
         if g == 'ens':
             dimensions['ens_no'] = inargs.nens
-            [b.append('ens_no') for a, b in variables.items()]
 
         # Create dimensions
         for dim_name, dim_len in dimensions.items():
@@ -95,23 +101,29 @@ def domain_mean_weather_ts(inargs, pp_fn):
 
     # Load analysis data and store in NetCDF
     for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
-        ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') + date +
-                       '/deout_ceu_pspens/det/OUTPUT/lfff')
+        for group in rootgroup.groups:
+            for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
+                if group in ['det', 'ens']:
+                    ens_str = str(ie + 1)
+                    if group == 'det':
+                        ens_str = 'det'
 
-        detpreclist = getfobj_ncdf_timeseries(ncdffn_pref,
-                                              timedelta(hours=
-                                                        inargs.time_start),
-                                              timedelta(hours=inargs.time_end),
-                                              timedelta(hours=inargs.time_inc),
-                                              ncdffn_sufx='.nc_30m_surf',
-                                              return_arrays=True,
-                                              fieldn='TOT_PREC')
+                    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
+                                   date + '/deout_ceu_pspens/' + ens_str +
+                                   '/OUTPUT/lfff')
 
-        # Compute means
-        det_mean_ts = np.mean(detpreclist, axis=(1, 2))
+                    preclist = getfobj_ncdf_timeseries(ncdffn_pref,
+                                                       timedelta(hours=inargs.time_start),
+                                                       timedelta(hours=inargs.time_end),
+                                                       timedelta(hours=inargs.time_inc),
+                                                       ncdffn_sufx='.nc_30m_surf',
+                                                       return_arrays=True,
+                                                       fieldn='TOT_PREC')
 
-        # Save in NetCDF file
-        rootgroup.groups['det'].variables['mean_prec'][id,:] = det_mean_ts   # TEST
+                    # Compute domain mean and save in NetCDF file
+                    mean_ts = np.mean(preclist, axis=(1, 2))
+                    rootgroup.groups[group].variables['mean_prec'][id, :, ie] =\
+                        mean_ts
 
     # Close NetCDF file
     rootgroup.close()
