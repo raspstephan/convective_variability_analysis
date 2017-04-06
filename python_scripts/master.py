@@ -99,18 +99,33 @@ if __name__ == '__main__':
                                      epilog = extra_info)
     
     parser.add_argument('--date_start',
-                        type = str,
-                        help = 'Start date of analysis in yyyymmddhh')
+                        type=str,
+                        help='Start date of analysis in yyyymmddhh')
     parser.add_argument('--date_end',
-                        type = str,
-                        help = 'End date of analysis in yyyymmddhh')
+                        type=str,
+                        help='End date of analysis in yyyymmddhh')
+    parser.add_argument('--time_start',
+                        type=int,
+                        default=1,
+                        help='Analysis start time in hrs [including]. \
+                              Default = 1')
+    parser.add_argument('--time_end',
+                        type=int,
+                        default=24,
+                        help='Analysis end time in hrs [including]. \
+                              Default = 24')
+    parser.add_argument('--time_inc',
+                        type=float,
+                        default=1,
+                        help='Analysis increment in hrs. Default = 1')
     parser.add_argument('--nens',
-                        type = int,
-                        help = 'Number of ensemble members')
+                        type=int,
+                        help='Number of ensemble members')
     parser.add_argument('--config_file',
-                        type = str,
-                        default = 'config.yml',
-                        help = 'Config file')
+                        type=str,
+                        default='config.yml',
+                        help='Config file in relative directory ../config. \
+                              Default = config.yml')
 
     args = parser.parse_args()
 

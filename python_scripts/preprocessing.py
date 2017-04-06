@@ -97,16 +97,18 @@ def domain_mean_weather_ts(inargs, pp_fn):
     for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
         ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') + date +
                        '/deout_ceu_pspens/det/OUTPUT/lfff')
-        tstart = timedelta(hours=1)
-        tend = timedelta(hours=24)
-        tinc = timedelta(hours=1)
-        detpreclist = getfobj_ncdf_timeseries(ncdffn_pref, tstart, tend, tinc,
+
+        detpreclist = getfobj_ncdf_timeseries(ncdffn_pref,
+                                              timedelta(hours=
+                                                        inargs.time_start),
+                                              timedelta(hours=inargs.time_end),
+                                              timedelta(hours=inargs.time_inc),
                                               ncdffn_sufx='.nc_30m_surf',
                                               return_arrays=True,
                                               fieldn='TOT_PREC')
 
         # Compute means
-        det_mean_ts = np.mean(detpreclist, axis = (1, 2))
+        det_mean_ts = np.mean(detpreclist, axis=(1, 2))
 
         # Save in NetCDF file
         rootgroup.groups['det'].variables['mean_prec'][id,:] = det_mean_ts   # TEST
