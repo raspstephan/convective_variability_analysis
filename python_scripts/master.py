@@ -51,8 +51,8 @@ def create_log_str(inargs):
     Git hash: %s\n
     In directory: %s\n
     %s %s\n
-    """%(time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
-         script_name, args_str))
+    """ % (time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
+           script_name, args_str))
     return log_str
 
 
@@ -68,7 +68,7 @@ def main(inargs):
     log_str = create_log_str(inargs)
 
     # Check if pre-processed file exists
-    if not pp_exists(inargs):
+    if (pp_exists(inargs) is False) or (inargs.recompute is True):
         # Call preprocessing routine with arguments
         preprocess(inargs, log_str)
     else:
@@ -80,8 +80,8 @@ if __name__ == '__main__':
     extra_info = 'Top-level script to analyze data'
     description = 'Bla bla'
     
-    parser = argparse.ArgumentParser(description = description,
-                                     epilog = extra_info)
+    parser = argparse.ArgumentParser(description=description,
+                                     epilog=extra_info)
     
     parser.add_argument('--date_start',
                         type=str,
@@ -111,13 +111,12 @@ if __name__ == '__main__':
                         default='config.yml',
                         help='Config file in relative directory ../config. \
                               Default = config.yml')
+    parser.add_argument('--recompute',
+                        dest='recompute',
+                        action='store_true',
+                        help='If True, recompute pre-processed file.')
+    parser.set_defaults(recompute=False)
 
     args = parser.parse_args()
 
     main(args)
-
-
-
-
-
-

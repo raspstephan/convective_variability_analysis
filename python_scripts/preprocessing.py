@@ -84,6 +84,114 @@ def create_netcdf_weather_ts(inargs, log_str):
     return rootgroup
 
 
+def get_datalist_model(inargs, date, ens_no, var, radar_mask):
+    """
+    Get data time series for model output.
+    Parameters
+    ----------
+    inargs : : argparse object
+      Argparse object with all input arguments
+    date : str
+      Date in format yyyymmddhh
+    ens_no : int or str 
+      Ensemble number or str in case of det
+    var : str 
+      Variable
+    radar_mask : 2D numpy array
+      Radar mask to create masked arrays
+
+    Returns
+    -------
+    datalist : list
+      List of 2D masked arrays
+    """
+    # Get file name
+    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
+                   date + '/deout_ceu_pspens/' + str(ens_no) +
+                   '/OUTPUT/lfff')
+    datalist = getfobj_ncdf_timeseries(ncdffn_pref,
+                                       timedelta(hours=inargs.time_start),
+                                       timedelta(hours=inargs.time_end),
+                                       timedelta(hours=inargs.time_inc),
+                                       ncdffn_sufx='.nc_30m_surf',
+                                       return_arrays=True,
+                                       fieldn=var)
+    # Crop data
+    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+        get_domain_limits(inargs)
+    for i, data in enumerate(datalist):
+        datalist[i] = masked_array(data[l11:l12, l21:l22],
+                                   mask=radar_mask)
+    return datalist
+
+
+def get_datalist_radar(inargs, date, radar_mask):
+    """
+    Get data time series for radar observation.
+    Parameters
+    ----------
+    inargs : : argparse object
+      Argparse object with all input arguments
+    date : str
+      Date in format yyyymmddhh
+    radar_mask : 2D numpy array
+      Radar mask to create masked arrays
+
+    Returns
+    -------
+    datalist : list
+      List of 2D masked arrays
+    """
+    # Get file name
+    radarpref = (get_config(inargs, 'paths', 'radar_data') +
+                 'raa01-rw_10000-')
+    radarsufx = '-dwd---bin.nc'
+    dtradar = timedelta(minutes=10)
+    dateobj = yyyymmddhh_strtotime(date)
+    datalist = getfobj_ncdf_timeseries(radarpref,
+                                       dateobj + timedelta(
+                                           hours=inargs.time_start) - dtradar,
+                                       dateobj + timedelta(
+                                           hours=inargs.time_end) - dtradar,
+                                       timedelta(hours=inargs.time_inc),
+                                       reftime=dateobj,
+                                       ncdffn_sufx=radarsufx,
+                                       fieldn='pr',
+                                       abs_datestr='yymmddhhmm',
+                                       dwdradar=True,
+                                       return_arrays=True)
+    # Crop data
+    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+        get_domain_limits(inargs)
+    # Crop data
+    for i, data in enumerate(datalist):
+        datalist[i] = masked_array(data[l11_rad:l12_rad,
+                                   l21_rad:l22_rad],
+                                   mask=radar_mask)
+    return datalist
+
+
+def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
+                    radar_mask):
+
+    if group in ['det', 'ens']:
+        if group == 'det':
+            ens_no = 'det'
+        else:
+            ens_no = ie + 1
+        datalist = get_datalist_model(inargs, date, ens_no, var, radar_mask)
+    elif group == 'obs':
+        if not var == 'PREC_ACCUM':
+            return
+        datalist = get_datalist_radar(inargs, date, radar_mask)
+    else:
+        raise Exception('Wrong group.')
+
+    # Compute domain mean and save in NetCDF file
+    mean_ts = np.mean(datalist, axis=(1, 2))
+    rootgroup.groups[group].variables[var][idate, :, ie] = mean_ts
+
+
 def domain_mean_weather_ts(inargs, log_str):
     """
     Calculate hourly time-series for domain mean variables:
@@ -109,68 +217,18 @@ def domain_mean_weather_ts(inargs, log_str):
 
     rootgroup = create_netcdf_weather_ts(inargs, log_str)
 
-    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
-        get_domain_limits(inargs)
-
     radar_mask = get_radar_mask()
     print('Number of masked grid points: ' + str(np.sum(radar_mask)) +
           ' from total grid points: ' + str(radar_mask.size))
 
     # Load analysis data and store in NetCDF
-    for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
+    for idate, date in enumerate(make_datelist_yyyymmddhh(inargs)):
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
-                if group in ['det', 'ens']:
-                    ens_str = str(ie + 1)
-                    if group == 'det':
-                        ens_str = 'det'
+                for var in rootgroup.groups[group].variables:
 
-                    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
-                                   date + '/deout_ceu_pspens/' + ens_str +
-                                   '/OUTPUT/lfff')
-
-                    for var in rootgroup.groups[group].variables:
-                        datalist = getfobj_ncdf_timeseries(ncdffn_pref,
-                                                           timedelta(hours=inargs.time_start),
-                                                           timedelta(hours=inargs.time_end),
-                                                           timedelta(hours=inargs.time_inc),
-                                                           ncdffn_sufx='.nc_30m_surf',
-                                                           return_arrays=True,
-                                                           fieldn=var)
-                        # Crop data
-                        for i, data in enumerate(datalist):
-                            datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                                       mask=radar_mask)
-
-
-                elif group == 'obs':
-                    var = 'PREC_ACCUM'
-                    radarpref = (get_config(inargs, 'paths', 'radar_data') +
-                                 'raa01-rw_10000-')
-                    radarsufx = '-dwd---bin.nc'
-                    dtradar = timedelta(minutes=10)
-                    dateobj = yyyymmddhh_strtotime(date)
-
-                    datalist  = getfobj_ncdf_timeseries(radarpref,
-                                                       dateobj + timedelta(hours=inargs.time_start) - dtradar,
-                                                       dateobj + timedelta(hours=inargs.time_end) - dtradar,
-                                                       timedelta(hours=inargs.time_inc),
-                                                       reftime=dateobj,
-                                                       ncdffn_sufx=radarsufx,
-                                                       fieldn='pr',
-                                                       abs_datestr='yymmddhhmm',
-                                                       dwdradar=True,
-                                                       return_arrays=True)
-                    # Crop data
-                    for i, data in enumerate(datalist):
-                        datalist[i] = masked_array(data[l11_rad:l12_rad,
-                                                        l21_rad:l22_rad],
-                                                   mask=radar_mask)
-                else:
-                    raise Exception('Wrong group!')
-                # Compute domain mean and save in NetCDF file
-                mean_ts = np.mean(datalist, axis=(1, 2))
-                rootgroup.groups[group].variables[var][id, :, ie] = mean_ts
+                    compute_ts_mean(inargs, idate, date, group, ie, var,
+                                    rootgroup, radar_mask)
 
     # Close NetCDF file
     rootgroup.close()

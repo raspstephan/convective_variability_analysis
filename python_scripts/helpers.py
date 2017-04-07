@@ -115,9 +115,6 @@ def get_radar_mask():
     return np.load('../aux_files/radar_tot_mask.npy')
 
 
-
-
-
 def get_pp_fn(inargs):
     """
     Creates a filename for the pre-processed NetCDF file
@@ -137,6 +134,7 @@ def get_pp_fn(inargs):
         pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
     return pp_fn
+
 
 def pp_exists(inargs):
     """
