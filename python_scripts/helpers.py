@@ -8,9 +8,12 @@ This script contains helper functions.
 
 
 # import modules
+import os
 import yaml
 import numpy as np
 from datetime import datetime, timedelta
+from subprocess import check_output
+from git import Repo
 
 
 # Define functions
@@ -20,8 +23,12 @@ def get_config(inargs, top_key, bottom_key):
 
     Parameters
     ----------
-    config_file : str
-      Path to config file
+    inargs : argparse object
+      Argparse object with all input arguments
+    top_key : str
+      Name of top category 
+    bottom_key : key
+      Name of key in top category
 
     Returns
     -------
@@ -108,3 +115,60 @@ def get_radar_mask():
     """
 
     return np.load('../aux_files/radar_tot_mask.npy')
+
+
+def create_log_str(inargs):
+    """
+    Function to create a log file tracking all steps from initial call to
+    figure.
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    """
+    time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    conda_info = check_output(['conda', 'info'])
+    conda_list = check_output(['conda', 'list'])
+    # TODO: Get base dir automatically
+    git_dir = '~/repositories/convective_variability_analysis'
+    git_hash = Repo(git_dir).heads[0].commit
+    pwd = check_output(['pwd'])
+    script_name = os.path.basename(__file__)
+    args_str = ''
+    for arg in vars(inargs):
+        args_str += ('--' + arg + ' ' + str(getattr(inargs, arg)) + ' ')
+
+    log_str = ("""
+    Preprocessing log\n
+    -----------------\n
+    %s\n
+    %s\n
+    %s\n
+    Git hash: %s\n
+    In directory: %s\n
+    %s %s\n
+    """%(time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
+         script_name, args_str))
+    return log_str
+
+
+def get_pp_fn(inargs):
+    """
+    Creates a filename for the pre-processed NetCDF file
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+    pp_fn : str
+      Filename with path of pre-processed NetCDF file
+
+    """
+    pp_fn = get_config(inargs, 'paths', 'preproc_data')
+    for key, value in vars(inargs).items():
+        pp_fn += key + '-' + str(value) + '_'
+    pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
+    print('Pre-processed file: ' + pp_fn)
+    return pp_fn

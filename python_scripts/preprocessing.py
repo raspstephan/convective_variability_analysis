@@ -12,13 +12,14 @@ from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from cosmo_utils.helpers import yyyymmddhh_strtotime
 from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
-    get_radar_mask
+    get_radar_mask, create_log_str, get_pp_fn
 from datetime import timedelta
 import numpy as np
 from numpy.ma import masked_array
 
+
 # Define functions
-def create_netcdf_weather_ts(pp_fn, inargs):
+def create_netcdf_weather_ts(inargs):
     """
     Creates a NetCDF object to store weather time series data.
     
@@ -38,8 +39,13 @@ def create_netcdf_weather_ts(pp_fn, inargs):
     rootgroup : NetCDF object
 
     """
+
+    pp_fn = get_pp_fn(inargs)
+    log_str = create_log_str(inargs)
+
     # Create NetCDF file
     rootgroup = Dataset(pp_fn, 'w', format='NETCDF4')
+    rootgroup.log = log_str
 
     groups = ['obs', 'det', 'ens']
     dimensions = {
@@ -79,7 +85,7 @@ def create_netcdf_weather_ts(pp_fn, inargs):
     return rootgroup
 
 
-def domain_mean_weather_ts(inargs, pp_fn):
+def domain_mean_weather_ts(inargs):
     """
     Calculate hourly time-series for domain mean variables:
     
@@ -102,12 +108,14 @@ def domain_mean_weather_ts(inargs, pp_fn):
 
     """
 
-    rootgroup = create_netcdf_weather_ts(pp_fn, inargs)
+    rootgroup = create_netcdf_weather_ts(inargs)
 
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
 
     radar_mask = get_radar_mask()
+    print('Number of masked grid points: ' + str(np.sum(radar_mask)) +
+          ' from total grid points: ' + str(radar_mask.size))
 
     # Load analysis data and store in NetCDF
     for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
@@ -169,8 +177,7 @@ def domain_mean_weather_ts(inargs, pp_fn):
     rootgroup.close()
 
 
-
-def preprocess(inargs, pp_fn):
+def preprocess(inargs):
     """
     Top-level function called by main.py
 
@@ -187,4 +194,4 @@ def preprocess(inargs, pp_fn):
     """
 
     # Call analysis function
-    domain_mean_weather_ts(inargs, pp_fn)
+    domain_mean_weather_ts(inargs)

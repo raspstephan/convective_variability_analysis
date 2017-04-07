@@ -11,66 +11,10 @@ https://github.com/DamienIrving
 """
 
 # Import modules
-
-import sys
 import argparse
-import datetime
-from git import Repo
 from preprocessing import preprocess
-from helpers import get_config
 
-
-
-
-
-def get_pp_fn(inargs):
-    """
-    Creates a filename for the pre-processed NetCDF file
-    Parameters
-    ----------
-    inargs : argparse object
-      Argparse object with all input arguments
-
-    Returns
-    -------
-    pp_fn : str
-      Filename with path of pre-processed NetCDF file
-
-    """
-    pp_fn = get_config(inargs, 'paths', 'preproc_data')
-    for key, value in vars(inargs).items():
-        pp_fn += key + '-' + str(value) + '_'
-    pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
-    print('Pre-processed file: ' + pp_fn)
-    return pp_fn
-
-
-
-def create_log_str(inargs):
-    """
-    Function to create a log file tracking all steps from initial call to
-    figure.
-    Parameters
-    ----------
-    inargs : argparse object
-      Argparse object with all input arguments
-    """
-    time_stamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    exe = sys.executable
-    py_vers = sys.version
-    args_str = '  '.join(vars(inargs))
-    # TODO: Get base dir automatically
-    git_hash =  Repo('~/repositories/convective_variability_analysis').heads[0].commit
-    
-    # TODO: How do I dynamically get the filename?
-    log_fn = '/home/s/S.Rasp/repositories/convective_variability_analysis/log_files/test_log.log'
-    # TODO: Assert log file with same name does not already exist
-    log_file = open(log_fn, 'w+')
-    log_file.write("""%s: %s %s %s (Git hash: %s)""" 
-                   %(time_stamp, exe, args, py_vers, str(git_hash)[0:7]))
-    log_file.close()
-    
-
+# Define main function
 def main(inargs):
     """
     Runs the main program
@@ -81,13 +25,8 @@ def main(inargs):
       Argparse object with all input arguments
     """
 
-    # Some preliminary setup
-    create_log_str(inargs)
-    pp_fn = get_pp_fn(inargs)
-
-
-    # Step 2: Call preprocessing routine with arguments
-    preprocess(inargs, pp_fn)
+    # Call preprocessing routine with arguments
+    preprocess(inargs)
 
 
 if __name__ == '__main__':
