@@ -11,10 +11,50 @@ https://github.com/DamienIrving
 """
 
 # Import modules
+import os
 import argparse
 from preprocessing import preprocess
+from subprocess import check_output
+from git import Repo
+from datetime import datetime
 
-# Define main function
+
+# Define functions
+def create_log_str(inargs):
+    """
+    Function to create a log file tracking all steps from initial call to
+    figure.
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    """
+    time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    conda_info = check_output(['conda', 'info'])
+    conda_list = check_output(['conda', 'list'])
+    # TODO: Get base dir automatically
+    git_dir = '~/repositories/convective_variability_analysis'
+    git_hash = Repo(git_dir).heads[0].commit
+    pwd = check_output(['pwd'])
+    script_name = os.path.basename(__file__)
+    args_str = ''
+    for arg in vars(inargs):
+        args_str += ('--' + arg + ' ' + str(getattr(inargs, arg)) + ' ')
+
+    log_str = ("""
+    Preprocessing log\n
+    -----------------\n
+    %s\n
+    %s\n
+    %s\n
+    Git hash: %s\n
+    In directory: %s\n
+    %s %s\n
+    """%(time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
+         script_name, args_str))
+    return log_str
+
+
 def main(inargs):
     """
     Runs the main program
@@ -24,9 +64,9 @@ def main(inargs):
     inargs : argparse object
       Argparse object with all input arguments
     """
-
+    log_str = create_log_str(inargs)
     # Call preprocessing routine with arguments
-    preprocess(inargs)
+    preprocess(inargs, log_str)
 
 
 if __name__ == '__main__':

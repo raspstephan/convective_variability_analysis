@@ -12,14 +12,14 @@ from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from cosmo_utils.helpers import yyyymmddhh_strtotime
 from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
-    get_radar_mask, create_log_str, get_pp_fn
+    get_radar_mask, get_pp_fn
 from datetime import timedelta
 import numpy as np
 from numpy.ma import masked_array
 
 
 # Define functions
-def create_netcdf_weather_ts(inargs):
+def create_netcdf_weather_ts(inargs, log_str):
     """
     Creates a NetCDF object to store weather time series data.
     
@@ -29,10 +29,10 @@ def create_netcdf_weather_ts(inargs):
     
     Parameters
     ----------
-    pp_fn : str
-      Filename with path of pre-processed NetCDF file
     inargs : argparse object
       Argparse object with all input arguments
+    log_str : str
+      Log text for NetCDF file
 
     Returns
     -------
@@ -41,7 +41,6 @@ def create_netcdf_weather_ts(inargs):
     """
 
     pp_fn = get_pp_fn(inargs)
-    log_str = create_log_str(inargs)
 
     # Create NetCDF file
     rootgroup = Dataset(pp_fn, 'w', format='NETCDF4')
@@ -85,7 +84,7 @@ def create_netcdf_weather_ts(inargs):
     return rootgroup
 
 
-def domain_mean_weather_ts(inargs):
+def domain_mean_weather_ts(inargs, log_str):
     """
     Calculate hourly time-series for domain mean variables:
     
@@ -100,15 +99,15 @@ def domain_mean_weather_ts(inargs):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    pp_fn : str
-      Filename with path of pre-processed NetCDF file
+    log_str : str
+      Log text for NetCDF file
 
     Returns
     -------
 
     """
 
-    rootgroup = create_netcdf_weather_ts(inargs)
+    rootgroup = create_netcdf_weather_ts(inargs, log_str)
 
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
@@ -177,7 +176,7 @@ def domain_mean_weather_ts(inargs):
     rootgroup.close()
 
 
-def preprocess(inargs):
+def preprocess(inargs, log_str):
     """
     Top-level function called by main.py
 
@@ -185,8 +184,8 @@ def preprocess(inargs):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    pp_fn : str
-      Filename with path of pre-processed NetCDF file
+    log_str : str
+      Log text for NetCDF file
 
     Returns
     -------
@@ -194,4 +193,4 @@ def preprocess(inargs):
     """
 
     # Call analysis function
-    domain_mean_weather_ts(inargs)
+    domain_mean_weather_ts(inargs, log_str)
