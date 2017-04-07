@@ -3,3 +3,13 @@ paths:   # Note: All paths should have a "/" at the end!
     raw_data: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/raw_data/
     preproc_data: /project/meteo/scratch/users/stephan.rasp/convective_variability_data/preproc_data/
     radar_data: /project/meteo/w2w/A6/radolan/netcdf_cosmo_de/
+
+domain:
+    ie: 357   # Model run grid points in x
+    je: 357   # Model run grid points in j
+    ana_irange: 256   # Range of analysis domain in x
+    ana_jrange: 256   # Range of analysis domain in y
+    radar_istart: 112   # Start of radar domain in x
+    radar_istop: -93   # End of radar domain in x
+    radar_jstart: 72   # Start of radar domain in y
+    radar_jstop: -73   # End of radar domain in y

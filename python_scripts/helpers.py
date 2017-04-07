@@ -29,6 +29,7 @@ def get_config(inargs, top_key, bottom_key):
     config = yaml.safe_load(open('../config/' + inargs.config_file))
     return config[top_key][bottom_key]
 
+
 def make_datelist_yyyymmddhh(inargs):
     """
     
@@ -62,3 +63,35 @@ def make_datelist_yyyymmddhh(inargs):
         date += date_inc
     return datelist_yyyymmddhh
 
+
+def get_domain_limits(inargs):
+    """
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+
+    """
+    ie = get_config(inargs, 'domain', 'ie')
+    je = get_config(inargs, 'domain', 'je')
+    ana_irange = get_config(inargs, 'domain', 'ana_irange')
+    ana_jrange = get_config(inargs, 'domain', 'ana_jrange')
+
+    # Calculate analysis limits
+    assert (ie % 2 == 1) and (je % 2 == 1), 'Function assumes odd ie and je.'
+    l11 = (ie - ana_irange - 1) / 2
+    l12 = -(l11 + 1)
+    l21 = (je - ana_jrange - 1) / 2
+    l22 = -(l21 + 1)
+
+    # Get radar limits. Hard coded as of now
+    l11_rad = get_config(inargs, 'domain', 'radar_istart')
+    l12_rad = get_config(inargs, 'domain', 'radar_istop')
+    l21_rad = get_config(inargs, 'domain', 'radar_jstart')
+    l22_rad = get_config(inargs, 'domain', 'radar_jstop')
+
+    return l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad

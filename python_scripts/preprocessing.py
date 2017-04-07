@@ -11,7 +11,7 @@ netCDF File.
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from cosmo_utils.helpers import yyyymmddhh_strtotime
-from helpers import get_config, make_datelist_yyyymmddhh
+from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits
 from datetime import timedelta
 import numpy as np
 
@@ -102,6 +102,9 @@ def domain_mean_weather_ts(inargs, pp_fn):
 
     rootgroup = create_netcdf_weather_ts(pp_fn, inargs)
 
+    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+        get_domain_limits(inargs)
+
     # Load analysis data and store in NetCDF
     for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
         for group in rootgroup.groups:
@@ -123,6 +126,10 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                                            ncdffn_sufx='.nc_30m_surf',
                                                            return_arrays=True,
                                                            fieldn=var)
+                        # Crop data
+                        for i, data in enumerate(datalist):
+                            datalist[i] = data[l11:l12, l21:l22]
+
 
                 elif group == 'obs':
                     var = 'PREC_ACCUM'
@@ -142,6 +149,9 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                                        abs_datestr='yymmddhhmm',
                                                        dwdradar=True,
                                                        return_arrays=True)
+                    # Crop data
+                    for i, data in enumerate(datalist):
+                        datalist[i] = data[l11_rad:l12_rad, l21_rad:l22_rad]
                 else:
                     raise Exception('Wrong group!')
                 # Compute domain mean and save in NetCDF file
