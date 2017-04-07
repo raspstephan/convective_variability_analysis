@@ -9,6 +9,7 @@ This script contains helper functions.
 
 # import modules
 import yaml
+import numpy as np
 from datetime import datetime, timedelta
 
 
@@ -74,7 +75,8 @@ def get_domain_limits(inargs):
 
     Returns
     -------
-
+    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad : int
+      Start and end indices for model and radar domain
     """
     ie = get_config(inargs, 'domain', 'ie')
     je = get_config(inargs, 'domain', 'je')
@@ -95,3 +97,14 @@ def get_domain_limits(inargs):
     l22_rad = get_config(inargs, 'domain', 'radar_jstop')
 
     return l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad
+
+
+def get_radar_mask():
+    """
+    Returns
+    -------
+    radar_mask :  2D numpy array 
+      Mask where True values are masked (invalid)
+    """
+
+    return np.load('../aux_files/radar_tot_mask.npy')

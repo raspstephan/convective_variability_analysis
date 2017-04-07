@@ -11,9 +11,11 @@ netCDF File.
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from cosmo_utils.helpers import yyyymmddhh_strtotime
-from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits
+from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
+    get_radar_mask
 from datetime import timedelta
 import numpy as np
+from numpy.ma import masked_array
 
 # Define functions
 def create_netcdf_weather_ts(pp_fn, inargs):
@@ -105,6 +107,8 @@ def domain_mean_weather_ts(inargs, pp_fn):
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
 
+    radar_mask = get_radar_mask()
+
     # Load analysis data and store in NetCDF
     for id, date in enumerate(make_datelist_yyyymmddhh(inargs)):
         for group in rootgroup.groups:
@@ -128,7 +132,8 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                                            fieldn=var)
                         # Crop data
                         for i, data in enumerate(datalist):
-                            datalist[i] = data[l11:l12, l21:l22]
+                            datalist[i] = masked_array(data[l11:l12, l21:l22],
+                                                       mask=radar_mask)
 
 
                 elif group == 'obs':
@@ -151,7 +156,9 @@ def domain_mean_weather_ts(inargs, pp_fn):
                                                        return_arrays=True)
                     # Crop data
                     for i, data in enumerate(datalist):
-                        datalist[i] = data[l11_rad:l12_rad, l21_rad:l22_rad]
+                        datalist[i] = masked_array(data[l11_rad:l12_rad,
+                                                        l21_rad:l22_rad],
+                                                   mask=radar_mask)
                 else:
                     raise Exception('Wrong group!')
                 # Compute domain mean and save in NetCDF file

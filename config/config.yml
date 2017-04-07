@@ -12,4 +12,4 @@ domain:
     radar_istart: 112   # Start of radar domain in x
     radar_istop: -93   # End of radar domain in x
     radar_jstart: 72   # Start of radar domain in y
-    radar_jstop: -73   # End of radar domain in y
+    radar_jstop: -93   # End of radar domain in y
