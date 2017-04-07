@@ -17,6 +17,7 @@ from preprocessing import preprocess
 from subprocess import check_output
 from git import Repo
 from datetime import datetime
+from helpers import pp_exists, get_pp_fn
 
 
 # Define functions
@@ -65,8 +66,13 @@ def main(inargs):
       Argparse object with all input arguments
     """
     log_str = create_log_str(inargs)
-    # Call preprocessing routine with arguments
-    preprocess(inargs, log_str)
+
+    # Check if pre-processed file exists
+    if not pp_exists(inargs):
+        # Call preprocessing routine with arguments
+        preprocess(inargs, log_str)
+    else:
+        print('Found pre-processed file:' + get_pp_fn(inargs))
 
 
 if __name__ == '__main__':

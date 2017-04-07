@@ -8,6 +8,7 @@ This script contains helper functions.
 
 
 # import modules
+import os
 import yaml
 import numpy as np
 from datetime import datetime, timedelta
@@ -135,5 +136,19 @@ def get_pp_fn(inargs):
     for key, value in vars(inargs).items():
         pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
-    print('Pre-processed file: ' + pp_fn)
     return pp_fn
+
+def pp_exists(inargs):
+    """
+    Check whether  preprocessed file exists.
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+    pp_exists : bool
+      True if pre-processed file exitst
+    """
+    return os.path.isfile(get_pp_fn(inargs))
