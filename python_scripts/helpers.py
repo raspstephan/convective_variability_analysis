@@ -12,6 +12,7 @@ import os
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
+from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from cosmo_utils.helpers import yyyymmddhh_strtotime
 from numpy.ma import masked_array
@@ -130,7 +131,8 @@ def get_radar_mask(inargs):
     else:
         print('Compute radar mask: ' + radar_mask_fn)
         datalist = get_datalist_radar(inargs, 'all')
-        mask = np.sum(datalist, axis=0) > 1e10
+        mask = np.max(datalist, axis=0) > 100   # TODO This has to go in the paper!
+
         # Crop mask
         l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
             get_domain_limits(inargs)
@@ -165,7 +167,8 @@ def get_pp_fn(inargs):
     """
     pp_fn = get_config(inargs, 'paths', 'preproc_data')
     for key, value in vars(inargs).items():
-        pp_fn += key + '-' + str(value) + '_'
+        if not key is 'recompute':
+            pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
     return pp_fn
 
@@ -237,3 +240,22 @@ def get_datalist_radar(inargs, date, radar_mask=False):
                                             l21_rad:l22_rad],
                                        mask=radar_mask)
     return datalist
+
+
+def read_netcdf_dataset(inargs):
+    """
+    Open NetCDF file and return rootgroup object.
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+    rootgroup : NetCDF object
+      NetCDF object
+    """
+    pp_fn = get_pp_fn(inargs)
+    rootgroup = Dataset(pp_fn)
+    return rootgroup

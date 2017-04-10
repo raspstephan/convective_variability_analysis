@@ -11,7 +11,7 @@ netCDF File.
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
-    get_radar_mask, get_pp_fn, get_datalist_radar
+    get_radar_mask, get_pp_fn, get_datalist_radar, yyyymmddhh_strtotime
 from datetime import timedelta
 import numpy as np
 from numpy.ma import masked_array
@@ -46,15 +46,17 @@ def create_netcdf_weather_ts(inargs, log_str):
     rootgroup.log = log_str
 
     groups = ['obs', 'det', 'ens']
+    n_days = (yyyymmddhh_strtotime(inargs.date_end) -
+              yyyymmddhh_strtotime(inargs.date_start)).days + 1
     dimensions = {
         'time': 24,
-        'date': int(inargs.date_end) - int(inargs.date_end) + 1,
+        'date': n_days,
     }
     variables = {
         'PREC_ACCUM': ['date', 'time'],
-        'CAPE_ML': ['date', 'time'],
-        'TAU_C': ['date', 'time'],
-        'HPBL': ['date', 'time'],
+        #'CAPE_ML': ['date', 'time'],
+        #'TAU_C': ['date', 'time'],
+        #'HPBL': ['date', 'time'],
     }
 
     # Create root dimensions and variables
@@ -201,6 +203,7 @@ def domain_mean_weather_ts(inargs, log_str):
 
     # Load analysis data and store in NetCDF
     for idate, date in enumerate(make_datelist_yyyymmddhh(inargs)):
+        print('Computing time series for :' + date)
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 for var in rootgroup.groups[group].variables:
