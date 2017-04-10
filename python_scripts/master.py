@@ -14,10 +14,12 @@ https://github.com/DamienIrving
 import os
 import argparse
 from preprocessing import preprocess
+from plotting import plotting
 from subprocess import check_output
 from git import Repo
 from datetime import datetime
 from helpers import pp_exists, get_pp_fn
+
 
 
 # Define functions
@@ -69,11 +71,14 @@ def main(inargs):
 
     # Check if pre-processed file exists
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
+        print('Compute preprocessed file: ' + get_pp_fn(inargs))
         # Call preprocessing routine with arguments
         preprocess(inargs, log_str)
     else:
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
+    # Call analyzing and plotting routine
+    plotting(inargs)
 
 if __name__ == '__main__':
     
