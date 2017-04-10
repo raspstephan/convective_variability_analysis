@@ -17,7 +17,7 @@ import numpy as np
 # Define functions
 def plot_domain_mean_weather_ts(inargs):
     """
-    Function to plot time series of domain mean weather.
+    Function to plot time series of domain mean weather for each day
     
     Parameters
     ----------
@@ -64,7 +64,7 @@ def plot_domain_mean_weather_ts(inargs):
                 prec_lower = np.amin(prec_array, axis=1)
                 prec_upper = np.amax(prec_array, axis=1)
             else:
-                prec = rootgroup.groups[group].variables['PREC_ACCUM'] \
+                prec = rootgroup.groups[group].variables['PREC_ACCUM']\
                     [iday, :, 0]
 
             # Plot data
@@ -82,16 +82,73 @@ def plot_domain_mean_weather_ts(inargs):
 
     plt.tight_layout()
     # Save figure
-    plotfn = (get_config(inargs, 'paths', 'figures') +
-               get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
+    plotfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_all_days_' +
+              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
     fig.savefig(plotfn)
 
     # Save log file
-    logfn = (get_config(inargs, 'paths', 'figures') +
-               get_pp_fn(inargs, sufx='.log', pure_fn=True))
+    logfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_all_days_' +
+             get_pp_fn(inargs, sufx='.log', pure_fn=True))
     logf = open(logfn, 'w+')
     logf.write(rootgroup.log)
     logf.close()
+
+
+def plot_domain_mean_weather_ts_composite(inargs):
+    """
+    Function to plot time series of domain mean weather as a composite over 
+    all days
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+    x = rootgroup.variables['time'][:]
+
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+
+    for group in rootgroup.groups:
+        prec = rootgroup.groups[group].variables['PREC_ACCUM'][:]
+        mean_prec = np.mean(prec, axis = (0,2))
+        ax.plot(x, mean_prec, label=group,
+               c=get_config(inargs, 'colors', group))
+
+    ax.set_ylabel('Accumulation [mm/h]')
+    ax.set_xlabel('Time [UTC]')
+    dateobj_start = (timedelta(seconds=int(rootgroup.variables['date'][0])) +
+                     datetime(1,1,1))
+    datestr_start = dateobj_start.strftime(get_config(inargs, 'colors',
+                                                      'date_fmt'))
+    dateobj_end = (timedelta(seconds=int(rootgroup.variables['date'][-1])) +
+                   datetime(1, 1, 1))
+    datestr_end = dateobj_end.strftime(get_config(inargs, 'colors',
+                                                  'date_fmt'))
+    comp_str = 'Composite ' + datestr_start + ' - ' + datestr_end
+    ax.set_title(comp_str)
+    ax.legend(loc=0)
+
+    plt.tight_layout()
+
+    # Save figure
+    plotfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_composite_' +
+              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
+    fig.savefig(plotfn)
+
+    # Save log file
+    logfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_composite_' +
+             get_pp_fn(inargs, sufx='.log', pure_fn=True))
+    logf = open(logfn, 'w+')
+    logf.write(rootgroup.log)
+    logf.close()
+
 
 
 def plotting(inargs):
@@ -110,3 +167,4 @@ def plotting(inargs):
 
     # Call appropriate plotting function
     plot_domain_mean_weather_ts(inargs)
+    plot_domain_mean_weather_ts_composite(inargs)
