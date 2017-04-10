@@ -8,7 +8,7 @@ final analysis and plot the results.
 """
 
 # Import modules
-from helpers import read_netcdf_dataset, get_config
+from helpers import read_netcdf_dataset, get_config, get_pp_fn
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
@@ -82,7 +82,16 @@ def plot_domain_mean_weather_ts(inargs):
 
     plt.tight_layout()
     # Save figure
-    fig.savefig('/home/s/S.Rasp/repositories/convective_variability_analysis/figures/test_ts.pdf')
+    plotfn = (get_config(inargs, 'paths', 'figures') +
+               get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
+    fig.savefig(plotfn)
+
+    # Save log file
+    logfn = (get_config(inargs, 'paths', 'figures') +
+               get_pp_fn(inargs, sufx='.log', pure_fn=True))
+    logf = open(logfn, 'w+')
+    logf.write(rootgroup.log)
+    logf.close()
 
 
 def plotting(inargs):

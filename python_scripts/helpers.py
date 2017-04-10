@@ -158,25 +158,29 @@ def get_radar_mask(inargs):
         return mask
 
 
-def get_pp_fn(inargs):
+def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
     """
     Creates a filename for the pre-processed NetCDF file
     Parameters
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-
+    sufx : str
+      Str to attach at the end. Default = '.nc'
     Returns
     -------
     pp_fn : str
       Filename with path of pre-processed NetCDF file
 
     """
-    pp_fn = get_config(inargs, 'paths', 'preproc_data')
+    if pure_fn:
+        pp_fn = ''
+    else:
+        pp_fn = get_config(inargs, 'paths', 'preproc_data')
     for key, value in vars(inargs).items():
         if not key is 'recompute':
             pp_fn += key + '-' + str(value) + '_'
-    pp_fn = pp_fn[:-1] + '.nc'  # remove last '_'
+    pp_fn = pp_fn[:-1] + sufx  # remove last '_'
     return pp_fn
 
 
