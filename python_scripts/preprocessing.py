@@ -10,9 +10,8 @@ netCDF File.
 # Import modules
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
-from cosmo_utils.helpers import yyyymmddhh_strtotime
 from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
-    get_radar_mask, get_pp_fn
+    get_radar_mask, get_pp_fn, get_datalist_radar
 from datetime import timedelta
 import numpy as np
 from numpy.ma import masked_array
@@ -125,52 +124,6 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
     return datalist
 
 
-def get_datalist_radar(inargs, date, radar_mask):
-    """
-    Get data time series for radar observation.
-    Parameters
-    ----------
-    inargs : : argparse object
-      Argparse object with all input arguments
-    date : str
-      Date in format yyyymmddhh
-    radar_mask : 2D numpy array
-      Radar mask to create masked arrays
-
-    Returns
-    -------
-    datalist : list
-      List of 2D masked arrays
-    """
-    # Get file name
-    radarpref = (get_config(inargs, 'paths', 'radar_data') +
-                 'raa01-rw_10000-')
-    radarsufx = '-dwd---bin.nc'
-    dtradar = timedelta(minutes=10)
-    dateobj = yyyymmddhh_strtotime(date)
-    datalist = getfobj_ncdf_timeseries(radarpref,
-                                       dateobj + timedelta(
-                                           hours=inargs.time_start) - dtradar,
-                                       dateobj + timedelta(
-                                           hours=inargs.time_end) - dtradar,
-                                       timedelta(hours=inargs.time_inc),
-                                       reftime=dateobj,
-                                       ncdffn_sufx=radarsufx,
-                                       fieldn='pr',
-                                       abs_datestr='yymmddhhmm',
-                                       dwdradar=True,
-                                       return_arrays=True)
-    # Crop data
-    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
-        get_domain_limits(inargs)
-    # Crop data
-    for i, data in enumerate(datalist):
-        datalist[i] = masked_array(data[l11_rad:l12_rad,
-                                   l21_rad:l22_rad],
-                                   mask=radar_mask)
-    return datalist
-
-
 def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
                     radar_mask):
 
@@ -217,7 +170,7 @@ def domain_mean_weather_ts(inargs, log_str):
 
     rootgroup = create_netcdf_weather_ts(inargs, log_str)
 
-    radar_mask = get_radar_mask()
+    radar_mask = get_radar_mask(inargs)
     print('Number of masked grid points: ' + str(np.sum(radar_mask)) +
           ' from total grid points: ' + str(radar_mask.size))
 

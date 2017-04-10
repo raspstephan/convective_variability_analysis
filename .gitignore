@@ -2,3 +2,4 @@
 *.so
 figures/*
 python_scripts/.idea
+aux_files/
