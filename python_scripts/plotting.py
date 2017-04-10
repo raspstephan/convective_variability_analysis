@@ -68,7 +68,6 @@ def plot_domain_mean_weather_ts(inargs):
                     [iday, :, 0]
 
             # Plot data
-            print x, prec
             axflat[iday].plot(x, prec, label=group,
                               c=get_config(inargs, 'colors', group))
             if group == 'ens':

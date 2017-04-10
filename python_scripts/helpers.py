@@ -70,12 +70,14 @@ def make_datelist(inargs, out_format='yyyymmddhh'):
     datelist = []
     date = dateob_start
     while date <= dateob_end:
-        if out_format == 'yyymmddhh':
+        if out_format == 'yyyymmddhh':
             date_str = (str(date.year) + str(date.month).zfill(2) +
                         str(date.day).zfill(2) + str(date.hour).zfill(2))
             datelist.append(date_str)
         elif out_format == 'netcdf':
             datelist.append((date - datetime(1,1,1)).total_seconds())
+        else:
+            raise Exception('Wrong format.')
         date += date_inc
     return datelist
 

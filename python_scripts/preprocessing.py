@@ -53,7 +53,6 @@ def create_netcdf_weather_ts(inargs, log_str):
         'time': timearray.size,
         'date': datearray.size,
     }
-    print dimensions
     variables = {
         'PREC_ACCUM': ['date', 'time'],
         #'CAPE_ML': ['date', 'time'],
@@ -208,7 +207,7 @@ def domain_mean_weather_ts(inargs, log_str):
 
     # Load analysis data and store in NetCDF
     for idate, date in enumerate(make_datelist(inargs)):
-        print('Computing time series for :' + date)
+        print('Computing time series for: ' + date)
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 for var in rootgroup.groups[group].variables:
