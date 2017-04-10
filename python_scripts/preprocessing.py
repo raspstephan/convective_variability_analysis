@@ -126,7 +126,29 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
 
 def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
                     radar_mask):
+    """
+    Compute mean time series and appends it to rootgroup object.
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    idate : int
+      index of date
+    date : str
+      Date to analyze
+    group : str
+      Group name
+    ie  : int 
+      Ensemble Member
+    var : str 
+      COSMO variable to analyze
+    rootgroup : NetCDF Dataset object
+      NetCDF rootgroup
+    radar_mask : np.array
+      Total radar mask
 
+    """
     if group in ['det', 'ens']:
         if group == 'det':
             ens_no = 'det'
@@ -141,8 +163,11 @@ def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
         raise Exception('Wrong group.')
 
     # Compute domain mean and save in NetCDF file
-    mean_ts = np.mean(datalist, axis=(1, 2))
-    rootgroup.groups[group].variables[var][idate, :, ie] = mean_ts
+    # Note: Need to loop, because array operation ignores mask
+    mean_ts = []
+    for data in datalist:
+        mean_ts.append(np.mean(data))
+    rootgroup.groups[group].variables[var][idate, :, ie] = np.array(mean_ts)
 
 
 def domain_mean_weather_ts(inargs, log_str):
