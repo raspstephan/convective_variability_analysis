@@ -9,6 +9,7 @@ final analysis and plot the results.
 
 # Import modules
 from helpers import read_netcdf_dataset, get_config
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -31,7 +32,7 @@ def plot_domain_mean_weather_ts(inargs):
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
     n_days = rootgroup.dimensions['date'].size
-    x = range(1, rootgroup.dimensions['time'].size + 1)
+    x = rootgroup.variables['time'][:]
 
     # Set up figure
     n_cols = 4
@@ -43,8 +44,10 @@ def plot_domain_mean_weather_ts(inargs):
 
     # Loop over axes / days
     for iday in range(n_days):
-
-        axflat[iday].set_title(str(iday))
+        dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
+                   datetime(1,1,1))
+        datestr = dateobj.strftime(get_config(inargs, 'colors', 'date_fmt'))
+        axflat[iday].set_title(datestr)
         if iday % 4 == 0:   # Only left column
             axflat[iday].set_ylabel('Accumulation [mm/h]')
         if iday >= ((n_cols * n_rows) - n_cols):   # Only bottom row
@@ -55,8 +58,8 @@ def plot_domain_mean_weather_ts(inargs):
             # prec: det, obs or ens mean
             # prec_lower/upper: ensemble minimum, maximum
             if group == 'ens':
-                prec_array = rootgroup.groups[group].variables['PREC_ACCUM'] \
-                    [iday, :,:]
+                prec_array = rootgroup.groups[group].variables['PREC_ACCUM']\
+                    [iday, :, :]
                 prec = np.mean(prec_array, axis=1)
                 prec_lower = np.amin(prec_array, axis=1)
                 prec_upper = np.amax(prec_array, axis=1)
@@ -65,6 +68,7 @@ def plot_domain_mean_weather_ts(inargs):
                     [iday, :, 0]
 
             # Plot data
+            print x, prec
             axflat[iday].plot(x, prec, label=group,
                               c=get_config(inargs, 'colors', group))
             if group == 'ens':

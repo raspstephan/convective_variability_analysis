@@ -12,7 +12,7 @@ import os
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
-from netCDF4 import Dataset
+from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
 from cosmo_utils.helpers import yyyymmddhh_strtotime
 from numpy.ma import masked_array
@@ -41,14 +41,16 @@ def get_config(inargs, top_key, bottom_key):
     return config[top_key][bottom_key]
 
 
-def make_datelist_yyyymmddhh(inargs):
+def make_datelist(inargs, out_format='yyyymmddhh'):
     """
     
     Parameters
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-
+    out_format : str
+      Output format. 'yyyymmddhh'[default] or 'netcdf'
+ 
     Returns
     -------
     datelist_yyyymmddhh : list
@@ -65,14 +67,17 @@ def make_datelist_yyyymmddhh(inargs):
                           int(inargs.date_start[8:10]))
     date_inc = timedelta(days=1)
 
-    datelist_yyyymmddhh = []
+    datelist = []
     date = dateob_start
     while date <= dateob_end:
-        date_str = (str(date.year) + str(date.month).zfill(2) +
-                    str(date.day).zfill(2) + str(date.hour).zfill(2))
-        datelist_yyyymmddhh.append(date_str)
+        if out_format == 'yyymmddhh':
+            date_str = (str(date.year) + str(date.month).zfill(2) +
+                        str(date.day).zfill(2) + str(date.hour).zfill(2))
+            datelist.append(date_str)
+        elif out_format == 'netcdf':
+            datelist.append((date - datetime(1,1,1)).total_seconds())
         date += date_inc
-    return datelist_yyyymmddhh
+    return datelist
 
 
 def get_domain_limits(inargs):

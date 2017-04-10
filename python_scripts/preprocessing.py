@@ -10,7 +10,7 @@ netCDF File.
 # Import modules
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
-from helpers import get_config, make_datelist_yyyymmddhh, get_domain_limits, \
+from helpers import get_config, make_datelist, get_domain_limits, \
     get_radar_mask, get_pp_fn, get_datalist_radar, yyyymmddhh_strtotime
 from datetime import timedelta
 import numpy as np
@@ -46,12 +46,14 @@ def create_netcdf_weather_ts(inargs, log_str):
     rootgroup.log = log_str
 
     groups = ['obs', 'det', 'ens']
-    n_days = (yyyymmddhh_strtotime(inargs.date_end) -
-              yyyymmddhh_strtotime(inargs.date_start)).days + 1
+    datearray = np.array(make_datelist(inargs, out_format='netcdf'))
+    timearray = np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
+                          inargs.time_inc)
     dimensions = {
-        'time': 24,
-        'date': n_days,
+        'time': timearray.size,
+        'date': datearray.size,
     }
+    print dimensions
     variables = {
         'PREC_ACCUM': ['date', 'time'],
         #'CAPE_ML': ['date', 'time'],
@@ -63,8 +65,11 @@ def create_netcdf_weather_ts(inargs, log_str):
     for dim_name, dim_len in dimensions.items():
         rootgroup.createDimension(dim_name, dim_len)
 
-    rootgroup.createVariable('time', 'i4', ('time'))
-    rootgroup.createVariable('date', 'i4', ('date'))
+    rootgroup.createVariable('time', 'i8', ('time'))
+    rootgroup.createVariable('date', 'i8', ('date'))
+    rootgroup.variables['time'][:] = timearray
+    rootgroup.variables['date'][:] = datearray
+
 
     # Create group dimensions and variables
     [b.append('ens_no') for a, b in variables.items()]
@@ -202,7 +207,7 @@ def domain_mean_weather_ts(inargs, log_str):
           ' from total grid points: ' + str(radar_mask.size))
 
     # Load analysis data and store in NetCDF
-    for idate, date in enumerate(make_datelist_yyyymmddhh(inargs)):
+    for idate, date in enumerate(make_datelist(inargs)):
         print('Computing time series for :' + date)
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
