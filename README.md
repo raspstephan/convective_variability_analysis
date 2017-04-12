@@ -1,3 +1,5 @@
+# README
+
 This is the repository for my convective variability analysis.
 
 `python_scripts` contains all the analysis scripts which load the config file in `config` and 
