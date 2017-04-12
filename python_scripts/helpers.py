@@ -9,17 +9,53 @@ This script contains helper functions.
 
 # import modules
 import os
+import sys
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
+from subprocess import check_output
+from git import Repo
 from cosmo_utils.helpers import yyyymmddhh_strtotime
 from numpy.ma import masked_array
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 
 
 # Define functions
+def create_log_str():
+    """
+    Function to create a log file tracking all steps from initial call to
+    figure.
+
+    Returns
+    -------
+    log_str : str
+      String with all relevant information
+    """
+    time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    conda_info = check_output(['conda', 'info'])
+    conda_list = check_output(['conda', 'list'])
+    # TODO: Get base dir automatically
+    git_dir = '~/repositories/convective_variability_analysis'
+    git_hash = Repo(git_dir).heads[0].commit
+    pwd = check_output(['pwd'])
+    exe_str = ' '.join(sys.argv)
+
+    log_str = ("""
+    Preprocessing log\n
+    -----------------\n
+    %s\n
+    %s\n
+    %s\n
+    Git hash: %s\n
+    In directory: %s\n
+    %s\n
+    """ % (time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
+           exe_str))
+    return log_str
+
+
 def get_config(inargs, top_key, bottom_key):
     """
     Reads the config JSON file

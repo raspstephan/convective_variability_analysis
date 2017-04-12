@@ -1,3 +1,0 @@
-conda create --name py_env
-source activate py_env
-conda install gitpython pyyaml

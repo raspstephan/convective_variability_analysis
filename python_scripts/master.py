@@ -11,53 +11,13 @@ https://github.com/DamienIrving
 """
 
 # Import modules
-import os
 import argparse
 from preprocessing import preprocess
 from plotting import plotting
-from subprocess import check_output
-from git import Repo
-from datetime import datetime
-from helpers import pp_exists, get_pp_fn
-
+from helpers import pp_exists, get_pp_fn, create_log_str
 
 
 # Define functions
-def create_log_str(inargs):
-    """
-    Function to create a log file tracking all steps from initial call to
-    figure.
-    Parameters
-    ----------
-    inargs : argparse object
-      Argparse object with all input arguments
-    """
-    time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    conda_info = check_output(['conda', 'info'])
-    conda_list = check_output(['conda', 'list'])
-    # TODO: Get base dir automatically
-    git_dir = '~/repositories/convective_variability_analysis'
-    git_hash = Repo(git_dir).heads[0].commit
-    pwd = check_output(['pwd'])
-    script_name = os.path.basename(__file__)
-    args_str = ''
-    for arg in vars(inargs):
-        args_str += ('--' + arg + ' ' + str(getattr(inargs, arg)) + ' ')
-
-    log_str = ("""
-    Preprocessing log\n
-    -----------------\n
-    %s\n
-    %s\n
-    %s\n
-    Git hash: %s\n
-    In directory: %s\n
-    %s %s\n
-    """ % (time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
-           script_name, args_str))
-    return log_str
-
-
 def main(inargs):
     """
     Runs the main program
@@ -67,7 +27,8 @@ def main(inargs):
     inargs : argparse object
       Argparse object with all input arguments
     """
-    log_str = create_log_str(inargs)
+    log_str = create_log_str()
+    print log_str
 
     # Check if pre-processed file exists
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
@@ -80,10 +41,11 @@ def main(inargs):
     # Call analyzing and plotting routine
     plotting(inargs)
 
+
 if __name__ == '__main__':
     
     extra_info = 'Top-level script to analyze data'
-    description = 'Bla bla'
+    description = __doc__
     
     parser = argparse.ArgumentParser(description=description,
                                      epilog=extra_info)
