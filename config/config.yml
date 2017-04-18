@@ -22,4 +22,6 @@ colors:
     obs: black
     ens: darkgreen
     ens_range: lightgreen
+
+plotting:
     date_fmt: '%d %b'
