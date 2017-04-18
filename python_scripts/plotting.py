@@ -15,7 +15,7 @@ import numpy as np
 
 
 # Define functions
-def plot_domain_mean_timeseries_individual(inargs, type):
+def plot_domain_mean_timeseries_individual(inargs, plot_type):
     """
     Function to plot time series of domain mean precipitation for each day
 
@@ -23,12 +23,12 @@ def plot_domain_mean_timeseries_individual(inargs, type):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    type : str
+    plot_type : str
       Type of plot. Must be 'precipitation' or 'cape_tauc'
 
     """
 
-    assert type in ['precipitation', 'cape_tauc'], \
+    assert plot_type in ['precipitation', 'cape_tauc'], \
         'Type must be precipitation or cape_tauc'
 
     # Read pre-processed data
@@ -52,9 +52,9 @@ def plot_domain_mean_timeseries_individual(inargs, type):
         if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
             axflat[iday].set_xlabel('Time [UTC]')
 
-        if type == 'precipitaiton':
+        if plot_type == 'precipitaiton':
             plot_precipitation_panel(inargs, axflat, iday, rootgroup)
-        if type == 'cape_tauc':
+        if plot_type == 'cape_tauc':
             plot_cape_tauc_panel(inargs, axflat, iday, rootgroup)
 
     # Finish figure
@@ -63,7 +63,7 @@ def plot_domain_mean_timeseries_individual(inargs, type):
     plt.tight_layout()
 
     # Save figure
-    save_fig_and_log(fig, rootgroup, inargs, type + '_ts_individual')
+    save_fig_and_log(fig, rootgroup, inargs, plot_type + '_ts_individual')
 
 
 def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
@@ -172,54 +172,68 @@ def plot_cape_tauc_panel(inargs, axflat, iday, rootgroup):
                                                      'ens_range'))
 
 
-def plot_domain_mean_precipitation_ts_composite(inargs):
+def plot_domain_mean_timeseries_composite(inargs, plot_type):
     """
-    Function to plot time series of domain mean precipitation as a composite over 
+    Function to plot time series of domain mean as a composite over 
     all days
 
     Parameters
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-
-    Returns
-    -------
+    plot_type : str
+      Type of plot. Must be 'precipitation' or 'cape_tauc'
 
     """
+
+    assert plot_type in ['precipitation', 'cape_tauc'], \
+        'Type must be precipitation or cape_tauc'
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
     x = rootgroup.variables['time'][:]
 
-    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    fig, ax1 = plt.subplots(1, 1, figsize=(3, 3))
 
-    for group in rootgroup.groups:
-        prec = rootgroup.groups[group].variables['PREC_ACCUM'][:]
-        mean_prec = np.mean(prec, axis=(0,2))
-        ax.plot(x, mean_prec, label=group,
-                c=get_config(inargs, 'colors', group))
+    if plot_type == 'precipitation':
+        ax1.set_ylabel('Accumulation [mm/h]')
+        for group in rootgroup.groups:
+            array = rootgroup.groups[group].variables['PREC_ACCUM'][:]
+            mean = np.mean(array, axis=(0,2))
+            ax1.plot(x, mean, label=group,
+                    c=get_config(inargs, 'colors', group))
 
-    ax.set_ylabel('Accumulation [mm/h]')
-    ax.set_xlabel('Time [UTC]')
+    if plot_type == 'cape_tauc':
+        ax1.set_ylabel('CAPE [J/kg]')
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('tau_c [h]')
+        for group in ['det', 'ens']:
+            for var, ax, ls in zip(['CAPE_ML', 'TAU_C'],
+                                   [ax1, ax2],
+                                   ['-', '--']):
+                array = rootgroup.groups[group].variables[var][:]
+                mean = np.mean(array, axis=(0, 2))
+                ax.plot(x, mean, label=group,
+                        c=get_config(inargs, 'colors', group), ls=ls)
+
+    ax1.set_xlabel('Time [UTC]')
     dateobj_start = (timedelta(seconds=int(rootgroup.variables['date'][0])) +
                      datetime(1,1,1))
-    datestr_start = dateobj_start.strftime(get_config(inargs, 'colors',
+    datestr_start = dateobj_start.strftime(get_config(inargs, 'plotting',
                                                       'date_fmt'))
     dateobj_end = (timedelta(seconds=int(rootgroup.variables['date'][-1])) +
                    datetime(1, 1, 1))
-    datestr_end = dateobj_end.strftime(get_config(inargs, 'colors',
+    datestr_end = dateobj_end.strftime(get_config(inargs, 'plotting',
                                                   'date_fmt'))
     comp_str = 'Composite ' + datestr_start + ' - ' + datestr_end
-    ax.set_title(comp_str)
-    ax.legend(loc=0)
+
+    ax1.set_title(comp_str)
+    ax1.legend(loc=0)
 
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'precipitation_ts_composite')
-
-
-
+    save_fig_and_log(fig, rootgroup, inargs, plot_type + '_ts_composite')
 
 
 def plotting(inargs):
@@ -237,7 +251,7 @@ def plotting(inargs):
     """
 
     # Call appropriate plotting function
-    #plot_domain_mean_precipitation_ts(inargs)
-    #plot_domain_mean_precipitation_ts_composite(inargs)
-
-    plot_domain_mean_timeseries_individual(inargs, type='cape_tauc')
+    plot_domain_mean_timeseries_individual(inargs, plot_type='precipitation')
+    plot_domain_mean_timeseries_composite(inargs, plot_type='precipitation')
+    plot_domain_mean_timeseries_individual(inargs, plot_type='cape_tauc')
+    plot_domain_mean_timeseries_composite(inargs, plot_type='cape_tauc')
