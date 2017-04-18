@@ -316,9 +316,12 @@ def plot_prec_stamps(inargs):
                                       pllevels=levelsPrec, ji0=(50, 50),
                                       ji1=(357-51, 357-51),
                                       sp_title=titlelist[i],
-                                      Basemap_drawrivers = False,
-                                      npars = 0, nmers = 0)
-        plt.tight_layout()
+                                      Basemap_drawrivers=False,
+                                      npars=0, nmers=0)
+            cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.1, 0.2, 0.02]),
+                              orientation='horizontal')
+            cb.set_label('Accumulation [mm/h]')
+        plt.tight_layout(rect=[0, 0.1, 1, 1])
 
         # Save figure and log
         fig.savefig('/home/s/S.Rasp/tmp/test_stamps.pdf')
