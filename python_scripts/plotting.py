@@ -90,7 +90,7 @@ def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
 
     dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
                datetime(1, 1, 1))
-    datestr = dateobj.strftime(get_config(inargs, 'colors', 'date_fmt'))
+    datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
     axflat[iday].set_title(datestr)
 
     for group in rootgroup.groups:
@@ -307,7 +307,7 @@ def plot_prec_stamps(inargs):
             n_panels = len(fobjlist)
             n_cols = 4
             n_rows = int(np.ceil(float(n_panels) / n_cols))
-            fig, axmat = plt.subplots(n_rows, n_cols, figsize=(10, 3 * n_rows))
+            fig, axmat = plt.subplots(n_rows, n_cols, figsize=(10, 3.5 * n_rows))
             axflat = np.ravel(axmat)
 
             for i in range(len(fobjlist)):
@@ -321,7 +321,12 @@ def plot_prec_stamps(inargs):
             cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.1, 0.2, 0.02]),
                               orientation='horizontal')
             cb.set_label('Accumulation [mm/h]')
-        plt.tight_layout(rect=[0, 0.1, 1, 1])
+        titlestr = (yyyymmddhh_strtotime(date).strftime(get_config(inargs,
+                                                                   'plotting',
+                                                                   'date_fmt'))+
+                    ' ' + str(t.seconds / 3600).zfill(2) + 'UTC')
+        fig.suptitle(titlestr)
+        plt.tight_layout(rect=[0, 0.1, 1, 0.93])
 
         # Save figure and log
         fig.savefig('/home/s/S.Rasp/tmp/test_stamps.pdf')
