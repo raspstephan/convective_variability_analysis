@@ -121,12 +121,19 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
                                        ncdffn_sufx='.nc_30m_surf',
                                        return_arrays=True,
                                        fieldn=var)
+
     # Crop data
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
+
+    # Loop over individual time steps and apply mask
     for i, data in enumerate(datalist):
         datalist[i] = masked_array(data[l11:l12, l21:l22],
                                    mask=radar_mask)
+        if var == 'TAU_C':   # Additionally mask out nans
+            datalist[i] = masked_array(data[l11:l12, l21:l22],
+                                       mask=radar_mask + np.isnan(
+                                           data[l11:l12, l21:l22]))
     return datalist
 
 
