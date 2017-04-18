@@ -8,8 +8,13 @@ final analysis and plot the results.
 """
 
 # Import modules
-from helpers import read_netcdf_dataset, get_config, save_fig_and_log
+from helpers import read_netcdf_dataset, get_config, save_fig_and_log, \
+    make_datelist
 from datetime import datetime, timedelta
+from cosmo_utils.plot import ax_contourf
+from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
+from cosmo_utils.helpers import yymmddhhmm, ddhhmmss, yyyymmddhh_strtotime,\
+    make_timelist
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -236,6 +241,90 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
     save_fig_and_log(fig, rootgroup, inargs, plot_type + '_ts_composite')
 
 
+def plot_prec_stamps(inargs):
+
+    cmPrec = ((1, 1, 1),
+              (0, 0.627, 1),
+              (0.137, 0.235, 0.98),
+              (0.392, 0, 0.627),
+              (0.784, 0, 0.627))
+    # (0.1  , 0.1   , 0.784),
+    levelsPrec = [0, 1, 3, 10, 30, 100.]
+
+    # Loop over dates
+    for idate, date in enumerate(make_datelist(inargs)):
+
+        # Loop over times
+        for t in make_timelist(timedelta(hours=inargs.time_start),
+                               timedelta(hours=inargs.time_end),
+                               timedelta(hours=1)):
+
+            # Load all CU objects
+            fobjlist = []
+            titlelist = []
+
+            # 1st: Radar
+            radarpref = (get_config(inargs, 'paths', 'radar_data') +
+                         get_config(inargs, 'paths', 'radar_prefx'))
+            radarsufx = get_config(inargs, 'paths', 'radar_sufix')
+            dtradar = timedelta(minutes=10)
+            t_rad = yyyymmddhh_strtotime(date) - t - dtradar
+            RADARobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) +
+                                    radarsufx, 'pr', dwdradar=True)
+            # Crop radar field
+            RADARobj.data = RADARobj.data[62:62+357, 22:22+357]
+            RADARobj.lats = RADARobj.lats[62:62 + 357, 22:22 + 357]
+            RADARobj.lons = RADARobj.lons[62:62 + 357, 22:22 + 357]
+            RADARobj.rlats = RADARobj.rlats[62:62 + 357, 22:22 + 357]
+            RADARobj.rlons = RADARobj.rlons[62:62 + 357, 22:22 + 357]
+            RADARobj.nx = 357
+            RADARobj.ny = 357
+
+            fobjlist.append(RADARobj)
+            titlelist.append('Radar')
+
+            # 2nd: det
+            ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
+                           date + '/deout_ceu_pspens/' + 'det' +
+                           '/OUTPUT/lfff')
+            detfobj = getfobj_ncdf(ncdffn_pref + ddhhmmss(t) + '.nc_30m_surf',
+                                   'PREC_ACCUM')
+
+            fobjlist.append(detfobj)
+            titlelist.append('Det')
+
+            # 3rd: ens
+            ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
+            date_dir = (get_config(inargs, 'paths', 'raw_data') +
+                           date + '/deout_ceu_pspens/')
+            enslist = getfobj_ncdf_ens(date_dir, 'sub', inargs.nens, ncdffn,
+                                       dir_suffix='/OUTPUT/',
+                                       fieldn = 'PREC_ACCUM', nfill=1)
+            fobjlist.extend(enslist)
+            titlelist.extend(['Mem ' + str(i+1) for i in range(inargs.nens)])
+
+            # Now plot
+            n_panels = len(fobjlist)
+            n_cols = 4
+            n_rows = int(np.ceil(float(n_panels) / n_cols))
+            fig, axmat = plt.subplots(n_rows, n_cols, figsize=(10, 3 * n_rows))
+            axflat = np.ravel(axmat)
+
+            for i in range(len(fobjlist)):
+                plt.sca(axflat[i])
+                cf, tmp = ax_contourf(axflat[i], fobjlist[i], colors=cmPrec,
+                                      pllevels=levelsPrec, ji0=(50, 50),
+                                      ji1=(357-51, 357-51),
+                                      sp_title=titlelist[i],
+                                      Basemap_drawrivers = False,
+                                      npars = 0, nmers = 0)
+        plt.tight_layout()
+
+        # Save figure and log
+        fig.savefig('/home/s/S.Rasp/tmp/test_stamps.pdf')
+
+
+
 def plotting(inargs):
     """
     Top-level function called by main.py
@@ -251,7 +340,14 @@ def plotting(inargs):
     """
 
     # Call appropriate plotting function
-    plot_domain_mean_timeseries_individual(inargs, plot_type='precipitation')
-    plot_domain_mean_timeseries_composite(inargs, plot_type='precipitation')
-    plot_domain_mean_timeseries_individual(inargs, plot_type='cape_tauc')
-    plot_domain_mean_timeseries_composite(inargs, plot_type='cape_tauc')
+    if inargs.plot == 'weather_ts':
+        plot_domain_mean_timeseries_individual(inargs,
+                                               plot_type='precipitation')
+        plot_domain_mean_timeseries_composite(inargs,
+                                              plot_type='precipitation')
+        plot_domain_mean_timeseries_individual(inargs,
+                                               plot_type='cape_tauc')
+        plot_domain_mean_timeseries_composite(inargs,
+                                              plot_type='cape_tauc')
+    if inargs.plot == 'prec_stamps':
+        plot_prec_stamps(inargs)

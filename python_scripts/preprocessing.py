@@ -9,12 +9,9 @@ netCDF File.
 
 # Import modules
 from netCDF4 import Dataset
-from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
-from helpers import get_config, make_datelist, get_domain_limits, \
-    get_radar_mask, get_pp_fn, get_datalist_radar, create_log_str
-from datetime import timedelta
+from helpers import make_datelist, get_radar_mask, get_pp_fn, \
+    get_datalist_radar, create_log_str, get_datalist_model
 import numpy as np
-from numpy.ma import masked_array
 
 
 # Define functions
@@ -87,54 +84,6 @@ def create_netcdf_weather_ts(inargs):
         for var_name, var_dims in variables.items():
             rootgroup.groups[g].createVariable(var_name, 'f8', var_dims)
     return rootgroup
-
-
-def get_datalist_model(inargs, date, ens_no, var, radar_mask):
-    """
-    Get data time series for model output.
-    Parameters
-    ----------
-    inargs : : argparse object
-      Argparse object with all input arguments
-    date : str
-      Date in format yyyymmddhh
-    ens_no : int or str 
-      Ensemble number or str in case of det
-    var : str 
-      Variable
-    radar_mask : 2D numpy array
-      Radar mask to create masked arrays
-
-    Returns
-    -------
-    datalist : list
-      List of 2D masked arrays
-    """
-    # Get file name
-    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
-                   date + '/deout_ceu_pspens/' + str(ens_no) +
-                   '/OUTPUT/lfff')
-    datalist = getfobj_ncdf_timeseries(ncdffn_pref,
-                                       timedelta(hours=inargs.time_start),
-                                       timedelta(hours=inargs.time_end),
-                                       timedelta(hours=inargs.time_inc),
-                                       ncdffn_sufx='.nc_30m_surf',
-                                       return_arrays=True,
-                                       fieldn=var)
-
-    # Crop data
-    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
-        get_domain_limits(inargs)
-
-    # Loop over individual time steps and apply mask
-    for i, data in enumerate(datalist):
-        datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                   mask=radar_mask)
-        if var == 'TAU_C':   # Additionally mask out nans
-            datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                       mask=radar_mask + np.isnan(
-                                           data[l11:l12, l21:l22]))
-    return datalist
 
 
 def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
@@ -243,4 +192,7 @@ def preprocess(inargs):
     """
 
     # Call analysis function
-    domain_mean_weather_ts(inargs)
+    if inargs.plot == 'weather_ts':
+        domain_mean_weather_ts(inargs)
+    else:
+        print('No preprocessing necessary.')

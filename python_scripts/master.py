@@ -28,6 +28,8 @@ def main(inargs):
       Argparse object with all input arguments
     """
 
+    assert inargs.plot in ['weather_ts', 'prec_stamps'], 'Plot not supported.'
+
     # Check if pre-processed file exists
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
         print('Compute preprocessed file: ' + get_pp_fn(inargs))
@@ -47,7 +49,10 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description=description,
                                      epilog=extra_info)
-    
+
+    parser.add_argument('--plot',
+                        type=str,
+                        help='Which plot? [weather_ts, prec_stamps]')
     parser.add_argument('--date_start',
                         type=str,
                         help='Start date of analysis in yyyymmddhh')

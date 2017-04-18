@@ -300,6 +300,54 @@ def get_datalist_radar(inargs, date, radar_mask=False):
     return datalist
 
 
+def get_datalist_model(inargs, date, ens_no, var, radar_mask):
+    """
+    Get data time series for model output.
+    Parameters
+    ----------
+    inargs : : argparse object
+      Argparse object with all input arguments
+    date : str
+      Date in format yyyymmddhh
+    ens_no : int or str 
+      Ensemble number or str in case of det
+    var : str 
+      Variable
+    radar_mask : 2D numpy array
+      Radar mask to create masked arrays
+
+    Returns
+    -------
+    datalist : list
+      List of 2D masked arrays
+    """
+    # Get file name
+    ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
+                   date + '/deout_ceu_pspens/' + str(ens_no) +
+                   '/OUTPUT/lfff')
+    datalist = getfobj_ncdf_timeseries(ncdffn_pref,
+                                       timedelta(hours=inargs.time_start),
+                                       timedelta(hours=inargs.time_end),
+                                       timedelta(hours=inargs.time_inc),
+                                       ncdffn_sufx='.nc_30m_surf',
+                                       return_arrays=True,
+                                       fieldn=var)
+
+    # Crop data
+    l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+        get_domain_limits(inargs)
+
+    # Loop over individual time steps and apply mask
+    for i, data in enumerate(datalist):
+        datalist[i] = masked_array(data[l11:l12, l21:l22],
+                                   mask=radar_mask)
+        if var == 'TAU_C':   # Additionally mask out nans
+            datalist[i] = masked_array(data[l11:l12, l21:l22],
+                                       mask=radar_mask + np.isnan(
+                                           data[l11:l12, l21:l22]))
+    return datalist
+
+
 def read_netcdf_dataset(inargs):
     """
     Open NetCDF file and return rootgroup object.
