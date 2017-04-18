@@ -196,7 +196,7 @@ def get_radar_mask(inargs):
         plt.imshow(mask)
         plt.colorbar()
         fig_fn = (get_config(inargs, 'paths', 'figures') +
-                    'radar_tot_mask_' + inargs.date_start +
+                    'radar_masks/radar_tot_mask_' + inargs.date_start +
                     '_' + inargs.date_end + '.pdf')
         print('Save radar mask figure as ' + fig_fn)
         plt.savefig(fig_fn)
@@ -367,7 +367,7 @@ def read_netcdf_dataset(inargs):
     return rootgroup
 
 
-def save_fig_and_log(fig, rootgroup, inargs, type):
+def save_fig_and_log(fig, rootgroup, inargs, plot_type):
     """
     Saves given figure and log file with same name.
     
@@ -377,22 +377,26 @@ def save_fig_and_log(fig, rootgroup, inargs, type):
     rootgroup : netCDF object
     inargs : argparse object
       Argparse object with all input arguments
-    type : str
+    plot_type : str
       Which type of plot is it. Used in figure and log string
 
     """
     # Save figure
-    plotfn = (get_config(inargs, 'paths', 'figures') + type + '_' +
-              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
+    plotdir = get_config(inargs, 'paths', 'figures') + plot_type + '/'
+    if not os.path.exists(plotdir): os.makedirs(plotdir)
+    plotfn = plotdir + get_pp_fn(inargs, sufx='.pdf', pure_fn=True)
     print('Saving figure: ' + plotfn)
     fig.savefig(plotfn)
 
     # Save log file
-    logfn = (get_config(inargs, 'paths', 'figures') + type + '_' +
-             get_pp_fn(inargs, sufx='.log', pure_fn=True))
+    logfn = plotdir + get_pp_fn(inargs, sufx='.log', pure_fn=True)
     logf = open(logfn, 'w+')
-    logf.write(rootgroup.log + '\n' + create_log_str(inargs, 'Plotting'))
+    if rootgroup is not None:
+        netcdf_log = rootgroup.log + '\n'
+        rootgroup.close()
+    else:
+        netcdf_log = ''
+    logf.write(netcdf_log + create_log_str(inargs, 'Plotting'))
     logf.close()
 
     # close Rootgroup
-    rootgroup.close()

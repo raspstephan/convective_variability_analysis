@@ -332,7 +332,7 @@ def plot_prec_stamps(inargs):
         plt.tight_layout(rect=[0, 0.1, 1, 0.93])
 
         # Save figure and log
-        fig.savefig('/home/s/S.Rasp/tmp/test_stamps.pdf')
+        save_fig_and_log(fig, None, inargs, 'prec_stamps')
 
 
 
