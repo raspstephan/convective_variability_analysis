@@ -198,6 +198,10 @@ def get_radar_mask(inargs):
         # Save figure
         plt.imshow(mask)
         plt.colorbar()
+        if not os.path.exists((get_config(inargs, 'paths', 'figures') +
+                               'radar_masks')):
+            os.makedirs((get_config(inargs, 'paths', 'figures') +
+                         'radar_masks'))
         fig_fn = (get_config(inargs, 'paths', 'figures') +
                   'radar_masks/radar_tot_mask_' + inargs.date_start +
                   '_' + inargs.date_end + '.pdf')
