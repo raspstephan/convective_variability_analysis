@@ -11,14 +11,14 @@ netCDF File.
 from netCDF4 import Dataset
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from helpers import get_config, make_datelist, get_domain_limits, \
-    get_radar_mask, get_pp_fn, get_datalist_radar, yyyymmddhh_strtotime
+    get_radar_mask, get_pp_fn, get_datalist_radar, create_log_str
 from datetime import timedelta
 import numpy as np
 from numpy.ma import masked_array
 
 
 # Define functions
-def create_netcdf_weather_ts(inargs, log_str):
+def create_netcdf_weather_ts(inargs):
     """
     Creates a NetCDF object to store weather time series data.
     
@@ -43,7 +43,7 @@ def create_netcdf_weather_ts(inargs, log_str):
 
     # Create NetCDF file
     rootgroup = Dataset(pp_fn, 'w', format='NETCDF4')
-    rootgroup.log = log_str
+    rootgroup.log = create_log_str('Preprocessing')
 
     groups = ['obs', 'det', 'ens']
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
@@ -55,9 +55,9 @@ def create_netcdf_weather_ts(inargs, log_str):
     }
     variables = {
         'PREC_ACCUM': ['date', 'time'],
-        #'CAPE_ML': ['date', 'time'],
-        #'TAU_C': ['date', 'time'],
-        #'HPBL': ['date', 'time'],
+        'CAPE_ML': ['date', 'time'],
+        'TAU_C': ['date', 'time'],
+        'HPBL': ['date', 'time'],
     }
 
     # Create root dimensions and variables
@@ -176,7 +176,7 @@ def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
     rootgroup.groups[group].variables[var][idate, :, ie] = np.array(mean_ts)
 
 
-def domain_mean_weather_ts(inargs, log_str):
+def domain_mean_weather_ts(inargs):
     """
     Calculate hourly time-series for domain mean variables:
     
@@ -199,7 +199,7 @@ def domain_mean_weather_ts(inargs, log_str):
 
     """
 
-    rootgroup = create_netcdf_weather_ts(inargs, log_str)
+    rootgroup = create_netcdf_weather_ts(inargs)
 
     radar_mask = get_radar_mask(inargs)
     print('Number of masked grid points: ' + str(np.sum(radar_mask)) +
@@ -219,7 +219,7 @@ def domain_mean_weather_ts(inargs, log_str):
     rootgroup.close()
 
 
-def preprocess(inargs, log_str):
+def preprocess(inargs):
     """
     Top-level function called by main.py
 
@@ -236,4 +236,4 @@ def preprocess(inargs, log_str):
     """
 
     # Call analysis function
-    domain_mean_weather_ts(inargs, log_str)
+    domain_mean_weather_ts(inargs)

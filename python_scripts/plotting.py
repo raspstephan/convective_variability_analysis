@@ -8,7 +8,7 @@ final analysis and plot the results.
 """
 
 # Import modules
-from helpers import read_netcdf_dataset, get_config, get_pp_fn
+from helpers import read_netcdf_dataset, get_config, get_pp_fn, save_fig_and_log
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
@@ -81,17 +81,9 @@ def plot_domain_mean_weather_ts(inargs):
     axflat[0].legend(loc=0)
 
     plt.tight_layout()
-    # Save figure
-    plotfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_all_days_' +
-              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
-    fig.savefig(plotfn)
 
-    # Save log file
-    logfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_all_days_' +
-             get_pp_fn(inargs, sufx='.log', pure_fn=True))
-    logf = open(logfn, 'w+')
-    logf.write(rootgroup.log)
-    logf.close()
+    # Save figure
+    save_fig_and_log(fig, rootgroup, inargs, 'weather_ts_individual')
 
 
 def plot_domain_mean_weather_ts_composite(inargs):
@@ -117,9 +109,9 @@ def plot_domain_mean_weather_ts_composite(inargs):
 
     for group in rootgroup.groups:
         prec = rootgroup.groups[group].variables['PREC_ACCUM'][:]
-        mean_prec = np.mean(prec, axis = (0,2))
+        mean_prec = np.mean(prec, axis=(0,2))
         ax.plot(x, mean_prec, label=group,
-               c=get_config(inargs, 'colors', group))
+                c=get_config(inargs, 'colors', group))
 
     ax.set_ylabel('Accumulation [mm/h]')
     ax.set_xlabel('Time [UTC]')
@@ -137,18 +129,8 @@ def plot_domain_mean_weather_ts_composite(inargs):
 
     plt.tight_layout()
 
-    # Save figure
-    plotfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_composite_' +
-              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
-    fig.savefig(plotfn)
-
-    # Save log file
-    logfn = (get_config(inargs, 'paths', 'figures') + 'weather_ts_composite_' +
-             get_pp_fn(inargs, sufx='.log', pure_fn=True))
-    logf = open(logfn, 'w+')
-    logf.write(rootgroup.log)
-    logf.close()
-
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'weather_ts_composite')
 
 
 def plotting(inargs):

@@ -23,16 +23,25 @@ from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 
 
 # Define functions
-def create_log_str():
+def create_log_str(step):
     """
     Function to create a log file tracking all steps from initial call to
     figure.
-
+    
+    Parameters
+    ----------
+    step : str 
+      'Preprocessing' or 'Plotting'
+    
     Returns
     -------
     log_str : str
       String with all relevant information
+      
     """
+    assert step in ['Preprocessing', 'Plotting'], \
+        'Step must be Preprocessing or Plotting'
+
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     conda_info = check_output(['conda', 'info'])
     conda_list = check_output(['conda', 'list'])
@@ -43,7 +52,7 @@ def create_log_str():
     exe_str = ' '.join(sys.argv)
 
     log_str = ("""
-    Preprocessing log\n
+    %s log\n
     -----------------\n
     %s\n
     %s\n
@@ -51,7 +60,7 @@ def create_log_str():
     Git hash: %s\n
     In directory: %s\n
     %s\n
-    """ % (time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
+    """ % (step, time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
            exe_str))
     return log_str
 
@@ -306,3 +315,34 @@ def read_netcdf_dataset(inargs):
     pp_fn = get_pp_fn(inargs)
     rootgroup = Dataset(pp_fn)
     return rootgroup
+
+
+def save_fig_and_log(fig, rootgroup, inargs, type):
+    """
+    Saves given figure and log file with same name.
+    
+    Parameters
+    ----------
+    fig : Figure object
+    rootgroup : netCDF object
+    inargs : argparse object
+      Argparse object with all input arguments
+    type : str
+      Which type of plot is it. Used in figure and log string
+
+    """
+    # Save figure
+    plotfn = (get_config(inargs, 'paths', 'figures') + type + '_' +
+              get_pp_fn(inargs, sufx='.pdf', pure_fn=True))
+    print('Saving figure: ' + plotfn)
+    fig.savefig(plotfn)
+
+    # Save log file
+    logfn = (get_config(inargs, 'paths', 'figures') + type + '_' +
+             get_pp_fn(inargs, sufx='.log', pure_fn=True))
+    logf = open(logfn, 'w+')
+    logf.write(rootgroup.log + '\n' + create_log_str('Plotting'))
+    logf.close()
+
+    # close Rootgroup
+    rootgroup.close()

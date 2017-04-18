@@ -27,14 +27,12 @@ def main(inargs):
     inargs : argparse object
       Argparse object with all input arguments
     """
-    log_str = create_log_str()
-    print log_str
 
     # Check if pre-processed file exists
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
         print('Compute preprocessed file: ' + get_pp_fn(inargs))
         # Call preprocessing routine with arguments
-        preprocess(inargs, log_str)
+        preprocess(inargs)
     else:
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
