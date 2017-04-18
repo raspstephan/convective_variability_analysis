@@ -28,6 +28,7 @@ def main(inargs):
       Argparse object with all input arguments
     """
 
+    # Check arguments
     assert inargs.plot in ['weather_ts', 'prec_stamps'], 'Plot not supported.'
 
     # Check if pre-processed file exists
@@ -81,6 +82,22 @@ if __name__ == '__main__':
                         default='config.yml',
                         help='Config file in relative directory ../config. \
                               Default = config.yml')
+    parser.add_argument('--zoom_lon1',
+                        type=int,
+                        default=0,
+                        help='Zoom index for prec_stamps. Lon1')
+    parser.add_argument('--zoom_lon2',
+                        type=int,
+                        default=0,
+                        help='Zoom index for prec_stamps. Lon2')
+    parser.add_argument('--zoom_lat1',
+                        type=int,
+                        default=0,
+                        help='Zoom index for prec_stamps. Lat1')
+    parser.add_argument('--zoom_lat2',
+                        type=int,
+                        default=0,
+                        help='Zoom index for prec_stamps. Lat2')
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',

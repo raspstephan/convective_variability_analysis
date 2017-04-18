@@ -268,11 +268,11 @@ def plot_prec_stamps(inargs):
                          get_config(inargs, 'paths', 'radar_prefx'))
             radarsufx = get_config(inargs, 'paths', 'radar_sufix')
             dtradar = timedelta(minutes=10)
-            t_rad = yyyymmddhh_strtotime(date) - t - dtradar
+            t_rad = yyyymmddhh_strtotime(date) + t - dtradar
             RADARobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) +
                                     radarsufx, 'pr', dwdradar=True)
             # Crop radar field
-            RADARobj.data = RADARobj.data[62:62+357, 22:22+357]
+            RADARobj.data = RADARobj.data[62:62 + 357, 22:22 + 357]
             RADARobj.lats = RADARobj.lats[62:62 + 357, 22:22 + 357]
             RADARobj.lons = RADARobj.lons[62:62 + 357, 22:22 + 357]
             RADARobj.rlats = RADARobj.rlats[62:62 + 357, 22:22 + 357]
@@ -313,8 +313,11 @@ def plot_prec_stamps(inargs):
             for i in range(len(fobjlist)):
                 plt.sca(axflat[i])
                 cf, tmp = ax_contourf(axflat[i], fobjlist[i], colors=cmPrec,
-                                      pllevels=levelsPrec, ji0=(50, 50),
-                                      ji1=(357-51, 357-51),
+                                      pllevels=levelsPrec,
+                                      ji0=(50 + inargs.zoom_lat1,
+                                           50 + inargs.zoom_lon1),
+                                      ji1=(357-51 + inargs.zoom_lat2,
+                                           357-51 + inargs.zoom_lon2),
                                       sp_title=titlelist[i],
                                       Basemap_drawrivers=False,
                                       npars=0, nmers=0)
