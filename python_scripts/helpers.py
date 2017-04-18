@@ -23,7 +23,7 @@ from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 
 
 # Define functions
-def create_log_str(step):
+def create_log_str(inargs, step):
     """
     Function to create a log file tracking all steps from initial call to
     figure.
@@ -50,6 +50,7 @@ def create_log_str(step):
     git_hash = Repo(git_dir).heads[0].commit
     pwd = check_output(['pwd'])
     exe_str = ' '.join(sys.argv)
+    config_str = open('../config/' + inargs.config_file, 'r').read()
 
     log_str = ("""
     %s log\n
@@ -57,11 +58,12 @@ def create_log_str(step):
     %s\n
     %s\n
     %s\n
+    %s\n
     Git hash: %s\n
     In directory: %s\n
     %s\n
-    """ % (step, time_stamp, conda_info, conda_list, str(git_hash)[0:7], pwd,
-           exe_str))
+    """ % (step, time_stamp, config_str, conda_info, conda_list,
+           str(git_hash)[0:7], pwd, exe_str))
     return log_str
 
 
@@ -341,7 +343,7 @@ def save_fig_and_log(fig, rootgroup, inargs, type):
     logfn = (get_config(inargs, 'paths', 'figures') + type + '_' +
              get_pp_fn(inargs, sufx='.log', pure_fn=True))
     logf = open(logfn, 'w+')
-    logf.write(rootgroup.log + '\n' + create_log_str('Plotting'))
+    logf.write(rootgroup.log + '\n' + create_log_str(inargs, 'Plotting'))
     logf.close()
 
     # close Rootgroup

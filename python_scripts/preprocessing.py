@@ -43,7 +43,7 @@ def create_netcdf_weather_ts(inargs):
 
     # Create NetCDF file
     rootgroup = Dataset(pp_fn, 'w', format='NETCDF4')
-    rootgroup.log = create_log_str('Preprocessing')
+    rootgroup.log = create_log_str(inargs, 'Preprocessing')
 
     groups = ['obs', 'det', 'ens']
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
