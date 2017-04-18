@@ -325,7 +325,8 @@ def plot_prec_stamps(inargs):
         plt.tight_layout(rect=[0, 0.1, 1, 0.93])
 
         # Save figure and log
-        save_fig_and_log(fig, None, inargs, 'prec_stamps')
+        save_fig_and_log(fig, None, inargs, 'prec_stamps',
+                         date=date, time=str(t.seconds / 3600).zfill(2))
 
 
 def plotting(inargs):

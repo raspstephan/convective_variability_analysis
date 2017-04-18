@@ -409,7 +409,7 @@ def read_netcdf_dataset(inargs):
     return rootgroup
 
 
-def save_fig_and_log(fig, rootgroup, inargs, plot_type):
+def save_fig_and_log(fig, rootgroup, inargs, plot_type, date=None, time=None):
     """
     Saves given figure and log file with same name.
     
@@ -421,13 +421,20 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type):
       Argparse object with all input arguments
     plot_type : str
       Which type of plot is it. Used in figure and log string
+    date : str 
+      If given, date is attached to plot str
+    time : str 
+      If given, time is attached to plot str
 
     """
     # Save figure
     plotdir = get_config(inargs, 'paths', 'figures') + plot_type + '/'
     if not os.path.exists(plotdir):
         os.makedirs(plotdir)
-    plotfn = plotdir + get_pp_fn(inargs, sufx='.pdf', pure_fn=True)
+    plotfn = plotdir + get_pp_fn(inargs, sufx='', pure_fn=True)
+    if date is not None and time is not None:
+        plotfn += '_' + str(date) + '_' + str(time)
+    plotfn += '.pdf'
     print('Saving figure: ' + plotfn)
     fig.savefig(plotfn)
 
