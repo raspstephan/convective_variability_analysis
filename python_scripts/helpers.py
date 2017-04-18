@@ -17,9 +17,9 @@ from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
 from subprocess import check_output
 from git import Repo
-from cosmo_utils.helpers import yyyymmddhh_strtotime
+from cosmo_utils.helpers import yyyymmddhh_strtotime, yymmddhhmm
 from numpy.ma import masked_array
-from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
+from cosmo_utils.pyncdf import getfobj_ncdf_timeseries, getfobj_ncdf
 
 
 # Define functions
@@ -30,6 +30,8 @@ def create_log_str(inargs, step):
     
     Parameters
     ----------
+    inargs : argparse object
+      Argparse object with all input arguments
     step : str 
       'Preprocessing' or 'Plotting'
     
@@ -122,7 +124,7 @@ def make_datelist(inargs, out_format='yyyymmddhh'):
                         str(date.day).zfill(2) + str(date.hour).zfill(2))
             datelist.append(date_str)
         elif out_format == 'netcdf':
-            datelist.append((date - datetime(1,1,1)).total_seconds())
+            datelist.append((date - datetime(1, 1, 1)).total_seconds())
         else:
             raise Exception('Wrong format.')
         date += date_inc
@@ -185,7 +187,8 @@ def get_radar_mask(inargs):
     else:
         print('Compute radar mask: ' + radar_mask_fn)
         datalist = get_datalist_radar(inargs, 'all')
-        mask = np.max(datalist, axis=0) > 100   # TODO This has to go in the paper!
+        mask = np.max(datalist, axis=0) > 100
+        # TODO This has to go in the paper!
 
         # Crop mask
         l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
@@ -196,8 +199,8 @@ def get_radar_mask(inargs):
         plt.imshow(mask)
         plt.colorbar()
         fig_fn = (get_config(inargs, 'paths', 'figures') +
-                    'radar_masks/radar_tot_mask_' + inargs.date_start +
-                    '_' + inargs.date_end + '.pdf')
+                  'radar_masks/radar_tot_mask_' + inargs.date_start +
+                  '_' + inargs.date_end + '.pdf')
         print('Save radar mask figure as ' + fig_fn)
         plt.savefig(fig_fn)
 
@@ -214,6 +217,8 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
       Argparse object with all input arguments
     sufx : str
       Str to attach at the end. Default = '.nc'
+    pure_fn : bool  
+      If true, path is not included.
     Returns
     -------
     pp_fn : str
@@ -225,7 +230,7 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
     else:
         pp_fn = get_config(inargs, 'paths', 'preproc_data')
     for key, value in vars(inargs).items():
-        if not key is 'recompute':
+        if key is not 'recompute':
             pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1] + sufx  # remove last '_'
     return pp_fn
@@ -291,7 +296,7 @@ def get_datalist_radar(inargs, date, radar_mask=False):
     # Crop data
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
-    if not radar_mask is False:
+    if radar_mask is not False:
         # Apply total mask to data
         for i, data in enumerate(datalist):
             datalist[i] = masked_array(data[l11_rad:l12_rad,
@@ -348,6 +353,43 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
     return datalist
 
 
+def get_and_crop_radar_fobj(inargs, date, time):
+    """
+    Returns radar fobj, cropped to my specific model domain.
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    date : str 
+      Date in yyyymmddhh format
+    time : timedelta object
+      Forecast time
+
+    Returns
+    -------
+    fobj : cosmo_utils field object
+      Cropped radar object
+    """
+    radarpref = (get_config(inargs, 'paths', 'radar_data') +
+                 get_config(inargs, 'paths', 'radar_prefx'))
+    radarsufx = get_config(inargs, 'paths', 'radar_sufix')
+    dtradar = timedelta(minutes=10)
+    t_rad = yyyymmddhh_strtotime(date) + time - dtradar
+    fobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) +
+                        radarsufx, 'pr', dwdradar=True)
+    # Crop radar field
+    fobj.data = fobj.data[62:62 + 357, 22:22 + 357]
+    fobj.lats = fobj.lats[62:62 + 357, 22:22 + 357]
+    fobj.lons = fobj.lons[62:62 + 357, 22:22 + 357]
+    fobj.rlats = fobj.rlats[62:62 + 357, 22:22 + 357]
+    fobj.rlons = fobj.rlons[62:62 + 357, 22:22 + 357]
+    fobj.nx = 357
+    fobj.ny = 357
+
+    return fobj
+
+
 def read_netcdf_dataset(inargs):
     """
     Open NetCDF file and return rootgroup object.
@@ -383,7 +425,8 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type):
     """
     # Save figure
     plotdir = get_config(inargs, 'paths', 'figures') + plot_type + '/'
-    if not os.path.exists(plotdir): os.makedirs(plotdir)
+    if not os.path.exists(plotdir):
+        os.makedirs(plotdir)
     plotfn = plotdir + get_pp_fn(inargs, sufx='.pdf', pure_fn=True)
     print('Saving figure: ' + plotfn)
     fig.savefig(plotfn)

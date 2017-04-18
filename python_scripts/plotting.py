@@ -9,7 +9,7 @@ final analysis and plot the results.
 
 # Import modules
 from helpers import read_netcdf_dataset, get_config, save_fig_and_log, \
-    make_datelist
+    make_datelist, get_and_crop_radar_fobj
 from datetime import datetime, timedelta
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
@@ -242,7 +242,18 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
 
 
 def plot_prec_stamps(inargs):
+    """
+    Plots precipitation stamps of obs, det and ensemble every hour for each
+    date and time specified
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
 
+    """
+
+    # TODO: Update colors
     cmPrec = ((1, 1, 1),
               (0, 0.627, 1),
               (0.137, 0.235, 0.98),
@@ -264,50 +275,33 @@ def plot_prec_stamps(inargs):
             titlelist = []
 
             # 1st: Radar
-            radarpref = (get_config(inargs, 'paths', 'radar_data') +
-                         get_config(inargs, 'paths', 'radar_prefx'))
-            radarsufx = get_config(inargs, 'paths', 'radar_sufix')
-            dtradar = timedelta(minutes=10)
-            t_rad = yyyymmddhh_strtotime(date) + t - dtradar
-            RADARobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) +
-                                    radarsufx, 'pr', dwdradar=True)
-            # Crop radar field
-            RADARobj.data = RADARobj.data[62:62 + 357, 22:22 + 357]
-            RADARobj.lats = RADARobj.lats[62:62 + 357, 22:22 + 357]
-            RADARobj.lons = RADARobj.lons[62:62 + 357, 22:22 + 357]
-            RADARobj.rlats = RADARobj.rlats[62:62 + 357, 22:22 + 357]
-            RADARobj.rlons = RADARobj.rlons[62:62 + 357, 22:22 + 357]
-            RADARobj.nx = 357
-            RADARobj.ny = 357
-
-            fobjlist.append(RADARobj)
+            fobjlist.append(get_and_crop_radar_fobj(inargs, date, t))
             titlelist.append('Radar')
 
             # 2nd: det
             ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
                            date + '/deout_ceu_pspens/' + 'det' +
                            '/OUTPUT/lfff')
-            detfobj = getfobj_ncdf(ncdffn_pref + ddhhmmss(t) + '.nc_30m_surf',
-                                   'PREC_ACCUM')
-
-            fobjlist.append(detfobj)
+            fobjlist.append(getfobj_ncdf(ncdffn_pref + ddhhmmss(t) +
+                                         '.nc_30m_surf',
+                                         'PREC_ACCUM'))
             titlelist.append('Det')
 
             # 3rd: ens
             ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
             date_dir = (get_config(inargs, 'paths', 'raw_data') +
-                           date + '/deout_ceu_pspens/')
-            enslist = getfobj_ncdf_ens(date_dir, 'sub', inargs.nens, ncdffn,
-                                       dir_suffix='/OUTPUT/',
-                                       fieldn = 'PREC_ACCUM', nfill=1)
-            fobjlist.extend(enslist)
+                        date + '/deout_ceu_pspens/')
+            fobjlist.extend(getfobj_ncdf_ens(date_dir, 'sub', inargs.nens,
+                                             ncdffn, dir_suffix='/OUTPUT/',
+                                             fieldn='PREC_ACCUM', nfill=1))
             titlelist.extend(['Mem ' + str(i+1) for i in range(inargs.nens)])
 
             # Now plot
             n_panels = len(fobjlist)
             n_cols = 4
             n_rows = int(np.ceil(float(n_panels) / n_cols))
-            fig, axmat = plt.subplots(n_rows, n_cols, figsize=(10, 3.5 * n_rows))
+            fig, axmat = plt.subplots(n_rows, n_cols,
+                                      figsize=(10, 3.5 * n_rows))
             axflat = np.ravel(axmat)
 
             for i in range(len(fobjlist)):
@@ -324,16 +318,14 @@ def plot_prec_stamps(inargs):
             cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.1, 0.2, 0.02]),
                               orientation='horizontal')
             cb.set_label('Accumulation [mm/h]')
-        titlestr = (yyyymmddhh_strtotime(date).strftime(get_config(inargs,
-                                                                   'plotting',
-                                                                   'date_fmt'))+
+        titlestr = (yyyymmddhh_strtotime(date).strftime(
+                          get_config(inargs, 'plotting', 'date_fmt')) +
                     ' ' + str(t.seconds / 3600).zfill(2) + 'UTC')
         fig.suptitle(titlestr)
         plt.tight_layout(rect=[0, 0.1, 1, 0.93])
 
         # Save figure and log
         save_fig_and_log(fig, None, inargs, 'prec_stamps')
-
 
 
 def plotting(inargs):
