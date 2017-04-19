@@ -210,25 +210,27 @@ def prec_hist(inargs):
 
     # Load analysis data and store in NetCDF
     for idate, date in enumerate(make_datelist(inargs)):
-        print('Computing time series for: ' + date)
+        print('Computing prec_hist for: ' + date)
         for group in rootgroup.groups:
-            # TODO This is copied from compute_ts_mean
-            if group in ['det', 'ens']:
-                if group == 'det':
-                    ens_no = 'det'
+            for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
+                if group in ['det', 'ens']:
+                    if group == 'det':
+                        ens_no = 'det'
+                    else:
+                        ens_no = ie + 1
+                    datalist = get_datalist_model(inargs, date, ens_no,
+                                                  'PREC_ACCUM', radar_mask)
+                elif group == 'obs':
+                    datalist = get_datalist_radar(inargs, date, radar_mask)
                 else:
-                    ens_no = ie + 1
-                datalist = get_datalist_model(inargs, date, ens_no, 'PREC_ACCUM',
-                                              radar_mask)
-            elif group == 'obs':
-                datalist = get_datalist_radar(inargs, date, radar_mask)
-            else:
-                raise Exception('Wrong group.')
+                    raise Exception('Wrong group.')
 
-            # Now do the actually new calculation
-            for it, data in enumerate(datalist):
-                rootgroup.groups[group].variables['prec_hist'][idate, it, :] =\
-                asdf
+                # Now do the actually new calculation
+                for it, data in enumerate(datalist):
+
+                    rootgroup.groups[group].variables['prec_hist']\
+                        [idate, it, :, ie] = np.histogram(data, histbinedges)[0]
+                    print np.histogram(data, histbinedges)
 
 
 def preprocess(inargs):
