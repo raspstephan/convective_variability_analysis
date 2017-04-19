@@ -77,9 +77,10 @@ def create_netcdf(inargs, groups, dimensions, variables):
     return rootgroup
 
 
-def prec_hist(inargs):
+def prec_stats(inargs):
     """
-    Compute and save precipitation histogram
+    Compute and save precipitation amount and cloud size and cloud 
+    precipitation histograms.
     
     Parameters
     ----------
