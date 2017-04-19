@@ -29,7 +29,8 @@ def main(inargs):
     """
 
     # Check arguments
-    assert inargs.plot in ['weather_ts', 'prec_stamps'], 'Plot not supported.'
+    assert inargs.plot in ['weather_ts', 'prec_stamps', 'prec_hist'], \
+        'Plot not supported.'
 
     # Check if pre-processed file exists
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
@@ -53,7 +54,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--plot',
                         type=str,
-                        help='Which plot? [weather_ts, prec_stamps]')
+                        help='Which plot? [weather_ts, prec_stamps, prec_hist]')
     parser.add_argument('--date_start',
                         type=str,
                         help='Start date of analysis in yyyymmddhh')
