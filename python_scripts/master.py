@@ -14,7 +14,7 @@ https://github.com/DamienIrving
 import argparse
 from preprocessing import preprocess
 from plotting import plotting
-from helpers import pp_exists, get_pp_fn, create_log_str
+from helpers import pp_exists, get_pp_fn
 
 
 # Define functions

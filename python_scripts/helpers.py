@@ -232,7 +232,10 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
     if pure_fn:
         pp_fn = ''
     else:
-        pp_fn = get_config(inargs, 'paths', 'preproc_data')
+        pp_fn = (get_config(inargs, 'paths', 'preproc_data') + inargs.sub_dir +
+                 '/')
+        if os.path.exists(pp_fn) is False:
+            os.makedirs(pp_fn)
     for key, value in vars(inargs).items():
         if key is not 'recompute':
             pp_fn += key + '-' + str(value) + '_'
@@ -413,7 +416,8 @@ def read_netcdf_dataset(inargs):
     return rootgroup
 
 
-def save_fig_and_log(fig, rootgroup, inargs, plot_type, date=None, time=None):
+def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
+                     time=None):
     """
     Saves given figure and log file with same name.
     
@@ -423,8 +427,9 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type, date=None, time=None):
     rootgroup : netCDF object
     inargs : argparse object
       Argparse object with all input arguments
+
     plot_type : str
-      Which type of plot is it. Used in figure and log string
+      str to be added in front of the figure file and log file name
     date : str 
       If given, date is attached to plot str
     time : str 
@@ -432,10 +437,10 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type, date=None, time=None):
 
     """
     # Save figure
-    plotdir = get_config(inargs, 'paths', 'figures') + plot_type + '/'
+    plotdir = get_config(inargs, 'paths', 'figures') + inargs.sub_dir + '/'
     if not os.path.exists(plotdir):
         os.makedirs(plotdir)
-    plotfn = plotdir + get_pp_fn(inargs, sufx='', pure_fn=True)
+    plotfn = plotdir + plot_type + get_pp_fn(inargs, sufx='', pure_fn=True)
     if date is not None and time is not None:
         plotfn += '_' + str(date) + '_' + str(time)
     plotfn += '.pdf'
@@ -443,7 +448,8 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type, date=None, time=None):
     fig.savefig(plotfn)
 
     # Save log file
-    logfn = plotdir + get_pp_fn(inargs, sufx='.log', pure_fn=True)
+    logfn = plotdir + plot_type + get_pp_fn(inargs, sufx='.log',
+                                            pure_fn=True)
     logf = open(logfn, 'w+')
     if rootgroup is not None:
         netcdf_log = rootgroup.log + '\n'
