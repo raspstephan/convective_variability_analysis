@@ -9,10 +9,10 @@ Description:  Compute and plot precipitation histograms of deterministic and
 # Import modules
 import argparse
 from netCDF4 import Dataset
-from datetime import datetime, timedelta
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
-    read_netcdf_dataset, get_config, save_fig_and_log, pp_exists
+    read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
+    get_composite_str
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -52,7 +52,7 @@ def create_netcdf(inargs, groups, dimensions, variables):
     # Create root dimensions and variables
     for dim_name, dim_val in dimensions.items():
         rootgroup.createDimension(dim_name, dim_val.shape[0])
-        tmp_var = rootgroup.createVariable(dim_name, 'i8', dim_name)
+        tmp_var = rootgroup.createVariable(dim_name, 'f8', dim_name)
         tmp_var[:] = dim_val
 
     # Create group dimensions and variables
@@ -165,8 +165,18 @@ def plot_hist(inargs):
         # Compute mean in all directions but bins
         mean_hist = np.mean(rootgroup.groups[group].variables['prec_hist'][:],
                             axis=(0, 1, 3))
-        ax.bar(x + ig * 0.2, mean_hist, width=0.2,
+        ax.bar(x[1:] + ig * 0.2, mean_hist[1:], width=0.2,
                color=get_config(inargs, 'colors', group), label=group)
+
+    # Make figure look nice
+    ax.legend(loc=0, prop={'size': 10})
+    plt.xticks(x[1:], rootgroup.variables['bins'][:-1])
+    ax.set_xlabel('Hourly accumulation [mm/h]')
+    ax.set_ylabel('Number of grid points')
+    date_str = get_composite_str(inargs, rootgroup)
+    ax.set_title(date_str, fontsize=12)
+
+    plt.tight_layout()
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'prec_hist')

@@ -459,4 +459,29 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
     logf.write(netcdf_log + create_log_str(inargs, 'Plotting'))
     logf.close()
 
-    # close Rootgroup
+
+def get_composite_str(inargs, rootgroup):
+    """
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    rootgroup : NetCDF object
+
+    Returns
+    -------
+    date_str : str
+      String for composite range
+    
+    """
+
+    dateobj_start = (timedelta(seconds=int(rootgroup.variables['date'][0])) +
+                     datetime(1, 1, 1))
+    datestr_start = dateobj_start.strftime(get_config(inargs, 'plotting',
+                                                      'date_fmt'))
+    dateobj_end = (timedelta(seconds=int(rootgroup.variables['date'][-1])) +
+                   datetime(1, 1, 1))
+    datestr_end = dateobj_end.strftime(get_config(inargs, 'plotting',
+                                                  'date_fmt'))
+    return datestr_start + ' - ' + datestr_end
