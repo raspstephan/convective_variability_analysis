@@ -5,6 +5,7 @@ Description:  Analyze model output and radar observations and compute
               domain mean time series of precipitation, CAPE and tau_c
 
 """
+
 # Import modules
 import argparse
 from netCDF4 import Dataset
