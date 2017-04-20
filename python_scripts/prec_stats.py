@@ -78,6 +78,67 @@ def create_netcdf(inargs, groups, dimensions, variables):
     return rootgroup
 
 
+def compute_cloud_histograms(inargs, data, dx, rootgroup, group, idate, it, ie,
+                             cld_size_binedges, cld_prec_binedges,
+                             cld_size_sep_binedges, cld_prec_sep_binedges):
+    """
+    
+    Parameters
+    ----------
+    inargs
+    data
+    dx
+    rootgroup
+    group
+    idate
+    it
+    ie
+    cld_size_binedges
+    cld_prec_binedges
+    cld_size_sep_binedges
+    cld_prec_sep_binedges
+
+    Returns
+    -------
+    labels, labels_sep
+    """
+    labels, cld_size_list, cld_prec_list = \
+        identify_clouds(data, inargs.thresh, water=False,
+                        dx=dx)
+    # Convert to kg / h
+    cld_prec_list = np.array(cld_prec_list) * dx * dx
+    rootgroup.groups[group].variables['cld_size'] \
+        [idate, it, :, ie] = np.histogram(cld_size_list,
+                                          cld_size_binedges)[0]
+    rootgroup.groups[group].variables['cld_prec'] \
+        [idate, it, :, ie] = np.histogram(cld_prec_list,
+                                          cld_prec_binedges)[0]
+    rootgroup.groups[group].variables['cld_size_mean'] \
+        [idate, it, ie] = np.mean(cld_size_list)
+    rootgroup.groups[group].variables['cld_prec_mean'] \
+        [idate, it, ie] = np.mean(cld_prec_list)
+
+    labels_sep, cld_size_sep_list, cld_prec_sep_list = \
+        identify_clouds(data, inargs.thresh, water=True,
+                        dx=dx)
+    # Convert to kg / h
+    cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
+    rootgroup.groups[group].variables['cld_size_sep'] \
+        [idate, it, :, ie] = \
+        np.histogram(cld_size_sep_list,
+                     cld_size_sep_binedges)[0]
+    rootgroup.groups[group].variables['cld_prec_sep'] \
+        [idate, it, :, ie] = \
+        np.histogram(cld_prec_sep_list,
+                     cld_prec_sep_binedges)[0]
+    rootgroup.groups[group].variables['cld_size_sep_mean'] \
+        [idate, it, ie] = np.mean(cld_size_sep_list)
+    rootgroup.groups[group].variables['cld_prec_sep_mean'] \
+        [idate, it, ie] = np.mean(cld_prec_sep_list)
+
+    return labels, labels_sep
+
+
 def prec_stats(inargs):
     """
     Compute and save precipitation amount and cloud size and cloud 
@@ -112,7 +173,7 @@ def prec_stats(inargs):
         'cld_size_bins': np.array(cld_size_binedges[1:]),
         'cld_prec_bins': np.array(cld_prec_binedges[1:]),
         'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
-        'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
+        'cld_prec_sep_bins': np.array(cld_size_sep_binedges[1:]),
     }
     variables = {
         'prec_freq': ['date', 'time', 'prec_freq_bins'],
@@ -159,35 +220,13 @@ def prec_stats(inargs):
                                                           prec_freq_binedges)[0]
 
                     # 2nd: compute cloud size and precipitation histograms
-                    labels, cld_size_list, cld_prec_list = \
-                        identify_clouds(data, inargs.thresh, water=False,
-                                        dx = dx)
-                    rootgroup.groups[group].variables['cld_size'] \
-                        [idate, it, :, ie] = np.histogram(cld_size_list,
-                                                          cld_size_binedges)[0]
-                    rootgroup.groups[group].variables['cld_prec'] \
-                        [idate, it, :, ie] = np.histogram(cld_prec_list,
-                                                          cld_prec_binedges)[0]
-                    rootgroup.groups[group].variables['cld_size_mean'] \
-                        [idate, it, ie] = np.mean(cld_size_list)
-                    rootgroup.groups[group].variables['cld_prec_mean'] \
-                        [idate, it, ie] = np.mean(cld_prec_list)
-
-                    labels, cld_size_sep_list, cld_prec_sep_list = \
-                        identify_clouds(data, inargs.thresh, water=True,
-                                        dx=dx)
-                    rootgroup.groups[group].variables['cld_size_sep'] \
-                        [idate, it, :, ie] = \
-                        np.histogram(cld_size_sep_list,
-                                     cld_size_sep_binedges)[0]
-                    rootgroup.groups[group].variables['cld_prec_sep'] \
-                        [idate, it, :, ie] = \
-                        np.histogram(cld_prec_sep_list,
-                                     cld_prec_sep_binedges)[0]
-                    rootgroup.groups[group].variables['cld_size_sep_mean'] \
-                        [idate, it, ie] = np.mean(cld_size_sep_list)
-                    rootgroup.groups[group].variables['cld_prec_sep_mean'] \
-                        [idate, it, ie] = np.mean(cld_prec_sep_list)
+                    tmp = compute_cloud_histograms(inargs, data, dx, rootgroup,
+                                                   group, idate, it, ie,
+                                                   cld_size_binedges,
+                                                   cld_prec_binedges,
+                                                   cld_size_sep_binedges,
+                                                   cld_prec_sep_binedges)
+                    labels, labels_sep = tmp
 
     # Close NetCDF file
     rootgroup.close()
@@ -236,6 +275,70 @@ def plot_prec_freq_hist(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'prec_freq_hist')
 
 
+def plot_cloud_size_prec_hist(inargs):
+    """
+    Plot histograms of cloud size and precipitation
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+
+    # Set up figure
+    fig, axmat = plt.subplots(2, 4, figsize=(10, 7))
+    ylim = (0.5e-3, 8e-1)
+
+    # Convert data for plotting
+    for isep, sep in enumerate(['_sep', '']):
+        for ityp, typ in enumerate(['cld_size', 'cld_prec']):
+            right_edges = rootgroup.variables[typ + sep +'_bins'][:]
+            x = right_edges - np.diff(right_edges)[0] / 2
+
+            # Loop over groups
+            for ig, group in enumerate(rootgroup.groups):
+                mean_hist = np.mean(rootgroup.groups[group].
+                                    variables[typ + sep][:],
+                                    axis=(0, 1, 3))
+
+                # Convert to relative frequency
+                mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
+                mean_freq = mean_hist / mean_hr_no_cld
+
+                # Plot on log-linear
+                ax = axmat[isep, ityp * 2]
+                ax.plot(x, mean_freq, color=get_config(inargs, 'colors', group),
+                        label=group)
+                ax.set_yscale('log')
+                ax.set_ylim(ylim)
+                ax.set_title(typ + sep)
+                ax.set_xlabel('Cloud size [m^2]')
+
+                # plot on log-log
+                ax = axmat[isep, ityp * 2 + 1]
+                ax.plot(x, mean_freq, color=get_config(inargs, 'colors', group),
+                        label=group)
+                ax.set_yscale('log')
+                ax.set_xscale('log')
+                ax.set_ylim(ylim)
+                ax.set_title(typ + sep)
+                ax.set_xlabel('Cloud precipitation [kg / h]')
+
+    axmat[0, 0].set_ylabel('Relative frequency')
+    axmat[1, 0].set_ylabel('Relative frequency')
+    axmat[0, 0].legend(loc=0)
+    fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
+    plt.tight_layout(rect = [0, 0, 1, 0.93])
+
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
+
+
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -259,6 +362,7 @@ def main(inargs):
 
     # Plotting
     plot_prec_freq_hist(inargs)
+    plot_cloud_size_prec_hist(inargs)
 
 
 if __name__ == '__main__':

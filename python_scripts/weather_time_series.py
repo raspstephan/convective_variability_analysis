@@ -12,7 +12,8 @@ from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
-    read_netcdf_dataset, get_config, save_fig_and_log, pp_exists
+    read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
+    get_composite_str
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -385,15 +386,7 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
                         c=get_config(inargs, 'colors', group), ls=ls)
 
     ax1.set_xlabel('Time [UTC]')
-    dateobj_start = (timedelta(seconds=int(rootgroup.variables['date'][0])) +
-                     datetime(1, 1, 1))
-    datestr_start = dateobj_start.strftime(get_config(inargs, 'plotting',
-                                                      'date_fmt'))
-    dateobj_end = (timedelta(seconds=int(rootgroup.variables['date'][-1])) +
-                   datetime(1, 1, 1))
-    datestr_end = dateobj_end.strftime(get_config(inargs, 'plotting',
-                                                  'date_fmt'))
-    comp_str = 'Composite ' + datestr_start + ' - ' + datestr_end
+    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
 
     ax1.set_title(comp_str)
     ax1.legend(loc=0)
