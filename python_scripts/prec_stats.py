@@ -15,6 +15,7 @@ from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_composite_str
 import numpy as np
 import matplotlib.pyplot as plt
+from cosmo_utils.diag import identify_clouds, calc_rdf
 
 
 ################################################################################
@@ -91,7 +92,13 @@ def prec_stats(inargs):
     """
 
     # Define bins TODO: Read from config!
-    histbinedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
+    prec_freq_binedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
+    dx = 2.8e3   # TODO: Estimate error
+    nbins = 60
+    cld_size_sep_binedges = np.linspace(0, dx**2 * nbins, nbins)
+    cld_prec_sep_binedges = np.linspace(0, 1e9, nbins)
+    cld_size_binedges = cld_size_sep_binedges * 3.5
+    cld_prec_binedges = cld_prec_sep_binedges * 3.5
 
     # Make netCDF file
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
@@ -101,10 +108,22 @@ def prec_stats(inargs):
     dimensions = {
         'time': timearray,
         'date': datearray,
-        'bins': np.array(histbinedges[1:]),
+        'prec_freq_bins': np.array(prec_freq_binedges[1:]),
+        'cld_size_bins': np.array(cld_size_binedges[1:]),
+        'cld_prec_bins': np.array(cld_prec_binedges[1:]),
+        'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
+        'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
     }
     variables = {
-        'prec_hist': ['date', 'time', 'bins'],
+        'prec_freq': ['date', 'time', 'prec_freq_bins'],
+        'cld_size': ['date', 'time', 'cld_size_bins'],
+        'cld_prec': ['date', 'time', 'cld_prec_bins'],
+        'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_prec_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_size_mean': ['date', 'time'],
+        'cld_prec_mean': ['date', 'time'],
+        'cld_size_sep_mean': ['date', 'time'],
+        'cld_prec_sep_mean': ['date', 'time'],
     }
     rootgroup = create_netcdf(inargs, groups, dimensions, variables)
 
@@ -132,9 +151,43 @@ def prec_stats(inargs):
 
                 # Now do the actually new calculation
                 for it, data in enumerate(datalist):
+                    # Data is the precipitation field for one hour
 
-                    rootgroup.groups[group].variables['prec_hist']\
-                        [idate, it, :, ie] = np.histogram(data, histbinedges)[0]
+                    # 1st: calculate totla precipitation histogram
+                    rootgroup.groups[group].variables['prec_freq']\
+                        [idate, it, :, ie] = np.histogram(data,
+                                                          prec_freq_binedges)[0]
+
+                    # 2nd: compute cloud size and precipitation histograms
+                    labels, cld_size_list, cld_prec_list = \
+                        identify_clouds(data, inargs.thresh, water=False,
+                                        dx = dx)
+                    rootgroup.groups[group].variables['cld_size'] \
+                        [idate, it, :, ie] = np.histogram(cld_size_list,
+                                                          cld_size_binedges)[0]
+                    rootgroup.groups[group].variables['cld_prec'] \
+                        [idate, it, :, ie] = np.histogram(cld_prec_list,
+                                                          cld_prec_binedges)[0]
+                    rootgroup.groups[group].variables['cld_size_mean'] \
+                        [idate, it, ie] = np.mean(cld_size_list)
+                    rootgroup.groups[group].variables['cld_prec_mean'] \
+                        [idate, it, ie] = np.mean(cld_prec_list)
+
+                    labels, cld_size_sep_list, cld_prec_sep_list = \
+                        identify_clouds(data, inargs.thresh, water=True,
+                                        dx=dx)
+                    rootgroup.groups[group].variables['cld_size_sep'] \
+                        [idate, it, :, ie] = \
+                        np.histogram(cld_size_sep_list,
+                                     cld_size_sep_binedges)[0]
+                    rootgroup.groups[group].variables['cld_prec_sep'] \
+                        [idate, it, :, ie] = \
+                        np.histogram(cld_prec_sep_list,
+                                     cld_prec_sep_binedges)[0]
+                    rootgroup.groups[group].variables['cld_size_sep_mean'] \
+                        [idate, it, ie] = np.mean(cld_size_sep_list)
+                    rootgroup.groups[group].variables['cld_prec_sep_mean'] \
+                        [idate, it, ie] = np.mean(cld_prec_sep_list)
 
     # Close NetCDF file
     rootgroup.close()
@@ -143,7 +196,7 @@ def prec_stats(inargs):
 ################################################################################
 # PLOTTING FUNCTIONS
 ################################################################################
-def plot_hist(inargs):
+def plot_prec_freq_hist(inargs):
     """
     Plot precipitation histogram comparing the three groups
     
@@ -159,19 +212,19 @@ def plot_hist(inargs):
 
     # Set up figure
     fig, ax = plt.subplots(1, 1, figsize=(4, 3.5))
-    x = np.arange(rootgroup.variables['bins'][:].shape[0])
+    x = np.arange(rootgroup.variables['prec_freq_bins'][:].shape[0])
 
     # Loop over groups
     for ig, group in enumerate(rootgroup.groups):
         # Compute mean in all directions but bins
-        mean_hist = np.mean(rootgroup.groups[group].variables['prec_hist'][:],
+        mean_hist = np.mean(rootgroup.groups[group].variables['prec_freq'][:],
                             axis=(0, 1, 3))
         ax.bar(x[1:] + ig * 0.2, mean_hist[1:], width=0.2,
                color=get_config(inargs, 'colors', group), label=group)
 
     # Make figure look nice
     ax.legend(loc=0, prop={'size': 10})
-    plt.xticks(x[1:], rootgroup.variables['bins'][:-1])
+    plt.xticks(x[1:], rootgroup.variables['prec_freq_bins'][:-1])
     ax.set_xlabel('Hourly accumulation [mm/h]')
     ax.set_ylabel('Number of grid points')
     date_str = get_composite_str(inargs, rootgroup)
@@ -180,7 +233,7 @@ def plot_hist(inargs):
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'prec_hist')
+    save_fig_and_log(fig, rootgroup, inargs, 'prec_freq_hist')
 
 
 ################################################################################
@@ -200,12 +253,12 @@ def main(inargs):
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
         print('Compute preprocessed file: ' + get_pp_fn(inargs))
         # Call preprocessing routine with arguments
-        prec_hist(inargs)
+        prec_stats(inargs)
     else:
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-    plot_hist(inargs)
+    plot_prec_freq_hist(inargs)
 
 
 if __name__ == '__main__':
@@ -237,6 +290,10 @@ if __name__ == '__main__':
     parser.add_argument('--nens',
                         type=int,
                         help='Number of ensemble members')
+    parser.add_argument('--thresh',
+                        type=float,
+                        default=1.,
+                        help='Threshold for cloud object identification.')
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
