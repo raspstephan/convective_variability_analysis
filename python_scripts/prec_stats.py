@@ -82,6 +82,7 @@ def compute_cloud_histograms(inargs, data, dx, rootgroup, group, idate, it, ie,
                              cld_size_binedges, cld_prec_binedges,
                              cld_size_sep_binedges, cld_prec_sep_binedges):
     """
+    Compute the histograms for the given parameters and wirte in netCDF file
     
     Parameters
     ----------
@@ -102,6 +103,8 @@ def compute_cloud_histograms(inargs, data, dx, rootgroup, group, idate, it, ie,
     -------
     labels, labels_sep
     """
+
+    data[data.mask] = 0  # set all masked points to zero, otherwise strage...
     labels, cld_size_list, cld_prec_list = \
         identify_clouds(data, inargs.thresh, water=False,
                         dx=dx)
