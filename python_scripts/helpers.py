@@ -238,19 +238,23 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False, only_value=True):
                  '/')
         if os.path.exists(pp_fn) is False:
             os.makedirs(pp_fn)
-    for key, value in vars(inargs).items():
-        if key not in ['recompute', 'plot_name']:
-            if only_value:
-                pp_fn += str(value) + '_'
-            else:
-                pp_fn += key + '-' + str(value) + '_'
-    pp_fn = pp_fn[:-1] + sufx  # remove last '_'
-    # Replace ', ' with '_'
-    pp_fn = pp_fn.replace(', ', '_')
-    # Remove brackets
-    pp_fn = pp_fn.replace('[', '')
-    pp_fn = pp_fn.replace(']', '')
-    assert len(pp_fn) <= 255, 'File name too long!'
+    if inargs.plot_name is not '':
+        pp_fn += inargs.plot_name + sufx
+    else:
+        for key, value in vars(inargs).items():
+            if key not in ['recompute', 'plot_name']:
+                if only_value:
+                    pp_fn += str(value) + '_'
+                else:
+                    pp_fn += key + '-' + str(value) + '_'
+        pp_fn = pp_fn[:-1] + sufx  # remove last '_'
+        # Replace ', ' with '_'
+        pp_fn = pp_fn.replace(', ', '_')
+        # Remove brackets
+        pp_fn = pp_fn.replace('[', '')
+        pp_fn = pp_fn.replace(']', '')
+    assert len(pp_fn) <= 255, ('File name too long with ' + str(len(pp_fn)) +
+                               ' ' + pp_fn)
     return pp_fn
 
 

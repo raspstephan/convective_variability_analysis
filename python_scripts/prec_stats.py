@@ -299,8 +299,7 @@ def plot_cloud_size_prec_hist(inargs):
     rootgroup = read_netcdf_dataset(inargs)
 
     # Set up figure
-    fig, axmat = plt.subplots(2, 4, figsize=(10, 7))
-    ylim = (0.5e-3, 8e-1)
+    fig, axmat = plt.subplots(2, 4, figsize=(10, 7), sharey=True)
 
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
@@ -308,40 +307,52 @@ def plot_cloud_size_prec_hist(inargs):
             right_edges = rootgroup.variables[typ + sep +'_bins'][:]
             x = right_edges - np.diff(right_edges)[0] / 2
 
+            if ityp == 0:
+                xlabel = 'Cloud size [m^2]'
+            else:
+                xlabel = 'Cloud precipitation [kg /h]'
+
             # Loop over groups
             for ig, group in enumerate(rootgroup.groups):
-                mean_hist = np.mean(rootgroup.groups[group].
-                                    variables[typ + sep][:],
-                                    axis=(0, 1, 3))
+                # Load data
+                hist_data = rootgroup.groups[group].variables[typ + sep][:]
 
-                # Convert to relative frequency
-                mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
-                mean_freq = mean_hist / mean_hr_no_cld
+                if inargs.cld_y_type == 'relative_frequency':
+                    mean_hist = np.mean(hist_data, axis=(0, 1, 3))
+
+                    # Convert to relative frequency
+                    mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
+                    plot_data = mean_hist / mean_hr_no_cld
+                elif inargs.cld_y_type == 'mean_number':
+                    plot_data = np.mean(hist_data, axis=(0, 1, 3))
+                elif inargs.cld_y_type == 'total_number':
+                    plot_data = np.mean(hist_data, axis=3)
+                    plot_data = np.sum(plot_data, axis=(0, 1))
+                else:
+                    raise Exception('cld_y_type wrong!')
 
                 # Plot on log-linear
                 ax = axmat[isep, ityp * 2]
-                ax.plot(x, mean_freq, color=get_config(inargs, 'colors', group),
+                ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
                         label=group)
                 ax.set_yscale('log')
-                ax.set_ylim(ylim)
                 ax.set_title(typ + sep)
-                ax.set_xlabel('Cloud size [m^2]')
+                ax.set_xlabel(xlabel)
 
                 # plot on log-log
                 ax = axmat[isep, ityp * 2 + 1]
-                ax.plot(x, mean_freq, color=get_config(inargs, 'colors', group),
+                ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
                         label=group)
                 ax.set_yscale('log')
                 ax.set_xscale('log')
-                ax.set_ylim(ylim)
                 ax.set_title(typ + sep)
-                ax.set_xlabel('Cloud precipitation [kg / h]')
+                ax.set_xlabel(xlabel)
 
-    axmat[0, 0].set_ylabel('Relative frequency')
-    axmat[1, 0].set_ylabel('Relative frequency')
+    axmat[0, 0].set_ylabel(inargs.cld_y_type)
+    axmat[1, 0].set_ylabel(inargs.cld_y_type)
     axmat[0, 0].legend(loc=0)
     fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
-    plt.tight_layout(rect = [0, 0, 1, 0.93])
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
@@ -402,6 +413,11 @@ if __name__ == '__main__':
     parser.add_argument('--nens',
                         type=int,
                         help='Number of ensemble members')
+    parser.add_argument('--cld_y_type',
+                        type=str,
+                        default='relative_frequency',
+                        help='Which y-axis scale for cloud plot. '
+                             '[relative_frequency, mean_number, total_number]')
     parser.add_argument('--thresh',
                         type=float,
                         default=1.,
