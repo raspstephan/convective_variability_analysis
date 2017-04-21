@@ -53,18 +53,23 @@ def create_log_str(inargs, step):
     pwd = check_output(['pwd'])
     exe_str = ' '.join(sys.argv)
     config_str = open('../config/' + inargs.config_file, 'r').read()
+    param_str = ''
+    for key, value in vars(inargs).items():
+        param_str += '--' + key + ' ' + str(value) + '\n'
 
     log_str = ("""
     %s log\n
     -----------------\n
     %s\n
     %s\n
+    Full argparse parameters\n
+    %s
     %s\n
     %s\n
     Git hash: %s\n
     In directory: %s\n
     %s\n
-    """ % (step, time_stamp, config_str, conda_info, conda_list,
+    """ % (step, time_stamp, config_str, param_str, conda_info, conda_list,
            str(git_hash)[0:7], pwd, exe_str))
     return log_str
 
