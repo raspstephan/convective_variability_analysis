@@ -464,6 +464,10 @@ if __name__ == '__main__':
                         type=str,
                         default='',
                         help='Custom plot name.')
+    parser.add_argument('--pp_name',
+                        type=str,
+                        default='',
+                        help='Custom name for preprocessed file.')
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',

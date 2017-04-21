@@ -239,7 +239,7 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False, only_value=True):
         if os.path.exists(pp_fn) is False:
             os.makedirs(pp_fn)
     if inargs.plot_name is not '':
-        pp_fn += inargs.plot_name + sufx
+        pp_fn += inargs.pp_name + sufx
     else:
         for key, value in vars(inargs).items():
             if key not in ['recompute', 'plot_name']:
