@@ -199,12 +199,19 @@ def prec_stats(inargs):
 
     # TODO: This is somewhat the same as domain_mean_weather_ts
     radar_mask = get_radar_mask(inargs)
-    print('Number of masked grid points: ' + str(np.sum(radar_mask)) +
-          ' from total grid points: ' + str(radar_mask.size))
 
     # Load analysis data and store in NetCDF
     for idate, date in enumerate(make_datelist(inargs)):
         print('Computing prec_hist for: ' + date)
+
+        # Determine radar mask
+        if inargs.radar_mask == 'total':
+            tmp_mask = np.any(radar_mask, axis=(0, 1))
+        elif inargs.radar_mask == 'day':
+            tmp_mask = np.any(radar_mask[idate], axis=0)
+        elif inargs.radar_mask == 'hour':
+            tmp_mask = radar_mask[idate]
+
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 if group in ['det', 'ens']:
@@ -213,9 +220,9 @@ def prec_stats(inargs):
                     else:
                         ens_no = ie + 1
                     datalist = get_datalist_model(inargs, date, ens_no,
-                                                  'PREC_ACCUM', radar_mask)
+                                                  'PREC_ACCUM', tmp_mask)
                 elif group == 'obs':
-                    datalist = get_datalist_radar(inargs, date, radar_mask)
+                    datalist = get_datalist_radar(inargs, date, tmp_mask)
                 else:
                     raise Exception('Wrong group.')
 
@@ -418,6 +425,10 @@ if __name__ == '__main__':
                         default='relative_frequency',
                         help='Which y-axis scale for cloud plot. '
                              '[relative_frequency, mean_number, total_number]')
+    parser.add_argument('--radar_mask',
+                        type=str,
+                        default='hour',
+                        help='Radar mask for [hour, day, total]?')
     parser.add_argument('--thresh',
                         type=float,
                         default=1.,

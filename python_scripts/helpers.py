@@ -180,41 +180,48 @@ def get_radar_mask(inargs):
       Argparse object with all input arguments
     Returns
     -------
-    radar_mask :  2D numpy array 
+    radar_mask :  numpy array
+      Has dimensions [date, time, i, j]
       Mask where True values are masked (invalid)
     """
     # Check if radar_mask exists for days
     radar_mask_fn = ('../aux_files/radar_tot_mask_' + inargs.date_start +
-                     '_' + inargs.date_end + '.npy')
+                     '_' + inargs.date_end + '_' + str(inargs.time_start) +
+                     '_' + str(inargs.time_end) + '.nc')
     if (os.path.isfile(radar_mask_fn)) and (inargs.recompute is False):
         print('Found radar mask: ' + radar_mask_fn)
-        return np.load(radar_mask_fn)
+        mask_rg = Dataset(radar_mask_fn, 'r')
+        radar_mask = mask_rg.variables['radar_mask'][:]
+        mask_rg.close()
     else:
         print('Compute radar mask: ' + radar_mask_fn)
-        datalist = get_datalist_radar(inargs, 'all')
-        mask = np.max(datalist, axis=0) > 100
-        # TODO This has to go in the paper!
-
-        # Crop mask
         l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
             get_domain_limits(inargs)
-        mask = mask[l11_rad:l12_rad, l21_rad:l22_rad]
 
-        # Save figure
-        plt.imshow(mask)
-        plt.colorbar()
-        if not os.path.exists((get_config(inargs, 'paths', 'figures') +
-                               'radar_masks')):
-            os.makedirs((get_config(inargs, 'paths', 'figures') +
-                         'radar_masks'))
-        fig_fn = (get_config(inargs, 'paths', 'figures') +
-                  'radar_masks/radar_tot_mask_' + inargs.date_start +
-                  '_' + inargs.date_end + '.pdf')
-        print('Save radar mask figure as ' + fig_fn)
-        plt.savefig(fig_fn)
+        # Allocate netCDF file
+        mask_rg = Dataset(radar_mask_fn, 'w', format='NETCDF4')
+        datearray = np.array(make_datelist(inargs, out_format='netcdf'))
+        timearray = np.arange(inargs.time_start,
+                              inargs.time_end + inargs.time_inc,
+                              inargs.time_inc)
+        mask_rg.createDimension('date', datearray.shape[0])
+        mask_rg.createDimension('time', timearray.shape[0])
+        mask_rg.createDimension('i', get_config(inargs, 'domain', 'ana_irange'))
+        mask_rg.createDimension('j', get_config(inargs, 'domain', 'ana_jrange'))
 
-        np.save(radar_mask_fn, mask)
-        return mask
+        radar_mask = mask_rg.createVariable('radar_mask', 'i1', ('date', 'time',
+                                                                 'i', 'j'))
+
+        for idate, date in enumerate(make_datelist(inargs)):
+            datalist = get_datalist_radar(inargs, date)
+            for itime, data in enumerate(datalist):
+                # Crop data
+                radar_mask[idate, itime, :, :] = data > 100.
+                # TODO This has to go in the paper!
+        radar_mask = radar_mask[:]
+        mask_rg.close()
+
+    return radar_mask
 
 
 def get_pp_fn(inargs, sufx='.nc', pure_fn=False, only_value=True):
@@ -288,7 +295,7 @@ def get_datalist_radar(inargs, date, radar_mask=False):
       Argparse object with all input arguments
     date : str
       Date in format yyyymmddhh. If 'all', radar data for all days are returned
-    radar_mask : 2D numpy array
+    radar_mask : 2D or 3D numpy array
       Radar mask to create masked arrays.
 
     Returns
@@ -323,12 +330,19 @@ def get_datalist_radar(inargs, date, radar_mask=False):
     # Crop data
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
-    if radar_mask is not False:
-        # Apply total mask to data
-        for i, data in enumerate(datalist):
-            datalist[i] = masked_array(data[l11_rad:l12_rad,
-                                            l21_rad:l22_rad],
-                                       mask=radar_mask)
+    for i, data in enumerate(datalist):
+        if radar_mask is False:
+            tmp_mask = np.zeros(data[l11_rad:l12_rad, l21_rad:l22_rad].shape)
+        elif radar_mask.ndim == 3:
+            tmp_mask = radar_mask[i, :, :]
+        elif radar_mask.ndim == 2:
+            tmp_mask = radar_mask
+        else:
+            raise Exception('Wrong dimensions for radar mask.')
+
+        datalist[i] = masked_array(data[l11_rad:l12_rad, l21_rad:l22_rad],
+                                   mask=tmp_mask)
+
     return datalist
 
 
@@ -345,7 +359,7 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
       Ensemble number or str in case of det
     var : str 
       Variable
-    radar_mask : 2D numpy array
+    radar_mask : 2D or 3D numpy array
       Radar mask to create masked arrays
 
     Returns
@@ -371,11 +385,18 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
 
     # Loop over individual time steps and apply mask
     for i, data in enumerate(datalist):
+        if radar_mask.ndim == 3:
+            tmp_mask = radar_mask[i, :, :]
+        elif radar_mask.ndim == 2:
+            tmp_mask = radar_mask
+        else:
+            raise Exception('Wrong dimensions for radar mask.')
+
         datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                   mask=radar_mask)
+                                   mask=tmp_mask)
         if var == 'TAU_C':   # Additionally mask out nans
             datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                       mask=radar_mask + np.isnan(
+                                       mask=tmp_mask + np.isnan(
                                            data[l11:l12, l21:l22]))
     return datalist
 
