@@ -16,6 +16,7 @@ domain:
     radar_istop: -93   # End of radar domain in x
     radar_jstart: 72   # Start of radar domain in y
     radar_jstop: -93   # End of radar domain in y
+    dx: 2.8e3  # Grid spacing in x-y
 
 colors:
     det: blue

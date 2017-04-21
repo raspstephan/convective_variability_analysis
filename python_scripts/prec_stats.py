@@ -78,7 +78,7 @@ def create_netcdf(inargs, groups, dimensions, variables):
     return rootgroup
 
 
-def compute_cloud_histograms(inargs, data, dx, rootgroup, group, idate, it, ie,
+def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
                              cld_size_binedges, cld_prec_binedges,
                              cld_size_sep_binedges, cld_prec_sep_binedges):
     """
@@ -103,7 +103,7 @@ def compute_cloud_histograms(inargs, data, dx, rootgroup, group, idate, it, ie,
     -------
     labels, labels_sep
     """
-
+    dx = float(get_config(inargs, 'domain', 'dx'))
     data[data.mask] = 0  # set all masked points to zero, otherwise strage...
     labels, cld_size_list, cld_prec_list = \
         identify_clouds(data, inargs.thresh, water=False,
@@ -155,14 +155,20 @@ def prec_stats(inargs):
 
     """
 
-    # Define bins TODO: Read from config!
-    prec_freq_binedges = [0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000]
-    dx = 2.8e3   # TODO: Estimate error
-    nbins = 60
-    cld_size_sep_binedges = np.linspace(0, dx**2 * nbins, nbins)
-    cld_prec_sep_binedges = np.linspace(0, 1e9, nbins)
-    cld_size_binedges = cld_size_sep_binedges * 3.5
-    cld_prec_binedges = cld_prec_sep_binedges * 3.5
+    # Get binedges from command line arguments
+    prec_freq_binedges = inargs.cld_freq_binedges
+    cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
+                                    inargs.cld_size_bin_triplet[1],
+                                    inargs.cld_size_bin_triplet[2])
+    cld_prec_binedges = np.linspace(inargs.cld_prec_bin_triplet[0],
+                                    inargs.cld_prec_bin_triplet[1],
+                                    inargs.cld_prec_bin_triplet[2])
+    cld_size_sep_binedges = np.linspace(inargs.cld_size_sep_bin_triplet[0],
+                                        inargs.cld_size_sep_bin_triplet[1],
+                                        inargs.cld_size_sep_bin_triplet[2])
+    cld_prec_sep_binedges = np.linspace(inargs.cld_prec_sep_bin_triplet[0],
+                                        inargs.cld_prec_sep_bin_triplet[1],
+                                        inargs.cld_prec_sep_bin_triplet[2])
 
     # Make netCDF file
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
@@ -223,7 +229,7 @@ def prec_stats(inargs):
                                                           prec_freq_binedges)[0]
 
                     # 2nd: compute cloud size and precipitation histograms
-                    tmp = compute_cloud_histograms(inargs, data, dx, rootgroup,
+                    tmp = compute_cloud_histograms(inargs, data, rootgroup,
                                                    group, idate, it, ie,
                                                    cld_size_binedges,
                                                    cld_prec_binedges,
@@ -400,6 +406,35 @@ if __name__ == '__main__':
                         type=float,
                         default=1.,
                         help='Threshold for cloud object identification.')
+    parser.add_argument('--cld_freq_binedges',
+                        nargs='+',
+                        type=float,
+                        default=[0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000],
+                        help='List of binedges.')
+    parser.add_argument('--cld_size_bin_triplet',
+                        nargs='+',
+                        type=float,
+                        default=[0, 1.6464e9, 60],
+                        help='Triplet for binedge creation. '
+                             '[start_left, end_right, n_bins]')
+    parser.add_argument('--cld_prec_bin_triplet',
+                        nargs='+',
+                        type=float,
+                        default=[0, 3.5e9, 60],
+                        help='Triplet for binedge creation. '
+                             '[start_left, end_right, n_bins]')
+    parser.add_argument('--cld_size_sep_bin_triplet',
+                        nargs='+',
+                        type=float,
+                        default=[0, 4.704e8, 60],
+                        help='Triplet for binedge creation. '
+                             '[start_left, end_right, n_bins]')
+    parser.add_argument('--cld_prec_sep_bin_triplet',
+                        nargs='+',
+                        type=float,
+                        default=[0, 1e9, 60],
+                        help='Triplet for binedge creation. '
+                             '[start_left, end_right, n_bins]')
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -407,7 +442,7 @@ if __name__ == '__main__':
                               Default = config.yml')
     parser.add_argument('--sub_dir',
                         type=str,
-                        default='prec_hist',
+                        default='prec_stats',
                         help='Sub-directory for figures and pp_files')
     parser.add_argument('--plot_name',
                         type=str,

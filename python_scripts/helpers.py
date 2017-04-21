@@ -212,7 +212,7 @@ def get_radar_mask(inargs):
         return mask
 
 
-def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
+def get_pp_fn(inargs, sufx='.nc', pure_fn=False, only_value=True):
     """
     Creates a filename for the pre-processed NetCDF file
     Parameters
@@ -223,6 +223,8 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
       Str to attach at the end. Default = '.nc'
     pure_fn : bool  
       If true, path is not included.
+    only_value : bool  
+      If True [default] only values are plotted in file name
     Returns
     -------
     pp_fn : str
@@ -237,9 +239,18 @@ def get_pp_fn(inargs, sufx='.nc', pure_fn=False):
         if os.path.exists(pp_fn) is False:
             os.makedirs(pp_fn)
     for key, value in vars(inargs).items():
-        if key is not 'recompute':
-            pp_fn += key + '-' + str(value) + '_'
+        if key not in ['recompute', 'plot_name']:
+            if only_value:
+                pp_fn += str(value) + '_'
+            else:
+                pp_fn += key + '-' + str(value) + '_'
     pp_fn = pp_fn[:-1] + sufx  # remove last '_'
+    # Replace ', ' with '_'
+    pp_fn = pp_fn.replace(', ', '_')
+    # Remove brackets
+    pp_fn = pp_fn.replace('[', '')
+    pp_fn = pp_fn.replace(']', '')
+    assert len(pp_fn) <= 255, 'File name too long!'
     return pp_fn
 
 
@@ -455,7 +466,7 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         logfn = plotdir + plot_type + get_pp_fn(inargs, sufx='.log',
                                                 pure_fn=True)
     else:
-        logfn = plotdir + plot_type + '_' + inargs.plot_name
+        logfn = plotdir + plot_type + '_' + inargs.plot_name + '.log'
     logf = open(logfn, 'w+')
     if rootgroup is not None:
         netcdf_log = rootgroup.log + '\n'
