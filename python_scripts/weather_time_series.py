@@ -467,6 +467,10 @@ if __name__ == '__main__':
                         type=str,
                         default='weather_time_series',
                         help='Sub-directory for figures and pp_files')
+    parser.add_argument('--plot_name',
+                        type=str,
+                        default='',
+                        help='Custom plot name.')
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',

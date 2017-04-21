@@ -341,7 +341,6 @@ def plot_cloud_size_prec_hist(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
 
 
-
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -410,6 +409,10 @@ if __name__ == '__main__':
                         type=str,
                         default='prec_hist',
                         help='Sub-directory for figures and pp_files')
+    parser.add_argument('--plot_name',
+                        type=str,
+                        default='',
+                        help='Custom plot name.')
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',

@@ -440,7 +440,10 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
     plotdir = get_config(inargs, 'paths', 'figures') + inargs.sub_dir + '/'
     if not os.path.exists(plotdir):
         os.makedirs(plotdir)
-    plotfn = plotdir + plot_type + get_pp_fn(inargs, sufx='', pure_fn=True)
+    if inargs.plot_name == '':
+        plotfn = plotdir + plot_type + get_pp_fn(inargs, sufx='', pure_fn=True)
+    else:
+        plotfn = plotdir + plot_type + '_' + inargs.plot_name
     if date is not None and time is not None:
         plotfn += '_' + str(date) + '_' + str(time)
     plotfn += '.pdf'
@@ -448,8 +451,11 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
     fig.savefig(plotfn)
 
     # Save log file
-    logfn = plotdir + plot_type + get_pp_fn(inargs, sufx='.log',
-                                            pure_fn=True)
+    if inargs.plot_name == '':
+        logfn = plotdir + plot_type + get_pp_fn(inargs, sufx='.log',
+                                                pure_fn=True)
+    else:
+        logfn = plotdir + plot_type + '_' + inargs.plot_name
     logf = open(logfn, 'w+')
     if rootgroup is not None:
         netcdf_log = rootgroup.log + '\n'
