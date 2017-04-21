@@ -182,7 +182,7 @@ def prec_stats(inargs):
         'cld_size_bins': np.array(cld_size_binedges[1:]),
         'cld_prec_bins': np.array(cld_prec_binedges[1:]),
         'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
-        'cld_prec_sep_bins': np.array(cld_size_sep_binedges[1:]),
+        'cld_prec_sep_bins': np.array(cld_prec_sep_binedges[1:]),
     }
     variables = {
         'prec_freq': ['date', 'time', 'prec_freq_bins'],
