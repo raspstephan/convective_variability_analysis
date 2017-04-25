@@ -12,7 +12,6 @@ import os
 import sys
 import yaml
 import numpy as np
-import matplotlib.pyplot as plt
 from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
 from subprocess import check_output
@@ -20,6 +19,8 @@ from git import Repo
 from cosmo_utils.helpers import yyyymmddhh_strtotime, yymmddhhmm
 from numpy.ma import masked_array
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries, getfobj_ncdf
+from scipy.ndimage import measurements
+from scipy.signal import convolve2d
 
 
 # Define functions
@@ -532,3 +533,141 @@ def get_composite_str(inargs, rootgroup):
     datestr_end = dateobj_end.strftime(get_config(inargs, 'plotting',
                                                   'date_fmt'))
     return datestr_start + ' - ' + datestr_end
+
+
+################################################################################
+# Functions to put into ensemble_tools
+################################################################################
+def calc_rdf(labels, field, normalize=True, dx=2800., r_max=30, dr=1, mask=None):
+    """
+    Computes radial distribution function
+    Original credit : Julia Windmiller (MPI)
+    
+    Parameters
+    ----------
+    labels : numpy.ndarray
+      Array with labels
+    field : numpy.ndarray
+      Original field Corresponding with labels field
+    normalize : bool, optional
+      If True normalize RDF
+    dx : float, optional
+      Grid spacing [m], used for r
+    r_max : int, optional
+      Maximum search radius for RDF algorithm (in grid pts)
+    dr : int, optional
+      Search step (in grid pts)
+      
+    Returns
+    -------
+    g: numpy.ndarray
+      (Normalized) RDF
+    r : numpy.ndarray
+      Distance
+    """
+
+    num = np.unique(labels).shape[0]   # Number of identified objects
+    # Get centers of mass for each object
+    cof = measurements.center_of_mass(field, labels, range(1,num))
+    cof = np.array(cof)
+
+    # If no centers of mass are found, an enpty array is passed
+    if cof.shape[0] == 0:   # Accout for empty arrays
+        cof = np.empty((0,2))
+
+    g, r, tmp = pair_correlation_2d(cof[:,0], cof[:,1],
+                                    [field.shape[0], field.shape[1]],
+                                    r_max, dr, normalize=normalize, mask=mask)
+
+    return g, r*dx
+
+
+def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
+    """
+    Need new doc string
+    
+    Compute the two-dimensional pair correlation function, also known
+    as the radial distribution function, for a set of circular particles
+    contained in a square region of a plane.  This simple function finds
+    reference particles such that a circle of radius r_max drawn around the
+    particle will fit entirely within the square, eliminating the need to
+    compensate for edge effects.  If no such particles exist, an error is
+    returned. Try a smaller r_max...or write some code to handle edge effects! ;)
+    
+    Arguments:
+        x               an array of x positions of centers of particles
+        y               an array of y positions of centers of particles
+        S               length of each side of the square region of the plane
+        r_max            outer diameter of largest annulus
+        dr              increment for increasing radius of annulus
+    Returns a tuple: (g, radii, interior_indices)
+        g(r)            a numpy array containing the correlation function g(r)
+        radii           a numpy array containing the radii of the
+                        annuli used to compute g(r)
+        reference_indices   indices of reference particles
+    """
+
+    # Number of particles in ring/area of ring/number of reference
+    # particles/number density
+    # area of ring = pi*(r_outer**2 - r_inner**2)
+
+    # Extract domain size
+    (Sx,Sy) = S if len(S) == 2 else (S, S)
+
+    # Find particles which are close enough to the box center that a circle of radius
+    # r_max will not cross any edge of the box
+
+    # Find indices within boundaries
+    if mask is None:
+        bools1 = x > r_max
+        bools2 = x < (Sx - r_max)
+        bools3 = y > r_max
+        bools4 = y < (Sy - r_max)
+        interior_indices, = np.where(bools1 * bools2 * bools3 * bools4)
+    else:
+        # create convolution kernel to convolve mask
+        kernel_size = r_max * 2 + 1
+        y_tmp, x_tmp = np.ogrid[-r_max:kernel_size - r_max,
+                                -r_max:kernel_size - r_max]
+        kernel = x_tmp * x_tmp + y_tmp * y_tmp <= r_max * r_max
+        conv_mask = convolve2d(mask, kernel, mode='same', boundary='fill',
+                               fillvalue=1) == 0
+
+        # Get closes indices for parcels in a pretty non-pythonic way
+        # and check whether it is inside convolved mask
+        x_round = np.round(x)
+        y_round = np.round(y)
+        interior_indices = []
+        for i in range(x_round.shape[0]):
+            if conv_mask[int(x_round[i]), int(y_round[i])] == 1:
+                interior_indices.append(i)
+
+    num_interior_particles = len(interior_indices)
+
+    edges = np.arange(0., r_max + dr, dr)   # Was originally 1.1?
+    print edges
+    num_increments = len(edges) - 1
+    g = np.zeros([num_interior_particles, num_increments])
+    radii = np.zeros(num_increments)
+    number_density = float(len(x)) / float(Sx*Sy)
+
+    # Compute pairwise correlation for each interior particle
+    for p in range(num_interior_particles):
+        index = interior_indices[p]
+        d = np.sqrt((x[index] - x)**2 + (y[index] - y)**2)
+        d[index] = 2 * r_max   # Because sqrt(0)
+
+        result, bins = np.histogram(d, bins=edges, normed=False)
+        if normalize:
+            result = result/number_density
+        g[p, :] = result
+
+    # Average g(r) for all interior particles and compute radii
+    g_average = np.zeros(num_increments)
+    for i in range(num_increments):
+        radii[i] = (edges[i] + edges[i+1]) / 2.
+        rOuter = edges[i + 1]
+        rInner = edges[i]
+        g_average[i] = np.mean(g[:, i]) / (np.pi * (rOuter**2 - rInner**2))
+
+    return g_average, radii, interior_indices

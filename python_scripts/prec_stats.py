@@ -12,10 +12,10 @@ from netCDF4 import Dataset
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
-    get_composite_str
+    get_composite_str, calc_rdf
 import numpy as np
 import matplotlib.pyplot as plt
-from cosmo_utils.diag import identify_clouds, calc_rdf
+from cosmo_utils.diag import identify_clouds
 
 
 ################################################################################
@@ -174,6 +174,8 @@ def prec_stats(inargs):
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
     timearray = np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
                           inargs.time_inc)
+    rdf_radius = np.arange(0., inargs.rdf_r_max + inargs.rdf_dr, inargs.rdf_dr)
+    rdf_radius = (rdf_radius[:-1] + rdf_radius[1:]) / 2.
     groups = ['obs', 'det', 'ens']
     dimensions = {
         'time': timearray,
@@ -183,6 +185,7 @@ def prec_stats(inargs):
         'cld_prec_bins': np.array(cld_prec_binedges[1:]),
         'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
         'cld_prec_sep_bins': np.array(cld_prec_sep_binedges[1:]),
+        'rdf_radius': rdf_radius
     }
     variables = {
         'prec_freq': ['date', 'time', 'prec_freq_bins'],
@@ -194,6 +197,7 @@ def prec_stats(inargs):
         'cld_prec_mean': ['date', 'time'],
         'cld_size_sep_mean': ['date', 'time'],
         'cld_prec_sep_mean': ['date', 'time'],
+        'rdf': ['date', 'time', 'rdf_radius']
     }
     rootgroup = create_netcdf(inargs, groups, dimensions, variables)
 
@@ -243,6 +247,17 @@ def prec_stats(inargs):
                                                    cld_size_sep_binedges,
                                                    cld_prec_sep_binedges)
                     labels, labels_sep = tmp
+
+                    # 3rd: Compute radial distribution function
+                    rdf, radius = calc_rdf(labels, data,
+                                           normalize=inargs.rdf_normalize,
+                                           dx=get_config(inargs, 'domain',
+                                                         'dx'),
+                                           r_max=inargs.rdf_r_max,
+                                           dr=inargs.rdf_dr,
+                                           mask=tmp_mask)
+                    rootgroup.groups[group].variables['rdf'][idate, it, :, ie]\
+                        = rdf
 
     # Close NetCDF file
     rootgroup.close()
@@ -462,6 +477,19 @@ if __name__ == '__main__':
                         default=[0, 1e9, 60],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
+    parser.add_argument('--rdf_r_max',
+                        type=float,
+                        default=30,
+                        help='Maximum serach radius in grid points for RDF.')
+    parser.add_argument('--rdf_dr',
+                        type=float,
+                        default=1,
+                        help='Radial bin size for RDF in grid points.')
+    parser.add_argument('--rdf_normalize',
+                        dest='rdf_normalize',
+                        action='store_true',
+                        help='If True, RDF is normalized.')
+    parser.set_defaults(rdf_normalize=False)
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
