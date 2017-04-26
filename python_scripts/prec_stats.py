@@ -21,6 +21,39 @@ from cosmo_utils.diag import identify_clouds
 ################################################################################
 # PREPROCESSING FUNCTIONS
 ################################################################################
+def create_bin_edges(inargs):
+    """
+    Create the bin edges from input parameters
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    Returns
+    -------
+    prec_freq_binedges, cld_size_binedges, cld_prec_binedges,
+    cld_size_sep_binedges, cld_prec_sep_binedges : numpy.arrays
+      Bin edges
+    """
+
+    prec_freq_binedges = inargs.cld_freq_binedges
+    cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
+                                    inargs.cld_size_bin_triplet[1],
+                                    inargs.cld_size_bin_triplet[2])
+    cld_prec_binedges = np.linspace(inargs.cld_prec_bin_triplet[0],
+                                    inargs.cld_prec_bin_triplet[1],
+                                    inargs.cld_prec_bin_triplet[2])
+    cld_size_sep_binedges = np.linspace(inargs.cld_size_sep_bin_triplet[0],
+                                        inargs.cld_size_sep_bin_triplet[1],
+                                        inargs.cld_size_sep_bin_triplet[2])
+    cld_prec_sep_binedges = np.linspace(inargs.cld_prec_sep_bin_triplet[0],
+                                        inargs.cld_prec_sep_bin_triplet[1],
+                                        inargs.cld_prec_sep_bin_triplet[2])
+    return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
+           cld_size_sep_binedges, cld_prec_sep_binedges
+
+
 def create_netcdf(inargs):
     """
     Creates a NetCDF object to store data.
@@ -65,7 +98,11 @@ def create_netcdf(inargs):
         'cld_prec_mean': ['date', 'time'],
         'cld_size_sep_mean': ['date', 'time'],
         'cld_prec_sep_mean': ['date', 'time'],
-        'rdf': ['date', 'time', 'rdf_radius']
+        'rdf': ['date', 'time', 'rdf_radius'],
+        'rdf_sep': ['date', 'time', 'rdf_radius'],
+        'rdf_norm': ['date', 'time', 'rdf_radius'],
+        'rdf_norm_sep': ['date', 'time', 'rdf_radius'],
+
     }
 
     pp_fn = get_pp_fn(inargs)
@@ -181,38 +218,73 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
     return labels, labels_sep
 
 
-def create_bin_edges(inargs):
+def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
+                 idate, it, ie):
     """
-    Create the bin edges from input parameters
+    Copute four types of radial distribution function:
+    Non-normalized, non-separated
+    Non-normalized, separated
+    Normalized, non-separated
+    Normalized, separated
     
     Parameters
     ----------
-    inargs : argparse object
-      Argparse object with all input arguments
+    inargs
+    labels
+    labels_sep
+    data
+    rdf_mask
+    rootgroup
+    group
+    idate
+    it
+    ie
 
-    Returns
-    -------
-    prec_freq_binedges, cld_size_binedges, cld_prec_binedges,
-    cld_size_sep_binedges, cld_prec_sep_binedges : numpy.arrays
-      Bin edges
     """
 
-    prec_freq_binedges = inargs.cld_freq_binedges
-    cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
-                                    inargs.cld_size_bin_triplet[1],
-                                    inargs.cld_size_bin_triplet[2])
-    cld_prec_binedges = np.linspace(inargs.cld_prec_bin_triplet[0],
-                                    inargs.cld_prec_bin_triplet[1],
-                                    inargs.cld_prec_bin_triplet[2])
-    cld_size_sep_binedges = np.linspace(inargs.cld_size_sep_bin_triplet[0],
-                                        inargs.cld_size_sep_bin_triplet[1],
-                                        inargs.cld_size_sep_bin_triplet[2])
-    cld_prec_sep_binedges = np.linspace(inargs.cld_prec_sep_bin_triplet[0],
-                                        inargs.cld_prec_sep_bin_triplet[1],
-                                        inargs.cld_prec_sep_bin_triplet[2])
-    return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
-            cld_size_sep_binedges, cld_prec_sep_binedges
+    # 1
+    rdf, radius = calc_rdf(labels, data,
+                           normalize=False,
+                           dx=float(get_config(inargs, 'domain',
+                                               'dx')),
+                           r_max=inargs.rdf_r_max,
+                           dr=inargs.rdf_dr,
+                           mask=rdf_mask)
+    rootgroup.groups[group].variables['rdf'][idate, it, :, ie] \
+        = rdf
 
+    # 2
+    rdf, radius = calc_rdf(labels_sep, data,
+                           normalize=False,
+                           dx=float(get_config(inargs, 'domain',
+                                               'dx')),
+                           r_max=inargs.rdf_r_max,
+                           dr=inargs.rdf_dr,
+                           mask=rdf_mask)
+    rootgroup.groups[group].variables['rdf_sep'][idate, it, :, ie] \
+        = rdf
+
+    # 3
+    rdf, radius = calc_rdf(labels, data,
+                           normalize=True,
+                           dx=float(get_config(inargs, 'domain',
+                                               'dx')),
+                           r_max=inargs.rdf_r_max,
+                           dr=inargs.rdf_dr,
+                           mask=rdf_mask)
+    rootgroup.groups[group].variables['rdf_norm'][idate, it, :, ie] \
+        = rdf
+
+    # 4
+    rdf, radius = calc_rdf(labels_sep, data,
+                           normalize=True,
+                           dx=float(get_config(inargs, 'domain',
+                                               'dx')),
+                           r_max=inargs.rdf_r_max,
+                           dr=inargs.rdf_dr,
+                           mask=rdf_mask)
+    rootgroup.groups[group].variables['rdf_norm_sep'][idate, it, :, ie] \
+        = rdf
 
 def prec_stats(inargs):
     """
@@ -288,15 +360,9 @@ def prec_stats(inargs):
                         rdf_mask = tmp_mask
                     else:
                         raise Exception('Wrong dimensions for radar mask')
-                    rdf, radius = calc_rdf(labels, data,
-                                           normalize=inargs.rdf_normalize,
-                                           dx=float(get_config(inargs, 'domain',
-                                                               'dx')),
-                                           r_max=inargs.rdf_r_max,
-                                           dr=inargs.rdf_dr,
-                                           mask=rdf_mask)
-                    rootgroup.groups[group].variables['rdf'][idate, it, :, ie]\
-                        = rdf
+
+                    compute_rdfs(inargs, labels, labels_sep, data, rdf_mask,
+                                 rootgroup, group, idate, it, ie)
 
     # Close NetCDF file
     rootgroup.close()
@@ -419,6 +485,28 @@ def plot_cloud_size_prec_hist(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
 
 
+def plot_rdf(inargs):
+    """
+    Plots the radial distribution function
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+
+    # Set up figure
+    fig, axmat = plt.subplots(4, 4, figsize=(10, 14))
+
+    # Convert data for plotting
+    for isep, sep in enumerate(['_sep', '']):
+        for ityp, typ in enumerate(['cld_size', 'cld_prec']):
+            pass
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -443,6 +531,7 @@ def main(inargs):
     # Plotting
     plot_prec_freq_hist(inargs)
     plot_cloud_size_prec_hist(inargs)
+    plot_rdf(inargs)
 
 
 if __name__ == '__main__':
@@ -524,11 +613,6 @@ if __name__ == '__main__':
                         type=float,
                         default=1,
                         help='Radial bin size for RDF in grid points.')
-    parser.add_argument('--rdf_normalize',
-                        dest='rdf_normalize',
-                        action='store_true',
-                        help='If True, RDF is normalized.')
-    parser.set_defaults(rdf_normalize=False)
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
