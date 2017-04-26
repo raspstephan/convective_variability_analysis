@@ -586,6 +586,8 @@ def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
     """
     Need new doc string
     
+    https://github.com/cfinch/colloid/blob/master/adsorption/analysis.py
+    
     Compute the two-dimensional pair correlation function, also known
     as the radial distribution function, for a set of circular particles
     contained in a square region of a plane.  This simple function finds
@@ -645,7 +647,6 @@ def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
     num_interior_particles = len(interior_indices)
 
     edges = np.arange(0., r_max + dr, dr)   # Was originally 1.1?
-    print edges
     num_increments = len(edges) - 1
     g = np.zeros([num_interior_particles, num_increments])
     radii = np.zeros(num_increments)

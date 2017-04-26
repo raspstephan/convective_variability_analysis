@@ -21,7 +21,7 @@ from cosmo_utils.diag import identify_clouds
 ################################################################################
 # PREPROCESSING FUNCTIONS
 ################################################################################
-def create_netcdf(inargs, groups, dimensions, variables):
+def create_netcdf(inargs):
     """
     Creates a NetCDF object to store data.
 
@@ -29,20 +29,44 @@ def create_netcdf(inargs, groups, dimensions, variables):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    groups : list
-      List of groups
-    dimensions : dict
-      Dictionary with dimension name as key and dimension value as value
-    variables : dict
-      Dictionary with variable name as key and variable dimension list as value
-      (must be numpy array). Attention: Type i8 is hardcoded for all dimensions.
-
 
     Returns
     -------
     rootgroup : NetCDF object
 
     """
+
+    prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
+        cld_size_sep_binedges, cld_prec_sep_binedges = create_bin_edges(inargs)
+
+    datearray = np.array(make_datelist(inargs, out_format='netcdf'))
+    timearray = np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
+                          inargs.time_inc)
+    rdf_radius = np.arange(0., inargs.rdf_r_max + inargs.rdf_dr, inargs.rdf_dr)
+    rdf_radius = (rdf_radius[:-1] + rdf_radius[1:]) / 2.
+    groups = ['obs', 'det', 'ens']
+    dimensions = {
+        'time': timearray,
+        'date': datearray,
+        'prec_freq_bins': np.array(prec_freq_binedges[1:]),
+        'cld_size_bins': np.array(cld_size_binedges[1:]),
+        'cld_prec_bins': np.array(cld_prec_binedges[1:]),
+        'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
+        'cld_prec_sep_bins': np.array(cld_prec_sep_binedges[1:]),
+        'rdf_radius': rdf_radius
+    }
+    variables = {
+        'prec_freq': ['date', 'time', 'prec_freq_bins'],
+        'cld_size': ['date', 'time', 'cld_size_bins'],
+        'cld_prec': ['date', 'time', 'cld_prec_bins'],
+        'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_prec_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_size_mean': ['date', 'time'],
+        'cld_prec_mean': ['date', 'time'],
+        'cld_size_sep_mean': ['date', 'time'],
+        'cld_prec_sep_mean': ['date', 'time'],
+        'rdf': ['date', 'time', 'rdf_radius']
+    }
 
     pp_fn = get_pp_fn(inargs)
 
@@ -86,76 +110,93 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
     
     Parameters
     ----------
-    inargs
-    data
-    dx
-    rootgroup
-    group
-    idate
-    it
-    ie
-    cld_size_binedges
-    cld_prec_binedges
-    cld_size_sep_binedges
-    cld_prec_sep_binedges
+    inargs : argparse object
+      Argparse object with all input arguments
+    data : numpy array
+      2D precipitation array
+    rootgroup : ncdf rootgroup
+      rootgroup to write 
+    group : str
+      NetCDF group name
+    idate : int
+      Date index
+    it : int 
+      time index
+    ie : int
+      Ensemble index
+    cld_size_binedges : numpy array or list
+      Bin edges
+    cld_prec_binedges : numpy array or list
+      Bin edges
+    cld_size_sep_binedges : numpy array or list
+      Bin edges
+    cld_prec_sep_binedges : numpy array or list
+      Bin edges
 
     Returns
     -------
-    labels, labels_sep
+    labels, labels_sep : numpy.array
+      2D array with labelled objects, for regular and separated clouds
+      
     """
     dx = float(get_config(inargs, 'domain', 'dx'))
     data[data.mask] = 0  # set all masked points to zero, otherwise strage...
+
     labels, cld_size_list, cld_prec_list = \
         identify_clouds(data, inargs.thresh, water=False,
                         dx=dx)
+
     # Convert to kg / h
     cld_prec_list = np.array(cld_prec_list) * dx * dx
-    rootgroup.groups[group].variables['cld_size'] \
+    rootgroup.groups[group].variables['cld_size']\
         [idate, it, :, ie] = np.histogram(cld_size_list,
                                           cld_size_binedges)[0]
-    rootgroup.groups[group].variables['cld_prec'] \
+    rootgroup.groups[group].variables['cld_prec']\
         [idate, it, :, ie] = np.histogram(cld_prec_list,
                                           cld_prec_binedges)[0]
-    rootgroup.groups[group].variables['cld_size_mean'] \
+    rootgroup.groups[group].variables['cld_size_mean']\
         [idate, it, ie] = np.mean(cld_size_list)
-    rootgroup.groups[group].variables['cld_prec_mean'] \
+    rootgroup.groups[group].variables['cld_prec_mean']\
         [idate, it, ie] = np.mean(cld_prec_list)
 
     labels_sep, cld_size_sep_list, cld_prec_sep_list = \
         identify_clouds(data, inargs.thresh, water=True,
                         dx=dx)
+
     # Convert to kg / h
     cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
-    rootgroup.groups[group].variables['cld_size_sep'] \
+    rootgroup.groups[group].variables['cld_size_sep']\
         [idate, it, :, ie] = \
         np.histogram(cld_size_sep_list,
                      cld_size_sep_binedges)[0]
-    rootgroup.groups[group].variables['cld_prec_sep'] \
+    rootgroup.groups[group].variables['cld_prec_sep']\
         [idate, it, :, ie] = \
         np.histogram(cld_prec_sep_list,
                      cld_prec_sep_binedges)[0]
-    rootgroup.groups[group].variables['cld_size_sep_mean'] \
+    rootgroup.groups[group].variables['cld_size_sep_mean']\
         [idate, it, ie] = np.mean(cld_size_sep_list)
-    rootgroup.groups[group].variables['cld_prec_sep_mean'] \
+    rootgroup.groups[group].variables['cld_prec_sep_mean']\
         [idate, it, ie] = np.mean(cld_prec_sep_list)
 
     return labels, labels_sep
 
 
-def prec_stats(inargs):
+def create_bin_edges(inargs):
     """
-    Compute and save precipitation amount and cloud size and cloud 
-    precipitation histograms.
+    Create the bin edges from input parameters
     
     Parameters
     ----------
     inargs : argparse object
       Argparse object with all input arguments
 
-
+    Returns
+    -------
+    prec_freq_binedges, cld_size_binedges, cld_prec_binedges,
+    cld_size_sep_binedges, cld_prec_sep_binedges : numpy.arrays
+      Bin edges
     """
 
-    # Get binedges from command line arguments
     prec_freq_binedges = inargs.cld_freq_binedges
     cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
                                     inargs.cld_size_bin_triplet[1],
@@ -169,37 +210,29 @@ def prec_stats(inargs):
     cld_prec_sep_binedges = np.linspace(inargs.cld_prec_sep_bin_triplet[0],
                                         inargs.cld_prec_sep_bin_triplet[1],
                                         inargs.cld_prec_sep_bin_triplet[2])
+    return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
+            cld_size_sep_binedges, cld_prec_sep_binedges
+
+
+def prec_stats(inargs):
+    """
+    Compute and save precipitation amount and cloud size and cloud 
+    precipitation histograms and radial distrubution function.
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+
+    """
+
+    # TODO: This function is also called in create_ncdf, could do better!
+    prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
+        cld_size_sep_binedges, cld_prec_sep_binedges = create_bin_edges(inargs)
 
     # Make netCDF file
-    datearray = np.array(make_datelist(inargs, out_format='netcdf'))
-    timearray = np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
-                          inargs.time_inc)
-    rdf_radius = np.arange(0., inargs.rdf_r_max + inargs.rdf_dr, inargs.rdf_dr)
-    rdf_radius = (rdf_radius[:-1] + rdf_radius[1:]) / 2.
-    groups = ['obs', 'det', 'ens']
-    dimensions = {
-        'time': timearray,
-        'date': datearray,
-        'prec_freq_bins': np.array(prec_freq_binedges[1:]),
-        'cld_size_bins': np.array(cld_size_binedges[1:]),
-        'cld_prec_bins': np.array(cld_prec_binedges[1:]),
-        'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
-        'cld_prec_sep_bins': np.array(cld_prec_sep_binedges[1:]),
-        'rdf_radius': rdf_radius
-    }
-    variables = {
-        'prec_freq': ['date', 'time', 'prec_freq_bins'],
-        'cld_size': ['date', 'time', 'cld_size_bins'],
-        'cld_prec': ['date', 'time', 'cld_prec_bins'],
-        'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
-        'cld_prec_sep': ['date', 'time', 'cld_size_sep_bins'],
-        'cld_size_mean': ['date', 'time'],
-        'cld_prec_mean': ['date', 'time'],
-        'cld_size_sep_mean': ['date', 'time'],
-        'cld_prec_sep_mean': ['date', 'time'],
-        'rdf': ['date', 'time', 'rdf_radius']
-    }
-    rootgroup = create_netcdf(inargs, groups, dimensions, variables)
+    rootgroup = create_netcdf(inargs)
 
     # TODO: This is somewhat the same as domain_mean_weather_ts
     radar_mask = get_radar_mask(inargs)
@@ -249,13 +282,19 @@ def prec_stats(inargs):
                     labels, labels_sep = tmp
 
                     # 3rd: Compute radial distribution function
+                    if tmp_mask.ndim == 3:
+                        rdf_mask = tmp_mask[it]
+                    elif tmp_mask.ndim == 2:
+                        rdf_mask = tmp_mask
+                    else:
+                        raise Exception('Wrong dimensions for radar mask')
                     rdf, radius = calc_rdf(labels, data,
                                            normalize=inargs.rdf_normalize,
-                                           dx=get_config(inargs, 'domain',
-                                                         'dx'),
+                                           dx=float(get_config(inargs, 'domain',
+                                                               'dx')),
                                            r_max=inargs.rdf_r_max,
                                            dr=inargs.rdf_dr,
-                                           mask=tmp_mask)
+                                           mask=rdf_mask)
                     rootgroup.groups[group].variables['rdf'][idate, it, :, ie]\
                         = rdf
 
@@ -326,7 +365,7 @@ def plot_cloud_size_prec_hist(inargs):
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
         for ityp, typ in enumerate(['cld_size', 'cld_prec']):
-            right_edges = rootgroup.variables[typ + sep +'_bins'][:]
+            right_edges = rootgroup.variables[typ + sep + '_bins'][:]
             x = right_edges - np.diff(right_edges)[0] / 2
 
             if ityp == 0:
