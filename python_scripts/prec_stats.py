@@ -16,6 +16,8 @@ from helpers import make_datelist, get_radar_mask, get_pp_fn, \
 import numpy as np
 import matplotlib.pyplot as plt
 from cosmo_utils.diag import identify_clouds
+from scipy.signal import convolve2d
+from scipy.stats import binned_statistic
 
 
 ################################################################################
@@ -241,7 +243,16 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     ie
 
     """
-    print 'start rdf'
+
+    # Compute mask for rdfs
+    r_max = inargs.rdf_r_max
+    kernel_size = r_max * 2 + 1
+    y_tmp, x_tmp = np.ogrid[-r_max:kernel_size - r_max,
+                   -r_max:kernel_size - r_max]
+    kernel = x_tmp * x_tmp + y_tmp * y_tmp <= r_max * r_max
+    rdf_mask = convolve2d(rdf_mask, kernel, mode='same', boundary='fill',
+                          fillvalue=1) == 0
+
     # 1
     rdf, radius = calc_rdf(labels, data,
                            normalize=False,
@@ -282,7 +293,6 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     rootgroup.groups[group].variables['rdf_norm_sep'][idate, it, :, ie] \
         = rdf
     # End function
-    print 'end rdf'
 
 
 def prec_stats(inargs):
@@ -504,7 +514,8 @@ def plot_rdf(inargs):
     r = (rootgroup.variables['rdf_radius'][:] *
          float(get_config(inargs,'domain', 'dx')) / 1000.)   # Convert to km
     timeaxis = rootgroup.variables['time'][:]
-    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, timeaxis.shape[0])]
+    cyc = [plt.cm.jet(i) for i in
+           np.linspace(0, 1, len(inargs.rdf_time_binedges) - 1)]
 
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
@@ -526,12 +537,20 @@ def plot_rdf(inargs):
                 # [date, time, radius, ens mem]
 
                 # Mean over dates and ensemble members
-                rdf_data = np.mean(rdf_data, axis=(0, 3))
+                rdf_data = np.nanmean(rdf_data, axis=(0, 3))
                 # Now dimensions [time, radius]
 
                 # Loop over time
-                for it, time in enumerate(timeaxis):
-                    axmat[iplot, ig].plot(r, rdf_data[it, :], label=str(time),
+                for it in range(len(inargs.rdf_time_binedges[:-1])):
+                    t1 = inargs.rdf_time_binedges[it]
+                    t2 = inargs.rdf_time_binedges[it + 1]
+                    it1 = np.where(timeaxis == t1)[0][0]
+                    it2 = np.where(timeaxis == t2)[0][0]
+
+                    time_mean_rdf = np.mean(rdf_data[it1:it2, :], axis=0)
+
+                    labelstr = '[' + str(t1) + ', ' + str(t2) + '['
+                    axmat[iplot, ig].plot(r, time_mean_rdf, label=labelstr,
                                           color=cyc[it])
 
                 axmat[iplot, ig].set_title('rdf' + typ + sep + ' ' + group)
@@ -659,6 +678,11 @@ if __name__ == '__main__':
                         type=float,
                         default=1,
                         help='Radial bin size for RDF in grid points.')
+    parser.add_argument('--rdf_time_binedges',
+                        nargs='+',
+                        type=float,
+                        default=[6, 9, 12, 15, 18, 21, 24],
+                        help='List of time binedges for RDF plots')
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',

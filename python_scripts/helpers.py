@@ -20,7 +20,6 @@ from cosmo_utils.helpers import yyyymmddhh_strtotime, yymmddhhmm
 from numpy.ma import masked_array
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries, getfobj_ncdf
 from scipy.ndimage import measurements
-from scipy.signal import convolve2d
 
 
 # Define functions
@@ -581,7 +580,7 @@ def calc_rdf(labels, field, normalize=True, dx=2800., r_max=30, dr=1, mask=None)
 
     return g, r*dx
 
-@profile
+
 def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
     """
     Need new doc string
@@ -627,21 +626,13 @@ def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
         bools4 = y < (Sy - r_max)
         interior_indices, = np.where(bools1 * bools2 * bools3 * bools4)
     else:
-        # create convolution kernel to convolve mask
-        kernel_size = r_max * 2 + 1
-        y_tmp, x_tmp = np.ogrid[-r_max:kernel_size - r_max,
-                                -r_max:kernel_size - r_max]
-        kernel = x_tmp * x_tmp + y_tmp * y_tmp <= r_max * r_max
-        conv_mask = convolve2d(mask, kernel, mode='same', boundary='fill',
-                               fillvalue=1) == 0
-
         # Get closes indices for parcels in a pretty non-pythonic way
         # and check whether it is inside convolved mask
         x_round = np.round(x)
         y_round = np.round(y)
         interior_indices = []
         for i in range(x_round.shape[0]):
-            if conv_mask[int(x_round[i]), int(y_round[i])] == 1:
+            if mask[int(x_round[i]), int(y_round[i])] == 1:
                 interior_indices.append(i)
 
     num_interior_particles = len(interior_indices)
