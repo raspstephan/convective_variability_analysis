@@ -504,7 +504,8 @@ def plot_rdf(inargs):
     # Set up figure
     fig, axmat = plt.subplots(4, 4, figsize=(10, 14))
 
-    x = rootgroup.variables['rdf_radius'][:]
+    r = rootgroup.variables['rdf_radius'][:]
+    timeaxis = rootgroup.variables['time'][:]
 
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
@@ -523,10 +524,14 @@ def plot_rdf(inargs):
 
                 # Loop over time
                 iplot = isep * 2 + ityp   # column index
-                for it, time in enumerate(rootgroup.variables['time'][:]):
-                    axmat[iplot, ig].plot(x, rdf_data[it, :], label=str(time))
+                for it, time in enumerate(timeaxis):
+                    axmat[iplot, ig].plot(r, rdf_data[it, :], label=str(time))
 
                 axmat[iplot, ig].set_title('rdf' + typ + sep + ' ' + group)
+
+                max_rdf = np.max(rdf_data, axis=1)
+                
+                axmat[iplot, 3].plot(timeaxis, max_rdf, label=group)
 
     axmat[0, 0].legend(loc=0)
     fig.suptitle(get_composite_str(inargs, rootgroup))
