@@ -575,13 +575,13 @@ def calc_rdf(labels, field, normalize=True, dx=2800., r_max=30, dr=1, mask=None)
     if cof.shape[0] == 0:   # Accout for empty arrays
         cof = np.empty((0,2))
 
-    g, r, tmp = pair_correlation_2d(cof[:,0], cof[:,1],
+    g, r, tmp = pair_correlation_2d(cof[:, 0], cof[:, 1],
                                     [field.shape[0], field.shape[1]],
                                     r_max, dr, normalize=normalize, mask=mask)
 
     return g, r*dx
 
-
+@profile
 def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
     """
     Need new doc string

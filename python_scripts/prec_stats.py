@@ -241,12 +241,11 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     ie
 
     """
-
+    print 'start rdf'
     # 1
     rdf, radius = calc_rdf(labels, data,
                            normalize=False,
-                           dx=float(get_config(inargs, 'domain',
-                                               'dx')),
+                           dx=float(get_config(inargs, 'domain', 'dx')),
                            r_max=inargs.rdf_r_max,
                            dr=inargs.rdf_dr,
                            mask=rdf_mask)
@@ -256,8 +255,7 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     # 2
     rdf, radius = calc_rdf(labels_sep, data,
                            normalize=False,
-                           dx=float(get_config(inargs, 'domain',
-                                               'dx')),
+                           dx=float(get_config(inargs, 'domain', 'dx')),
                            r_max=inargs.rdf_r_max,
                            dr=inargs.rdf_dr,
                            mask=rdf_mask)
@@ -267,8 +265,7 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     # 3
     rdf, radius = calc_rdf(labels, data,
                            normalize=True,
-                           dx=float(get_config(inargs, 'domain',
-                                               'dx')),
+                           dx=float(get_config(inargs, 'domain', 'dx')),
                            r_max=inargs.rdf_r_max,
                            dr=inargs.rdf_dr,
                            mask=rdf_mask)
@@ -278,14 +275,14 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     # 4
     rdf, radius = calc_rdf(labels_sep, data,
                            normalize=True,
-                           dx=float(get_config(inargs, 'domain',
-                                               'dx')),
+                           dx=float(get_config(inargs, 'domain', 'dx')),
                            r_max=inargs.rdf_r_max,
                            dr=inargs.rdf_dr,
                            mask=rdf_mask)
     rootgroup.groups[group].variables['rdf_norm_sep'][idate, it, :, ie] \
         = rdf
     # End function
+    print 'end rdf'
 
 
 def prec_stats(inargs):
@@ -504,17 +501,27 @@ def plot_rdf(inargs):
     # Set up figure
     fig, axmat = plt.subplots(4, 4, figsize=(10, 14))
 
-    r = rootgroup.variables['rdf_radius'][:]
+    r = (rootgroup.variables['rdf_radius'][:] *
+         float(get_config(inargs,'domain', 'dx')) / 1000.)   # Convert to km
     timeaxis = rootgroup.variables['time'][:]
+    cyc = [plt.cm.jet(i) for i in np.linspace(0, 1, timeaxis.shape[0])]
 
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
+
         for ityp, typ in enumerate(['', '_norm']):
+            iplot = isep * 2 + ityp   # column index
+
+            if iplot == 3:  # Last row
+                axmat[iplot, 3].set_xlabel('Time [UTC]')
+
             for ig, group in enumerate(rootgroup.groups):
+                if ig == 0:   # first column
+                    axmat[iplot, 0].set_ylabel('rdf' + typ)
+
                 # Get data
                 rdf_data = rootgroup.groups[group].variables['rdf' + typ +
                                                              sep][:]
-
                 # Convert data wich at this point has dimensions
                 # [date, time, radius, ens mem]
 
@@ -523,22 +530,28 @@ def plot_rdf(inargs):
                 # Now dimensions [time, radius]
 
                 # Loop over time
-                iplot = isep * 2 + ityp   # column index
                 for it, time in enumerate(timeaxis):
-                    axmat[iplot, ig].plot(r, rdf_data[it, :], label=str(time))
+                    axmat[iplot, ig].plot(r, rdf_data[it, :], label=str(time),
+                                          color=cyc[it])
 
                 axmat[iplot, ig].set_title('rdf' + typ + sep + ' ' + group)
 
                 max_rdf = np.max(rdf_data, axis=1)
-                
-                axmat[iplot, 3].plot(timeaxis, max_rdf, label=group)
+                axmat[iplot, 3].plot(timeaxis, max_rdf, label=group,
+                                     color=get_config(inargs, 'colors', group),
+                                     linewidth=2)
+
+                if iplot == 3:   # Last row
+                    axmat[iplot, ig].set_xlabel('Radius [km]')
 
     axmat[0, 0].legend(loc=0)
-    fig.suptitle(get_composite_str(inargs, rootgroup))
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    axmat[0, 3].legend(loc=0)
+    fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'rdf')
+
 
 ################################################################################
 # MAIN FUNCTION
