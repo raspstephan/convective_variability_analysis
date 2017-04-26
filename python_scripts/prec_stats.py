@@ -285,6 +285,8 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
                            mask=rdf_mask)
     rootgroup.groups[group].variables['rdf_norm_sep'][idate, it, :, ie] \
         = rdf
+    # End function
+
 
 def prec_stats(inargs):
     """
@@ -502,10 +504,36 @@ def plot_rdf(inargs):
     # Set up figure
     fig, axmat = plt.subplots(4, 4, figsize=(10, 14))
 
+    x = rootgroup.variables['rdf_radius'][:]
+
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
-        for ityp, typ in enumerate(['cld_size', 'cld_prec']):
-            pass
+        for ityp, typ in enumerate(['', '_norm']):
+            for ig, group in enumerate(rootgroup.groups):
+                # Get data
+                rdf_data = rootgroup.groups[group].variables['rdf' + typ +
+                                                             sep][:]
+
+                # Convert data wich at this point has dimensions
+                # [date, time, radius, ens mem]
+
+                # Mean over dates and ensemble members
+                rdf_data = np.mean(rdf_data, axis=(0, 3))
+                # Now dimensions [time, radius]
+
+                # Loop over time
+                iplot = isep * 2 + ityp   # column index
+                for it, time in enumerate(rootgroup.variables['time'][:]):
+                    axmat[iplot, ig].plot(x, rdf_data[it, :], label=str(time))
+
+                axmat[iplot, ig].set_title('rdf' + typ + sep + ' ' + group)
+
+    axmat[0, 0].legend(loc=0)
+    fig.suptitle(get_composite_str(inargs, rootgroup))
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'rdf')
 
 ################################################################################
 # MAIN FUNCTION
