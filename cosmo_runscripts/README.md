@@ -45,7 +45,7 @@ The base version used here is 5.04a, but with the PSP-scheme added. The actual v
 
 `https://gitlab.wavestoweather.de/S.Rasp/cosmo`
 
-If you are interested in using the PSP-enhanced version of COSMO, please contact me. The actual executable is stored here:
+If you are interested in using the PSP-enhanced version of COSMO, please contact me. The actual executable is stored here and in a private figshape directory:
 
 `/project/meteo/w2w/A6/S.Rasp/archive/convective_variability/exe/lmparbin`
 
