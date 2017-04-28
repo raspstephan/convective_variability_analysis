@@ -1,0 +1,146 @@
+slurmstepd: error: *** STEP 56595.0 ON lx013 CANCELLED AT 2016-08-04T00:54:56 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 56595 ON lx013 CANCELLED AT 2016-08-04T00:54:56 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B1AC791E870  Unknown               Unknown  Unknown
+lmparbin           000000000102C12E  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B1ACC9B6B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002BA76FC99870  Unknown               Unknown  Unknown
+lmparbin           0000000001028B40  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002BA774D31B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B34848A5870  Unknown               Unknown  Unknown
+lmparbin           0000000001028D9A  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B348993DB05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B6F60847870  Unknown               Unknown  Unknown
+lmparbin           000000000102CA37  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B6F658DFB05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002ACCCBD75870  Unknown               Unknown  Unknown
+lmparbin           0000000001028E6C  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002ACCD0E0DB05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B4491FE3870  Unknown               Unknown  Unknown
+lmparbin           000000000102C1DB  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B449707BB05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002AF97B9BB870  Unknown               Unknown  Unknown
+libmpi.so.12       00002AF97AF002AD  Unknown               Unknown  Unknown
+libmpi.so.12       00002AF97AEFAC4A  Unknown               Unknown  Unknown
+libmpi.so.12       00002AF97B153832  Unknown               Unknown  Unknown
+libmpifort.so.12   00002AF97AB7451B  Unknown               Unknown  Unknown
+lmparbin           0000000000BDA9FC  Unknown               Unknown  Unknown
+lmparbin           00000000010203CC  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002AF980A53B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A580E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B6C8066A870  Unknown               Unknown  Unknown
+libc.so.6          00002B6C857BD870  Unknown               Unknown  Unknown
+libmpi.so.12       00002B6C7FE13F48  Unknown               Unknown  Unknown
+libmpi.so.12       00002B6C7FE13BBE  Unknown               Unknown  Unknown
+libmpi.so.12       00002B6C7FD59BC0  Unknown               Unknown  Unknown
+libmpi.so.12       00002B6C7FBAA03C  Unknown               Unknown  Unknown
+libmpi.so.12       00002B6C7FE02832  Unknown               Unknown  Unknown
+libmpifort.so.12   00002B6C7F82351B  Unknown               Unknown  Unknown
+lmparbin           0000000000BDA9FC  Unknown               Unknown  Unknown
+lmparbin           00000000010203CC  Unknown               Unknown  Unknown
+lmparbin           0000000000AA763A  Unknown               Unknown  Unknown
+lmparbin           0000000000C30CA5  Unknown               Unknown  Unknown
+lmparbin           000000000099F7DA  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B6C85702B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown

@@ -1,0 +1,202 @@
+My SLURM_ARRAY_TASK_ID: 
+cp: cannot create regular file ‘/home/cosmo/stephan.rasp/2016060100/deout_onlypsp///./slurm_script’: Permission denied
+ 
+     + + + + + + + + + + + + + + + +
+     + RUNNING IN DOUBLE PRECISION +
+     + + + + + + + + + + + + + + + +
+ 
+   SETUP OF THE LM
+     INITIALIZATIONS 
+ 
+        Info about KIND-parameters:   iintegers / MPI_INT =            4
+  1275069467
+                                      int_ga    / MPI_INT =            8
+  1275070513
+     INPUT OF THE NAMELISTS
+  *** NOTE: Old 10 digit date format is used
+ 
+ ==== Code information used to build this binary ====
+ Binary name .......: lmparbin
+ 
+ Library name ......: lm_f90
+ Tag name ..........: V5_4a
+ Checkin-Date ......: 2016-05-10 11:13:58
+ Code is modified ..: .false.
+ Compile-Date ......: 
+ Compiled by .......: uschaett
+ GRIB_API version ..: 
+ 
+ Current start time : 2016-08-03 13:11
+ Running on nodes ..: 
+ Data decomposition : 
+ ==== End of code information ====
+ 
+     INPUT OF THE NAMELISTS FOR DYNAMICS
+   DOMAIN SIZE (approx.) in m: L_x =    971480.024107251     
+                               L_y =    975770.553260989     
+     INPUT OF THE NAMELISTS FOR PHYSICS
+  WARNING: *** ltkesso cannot be active, since SSO scheme is not running *** 
+   *** Default specifications of soil main levels are used *** 
+     INPUT OF THE NAMELISTS FOR DIAGNOSTICS
+  WARNING  *** nincgp is set to 1 hour *** 
+     INPUT OF THE NAMELISTS FOR GRIB-IO
+ 
+   *** WARNING: Horizontal diffusion specified but lhordiff=F or hd_corr_trcr_xx
+ =0***
+   (Your specification: itype_diff is not respected for QV)
+ 
+ 
+   *** WARNING: Horizontal diffusion specified but lhordiff=F or hd_corr_trcr_xx
+ =0***
+   (Your specification: itype_diff is not respected for QC)
+ 
+     ALLOCATE SPACE
+    ALLOCATED constant and external parameter fields:             0
+    ALLOCATED prognostic variables and tendencies:                0
+    ALLOCATED soil fields:                                        0
+    ALLOCATED fields for dynamics/parameterizations:              0
+    ALLOCATED fields for model output / diagnostics:              0
+    ALLOCATED boundary fields:                                    0
+    ALLOCATED additional fields:                                  0
+    ALLOCATED tracer fields:             0
+   hd_mask - SETUP: i_west  =           21
+   hd_mask - SETUP: i_east  =          337
+   hd_mask - SETUP: j_south =           21
+   hd_mask - SETUP: j_north =          337
+ OPEN: grb1-file: /home/cosmo/stephan.rasp/2016060100/dein_ceu/laf2016060100
+copen  F Datei /home/cosmo/stephan.rasp/2016060100/dein_ceu/laf2016060100 konnte nicht geoeffnet werden!
+error 2: No such file or directory
+ *------------------------------------------------------------*
+ *    PROGRAM TERMINATED BECAUSE OF ERRORS DETECTED
+ *              IN ROUTINE:   organize_input           
+ *
+ *    ERROR CODE is         2014
+ *    Error opening /home/cosmo/stephan.rasp/2016060100/dein_ceu/laf2016060100
+ *------------------------------------------------------------*
+application called MPI_Abort(MPI_COMM_WORLD, 2014) - process 0
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002AF8CB7E1870  Unknown               Unknown  Unknown
+libc.so.6          00002AF8D090ED70  Unknown               Unknown  Unknown
+libc.so.6          00002AF8D090EC24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002AF8D0879B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B5544AD6870  Unknown               Unknown  Unknown
+libc.so.6          00002B5549C03D70  Unknown               Unknown  Unknown
+libc.so.6          00002B5549C03C24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B5549B6EB05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B86BD7CD870  Unknown               Unknown  Unknown
+libc.so.6          00002B86C28FAD70  Unknown               Unknown  Unknown
+libc.so.6          00002B86C28FAC24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B86C2865B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002ADAA78EA870  Unknown               Unknown  Unknown
+libc.so.6          00002ADAACA17D70  Unknown               Unknown  Unknown
+libc.so.6          00002ADAACA17C24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002ADAAC982B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B16C2DAC870  Unknown               Unknown  Unknown
+libc.so.6          00002B16C7ED9D70  Unknown               Unknown  Unknown
+libc.so.6          00002B16C7ED9C24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B16C7E44B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002B98C346C870  Unknown               Unknown  Unknown
+libc.so.6          00002B98C8599D70  Unknown               Unknown  Unknown
+libc.so.6          00002B98C8599C24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002B98C8504B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown
+forrtl: error (69): process interrupted (SIGINT)
+Image              PC                Routine            Line        Source             
+lmparbin           000000000136F475  Unknown               Unknown  Unknown
+lmparbin           000000000136D237  Unknown               Unknown  Unknown
+lmparbin           0000000001312A14  Unknown               Unknown  Unknown
+lmparbin           0000000001312826  Unknown               Unknown  Unknown
+lmparbin           00000000012A2226  Unknown               Unknown  Unknown
+lmparbin           00000000012A608E  Unknown               Unknown  Unknown
+libpthread.so.0    00002AD4CEBDD870  Unknown               Unknown  Unknown
+libc.so.6          00002AD4D3D0AD70  Unknown               Unknown  Unknown
+libc.so.6          00002AD4D3D0AC24  Unknown               Unknown  Unknown
+lmparbin           0000000000BECFBB  Unknown               Unknown  Unknown
+lmparbin           00000000007B3CD3  Unknown               Unknown  Unknown
+lmparbin           0000000000A6ACA8  Unknown               Unknown  Unknown
+lmparbin           000000000099EED0  Unknown               Unknown  Unknown
+lmparbin           000000000040E7EE  Unknown               Unknown  Unknown
+libc.so.6          00002AD4D3C75B05  Unknown               Unknown  Unknown
+lmparbin           000000000040E6F9  Unknown               Unknown  Unknown

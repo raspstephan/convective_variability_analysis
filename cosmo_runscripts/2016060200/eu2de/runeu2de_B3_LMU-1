@@ -1,0 +1,155 @@
+#!/bin/bash -l
+#
+#################################################
+# settings
+#################################################
+
+#Define experiment
+EXPNAME=ef_test
+#Define Exp-Label for queue
+EXPLabel=eu2de_job
+
+# DATE=2011052000
+# DATE=2007060700
+# DATE=2011060500
+# DATE=2011061400
+
+# DATE=2009063000
+# DATE=2009070100
+DATE=2016060200
+
+#Define directories
+WORKDIR=/home/cosmo/florian.baur/cases/${DATE}
+INDIR=$WORKDIR/input_int2lm
+OUTDIR=/home/cosmo/stephan.rasp/2016060200/dein_ceu/
+
+#Define executables
+INTLMEXE=/home/s/S.Rasp/COSMO/makeint2lm/tstint2lm 
+# INTLMEXE=/home/f/Florian.Baur/software/int2lm_old/tstint2lm
+
+#Define parallelization
+NPX=1
+NPY=1
+NPIO=0
+
+#################################################
+# script
+#################################################
+
+#Calculade Nodes
+NP1=`expr $NPX \* $NPY`
+NP=`expr $NP1 + $NPIO`
+N1=`expr $NP + 15`
+NODES=`expr $N1 \/ 16`
+
+#Change to working and output directory
+cd $OUTDIR
+
+rm -f make_int2lm_job
+cat > make_int2lm_job << ****
+
+
+#################################################
+# cat together the INPUT-file
+#################################################
+
+cat > INPUT << end_input
+ &CONTRL
+  ydate_bd='$DATE', ydate_ini='$DATE',
+  linitial=.TRUE., lboundaries=.TRUE.,
+  hstart=0.0, hstop=24.0, hincbound=1.0,
+  nprocx=$NPX, nprocy=$NPY, nprocio=$NPIO,
+  yinput_model='COSMO',
+  lfilter_oro=.true., lfilter_pp=.true., lbalance_pp=.true.,
+  eps_filter=0.1, norder_filter=5,
+  ilow_pass_oro=4, ilow_pass_xso=5,
+  lasync_io=.false., lreorder=.false., lroutine=.false., ltime_mean=.true.,
+  lmulti_layer_in=.true., lmulti_layer_lm=.true.,
+  lprog_qi=.true., lprog_qr_qs=.true., lprog_rho_snow=.true.,
+  lforest=.true., lt_cl_corr=.false., luvcor=.true.,
+  lvertwind_ini=.true., lvertwind_bd=.true.,
+  rxso_mask=625.0, idbg_level=2,
+! itype_albedo=3,
+ /
+! COSMO-EU-Gebiet 7 km:
+ &GRID_IN
+  startlat_in_tot=-20.0, startlon_in_tot=-18.0,
+  pollat_in=40.0,        pollon_in=-170.0,
+  dlat_in=0.0625,        dlon_in=0.0625,
+  ie_in_tot=665, je_in_tot=657, ke_in_tot=40,
+ /
+! COSMO-DE-Gebiet:
+ &LMGRID
+  startlat_tot=-5.0, startlon_tot=-5.0,
+  pollat=40.0, pollon=-170.0,
+  dlon=0.025, dlat=0.025,
+  ielm_tot=421, jelm_tot=461, kelm_tot=50,
+  ivctype=2, vcflat=11357.0,
+  lanalyt_calc_t0p0=.TRUE., 
+  irefatm=2,
+  vcoord_d=22000.00,21000.00,20028.57,19085.36,18170.00,17282.14,
+           16421.43,15587.50,14780.00,13998.57,13242.86,12512.50,
+           11807.14,11126.43,10470.00, 9837.50, 9228.57, 8642.86,
+            8080.00, 7539.64, 7021.43, 6525.00, 6050.00, 5596.07,5162.86,
+            4750.00, 4357.14, 3983.93, 3630.00, 3295.00, 2978.57,2680.36,
+            2400.00, 2137.14, 1891.43, 1662.50, 1450.00, 1253.57,1072.86,
+             907.50,  757.14,  621.43,  500.00,  392.50,  298.57, 217.86,
+             150.00,   94.64,   51.43,   20.00,    0.00,
+ !lnewVGrid=.FALSE.,
+ lnewVGrid=.TRUE.,
+ /
+ &DATABASE
+ /
+ &DATA
+! extpar: GLOBE oro, GLC2000 landuse, FAO-DSMW soil:
+!  ie_ext=800, je_ext=800,
+!  ylmext_lfn='extpar_cosmo_de_0.025.nc',
+! extpar: ASTER oro, GLOBCOVER landuse, HWSD soil:
+  ie_ext=550, je_ext=550,
+  ylmext_lfn='ext_data_cosmo-de_ASTER_GLOBCOVER_HWSD.nc',
+  ylmext_cat='/home/cosmo/florian.baur/cases/',
+!  ylmext_cat='$INDIR',
+  ylmext_form_read='ncdf',
+  yinext_lfn='laf$DATE',
+!  yinext_form_read='grb1',
+  yinext_form_read='apix', !Grib2
+  yinext_cat='$INDIR',
+  !yin_form_read='apix', !Grib2
+  yin_form_read='grb1',
+  yin_cat='$INDIR',
+  ylm_cat='$OUTDIR',
+  yinput_type='analysis'
+!  ylm_form_write='grb1'
+  ylm_form_write='ncdf'
+!
+  ytunit_in='f',
+  ytunit_out='f',
+  nprocess_ini = 137, nprocess_bd = 138, 
+  nl_soil_in=2, nl_soil_lm=2,
+  l_ke_in_gds=.TRUE.
+!  l_ke_in_gds=.FALSE.
+ /
+ &PRICTR
+!  igp_tot = 36, 40, 48, 44, 48, 85, 77
+!  jgp_tot = 30, 94, 38, 26, 26, 96, 12
+  lchkin=.TRUE., lchkout=.TRUE.,
+  lprps=.FALSE.,
+ /
+end_input
+
+#################################################
+# run the program
+#################################################
+
+rm -f YU* M_*
+rm -f $OUTDIR/l*
+
+echo "NP = " $NP
+module load icc/16.0.2 intelmpi/5.1.1 grib_api/1.13.1-icc-16 netcdf/4.4.0-icc-16 grib_dwd/20110128-icc-16
+ulimit -s unlimited 
+
+mpirun -np $NP $INTLMEXE
+
+****
+chmod u+x make_int2lm_job
+./make_int2lm_job
