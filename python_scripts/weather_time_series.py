@@ -171,11 +171,20 @@ def domain_mean_weather_ts(inargs):
     # Load analysis data and store in NetCDF
     for idate, date in enumerate(make_datelist(inargs)):
         print('Computing time series for: ' + date)
+
+        # Determine radar mask
+        if inargs.radar_mask == 'total':
+            tmp_mask = np.any(radar_mask, axis=(0, 1))
+        elif inargs.radar_mask == 'day':
+            tmp_mask = np.any(radar_mask[idate], axis=0)
+        elif inargs.radar_mask == 'hour':
+            tmp_mask = radar_mask[idate]
+
         for group in rootgroup.groups:
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 for var in rootgroup.groups[group].variables:
                     compute_ts_mean(inargs, idate, date, group, ie, var,
-                                    rootgroup, radar_mask)
+                                    rootgroup, tmp_mask)
 
     # Close NetCDF file
     rootgroup.close()
@@ -221,7 +230,7 @@ def plot_domain_mean_timeseries_individual(inargs, plot_type):
         if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
             axflat[iday].set_xlabel('Time [UTC]')
 
-        if plot_type == 'precipitaiton':
+        if plot_type == 'precipitation':
             plot_precipitation_panel(inargs, axflat, iday, rootgroup)
         if plot_type == 'cape_tauc':
             plot_cape_tauc_panel(inargs, axflat, iday, rootgroup)
@@ -458,6 +467,10 @@ if __name__ == '__main__':
     parser.add_argument('--nens',
                         type=int,
                         help='Number of ensemble members')
+    parser.add_argument('--radar_mask',
+                        type=str,
+                        default='hour',
+                        help='Radar mask for [hour, day, total]?')
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -471,6 +484,10 @@ if __name__ == '__main__':
                         type=str,
                         default='',
                         help='Custom plot name.')
+    parser.add_argument('--pp_name',
+                        type=str,
+                        default='',
+                        help='Custom name for preprocessed file.')
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',
