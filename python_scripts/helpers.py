@@ -20,6 +20,9 @@ from cosmo_utils.helpers import yyyymmddhh_strtotime, yymmddhhmm
 from numpy.ma import masked_array
 from cosmo_utils.pyncdf import getfobj_ncdf_timeseries, getfobj_ncdf
 from scipy.ndimage import measurements
+from scipy.ndimage.morphology import binary_erosion
+from scipy.ndimage.filters import maximum_filter
+from skimage import morphology, segmentation
 
 
 # Define functions
@@ -537,6 +540,101 @@ def get_composite_str(inargs, rootgroup):
 ################################################################################
 # Functions to put into ensemble_tools
 ################################################################################
+def detect_peaks(image, neighborhood = [[0,1,0],[1,1,1],[0,1,0]]):
+    """
+    This function is used in identify clouds and is not documented properly!!!
+    Takes an image and detect the peaks usingthe local maximum filter.
+    Returns a boolean mask of the peaks (i.e. 1 when
+    the pixel's value is the neighborhood maximum, 0 otherwise)
+    """
+
+    # define an 8-connected neighborhood
+    #neighborhood = generate_binary_structure(2,2)
+
+    #neighborhood = np.ones((5, 5))
+
+    #apply the local maximum filter; all pixel of maximal value
+    #in their neighborhood are set to 1
+    local_max = maximum_filter(image, footprint=neighborhood)==image
+    #local_max is a mask that contains the peaks we are
+    #looking for, but also the background.
+    #In order to isolate the peaks we must remove the background from the mask.
+
+    #we create the mask of the background
+    background = (image==0)
+
+    #a little technicality: we must erode the background in order to
+    #successfully subtract it form local_max, otherwise a line will
+    #appear along the background border (artifact of the local maximum filter)
+    eroded_background = binary_erosion(background, structure=neighborhood,
+                                       border_value=1)
+
+    #we obtain the final mask, containing only peaks,
+    #by removing the background from the local_max mask
+    detected_peaks = local_max - eroded_background
+
+    return detected_peaks
+
+
+def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
+                    water = False, dx = 2800., rho = None,
+                    neighborhood=[[0, 1, 0], [1, 1, 1], [0, 1, 0]]):
+    """
+    Parameters
+    ----------
+    field : numpy.ndarray
+      Field from which clouds are
+    thresh : float
+      Threshold for field
+    opt_field : numpy.ndarray, optional
+      Optional field used for creating a binary mask
+    opt_thresh : float, optional
+      Threshold for opt_field
+    water : bool, optional
+      If true, watershed algorithm is applied to identify clouds
+    dx : float, optional
+      Grid spacing [m]
+
+
+    Returns
+    -------
+    labels : list
+      List of labels
+    cld_size : list
+      List of cloud sizes
+    cld_sum : list
+      List of summed value of field for each cloud
+
+    """
+
+    # Get binary field, 1s where there are clouds
+    binfield = field > thresh
+    if not opt_field == None:
+        binfield *= opt_field > opt_thresh
+
+    if water: # Apply watershed algorithm
+        # Get local maxima
+        lmax = detect_peaks(field*binfield, neighborhood=neighborhood)
+
+        # Do the watershed segmentation
+        # Get individual labels for local maxima
+        lmax_labels, ncld = measurements.label(lmax)
+        labels = morphology.watershed(-field, lmax_labels, mask = binfield)
+
+    else:  # Regular algorithm
+        # Find objects
+        structure = [[0,1,0],[1,1,1],[0,1,0]]
+        labels, ncld = measurements.label(binfield, structure = structure)
+
+    # Get sizes and sums
+    cld_size = measurements.sum(binfield, labels, range(1, ncld+1))
+    if not rho == None:
+        field *= rho
+    cld_sum = measurements.sum(field, labels, range(1, ncld+1))
+
+    return labels, cld_size*dx*dx, cld_sum
+
+
 def calc_rdf(labels, field, normalize=True, dx=2800., r_max=30, dr=1, mask=None):
     """
     Computes radial distribution function
