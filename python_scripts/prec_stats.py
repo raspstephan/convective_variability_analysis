@@ -9,13 +9,13 @@ Description:  Compute and plot precipitation histograms of deterministic and
 # Import modules
 import argparse
 from netCDF4 import Dataset
+from datetime import datetime, timedelta
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
-    get_composite_str, calc_rdf
+    get_composite_str, calc_rdf, identify_clouds
 import numpy as np
 import matplotlib.pyplot as plt
-from cosmo_utils.diag import identify_clouds
 from scipy.signal import convolve2d
 from scipy.stats import binned_statistic
 
@@ -101,10 +101,6 @@ def create_netcdf(inargs):
         'cld_size_sep_mean': ['date', 'time'],
         'cld_prec_sep_mean': ['date', 'time'],
         'rdf': ['date', 'time', 'rdf_radius'],
-        'rdf_sep': ['date', 'time', 'rdf_radius'],
-        'rdf_norm': ['date', 'time', 'rdf_radius'],
-        'rdf_norm_sep': ['date', 'time', 'rdf_radius'],
-
     }
 
     pp_fn = get_pp_fn(inargs)
@@ -200,7 +196,7 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
 
     labels_sep, cld_size_sep_list, cld_prec_sep_list = \
         identify_clouds(data, inargs.thresh, water=True,
-                        dx=dx)
+                        dx=dx, neighborhood=inargs.sep_perimeter)
 
     # Convert to kg / h
     cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
@@ -223,11 +219,7 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
 def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
                  idate, it, ie):
     """
-    Copute four types of radial distribution function:
-    Non-normalized, non-separated
-    Non-normalized, separated
-    Normalized, non-separated
-    Normalized, separated
+    Compute RDF. Type given by input parameters
     
     Parameters
     ----------
@@ -253,9 +245,13 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     rdf_mask = convolve2d(rdf_mask, kernel, mode='same', boundary='fill',
                           fillvalue=1) == 0
 
-    # 1
-    rdf, radius = calc_rdf(labels, data,
-                           normalize=False,
+    if inargs.rdf_sep:
+        tmp_labels = labels_sep
+    else:
+        tmp_labels = labels
+
+    rdf, radius = calc_rdf(tmp_labels, data,
+                           normalize=~inargs.rdf_non_norm,
                            dx=float(get_config(inargs, 'domain', 'dx')),
                            r_max=inargs.rdf_r_max,
                            dr=inargs.rdf_dr,
@@ -263,35 +259,6 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     rootgroup.groups[group].variables['rdf'][idate, it, :, ie] \
         = rdf
 
-    # 2
-    rdf, radius = calc_rdf(labels_sep, data,
-                           normalize=False,
-                           dx=float(get_config(inargs, 'domain', 'dx')),
-                           r_max=inargs.rdf_r_max,
-                           dr=inargs.rdf_dr,
-                           mask=rdf_mask)
-    rootgroup.groups[group].variables['rdf_sep'][idate, it, :, ie] \
-        = rdf
-
-    # 3
-    rdf, radius = calc_rdf(labels, data,
-                           normalize=True,
-                           dx=float(get_config(inargs, 'domain', 'dx')),
-                           r_max=inargs.rdf_r_max,
-                           dr=inargs.rdf_dr,
-                           mask=rdf_mask)
-    rootgroup.groups[group].variables['rdf_norm'][idate, it, :, ie] \
-        = rdf
-
-    # 4
-    rdf, radius = calc_rdf(labels_sep, data,
-                           normalize=True,
-                           dx=float(get_config(inargs, 'domain', 'dx')),
-                           r_max=inargs.rdf_r_max,
-                           dr=inargs.rdf_dr,
-                           mask=rdf_mask)
-    rootgroup.groups[group].variables['rdf_norm_sep'][idate, it, :, ie] \
-        = rdf
     # End function
 
 
@@ -494,9 +461,10 @@ def plot_cloud_size_prec_hist(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
 
 
-def plot_rdf(inargs):
+def plot_rdf_individual(inargs):
     """
-    Plots the radial distribution function
+    Plots the radial distribution function as panel over all days. This copies some stuff from 
+    plot_domain_mean_timeseries_individual in weather_time_series.py
     
     Parameters
     ----------
@@ -507,69 +475,85 @@ def plot_rdf(inargs):
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
+    n_days = rootgroup.dimensions['date'].size
 
     # Set up figure
-    fig, axmat = plt.subplots(4, 4, figsize=(10, 14))
+    n_cols = 4
+    n_rows = int(np.ceil(float(n_days) / n_cols))
 
-    r = (rootgroup.variables['rdf_radius'][:] *
-         float(get_config(inargs,'domain', 'dx')) / 1000.)   # Convert to km
-    timeaxis = rootgroup.variables['time'][:]
-    cyc = [plt.cm.jet(i) for i in
-           np.linspace(0, 1, len(inargs.rdf_time_binedges) - 1)]
+    fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
+                              figsize=(10, 3 * n_rows))
+    axflat = np.ravel(axmat)
 
-    # Convert data for plotting
-    for isep, sep in enumerate(['_sep', '']):
+    # Loop over axes / days
+    for iday in range(n_days):
+        dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
+                   datetime(1, 1, 1))
+        datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
+        axflat[iday].set_title(datestr)
+        if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
+            axflat[iday].set_xlabel('Time [UTC]')
 
-        for ityp, typ in enumerate(['', '_norm']):
-            iplot = isep * 2 + ityp   # column index
+        for ig, group in enumerate(rootgroup.groups):
 
-            if iplot == 3:  # Last row
-                axmat[iplot, 3].set_xlabel('Time [UTC]')
+            # Get data
+            rdf_data = rootgroup.groups[group].variables['rdf'][iday]
+            # Convert data which at this point has dimensions
+            # [time, radius, ens mem]
 
-            for ig, group in enumerate(rootgroup.groups):
-                if ig == 0:   # first column
-                    axmat[iplot, 0].set_ylabel('rdf' + typ)
+            # Mean over ensemble dimension
+            rdf = np.nanmax(np.nanmean(rdf_data, axis=2), axis=1)
 
-                # Get data
-                rdf_data = rootgroup.groups[group].variables['rdf' + typ +
-                                                             sep][:]
-                # Convert data wich at this point has dimensions
-                # [date, time, radius, ens mem]
+            # Plot data
+            axflat[iday].plot(rootgroup.variables['time'][:], rdf, label=group,
+                              c=get_config(inargs, 'colors', group))
 
-                # Mean over dates and ensemble members
-                rdf_data = np.nanmean(rdf_data, axis=(0, 3))
-                # Now dimensions [time, radius]
+            axflat[iday].set_ylim(0, 35)
 
-                # Loop over time
-                for it in range(len(inargs.rdf_time_binedges[:-1])):
-                    t1 = inargs.rdf_time_binedges[it]
-                    t2 = inargs.rdf_time_binedges[it + 1]
-                    it1 = np.where(timeaxis == t1)[0][0]
-                    it2 = np.where(timeaxis == t2)[0][0]
+    # Finish figure
+    axflat[0].legend(loc=0)
 
-                    time_mean_rdf = np.mean(rdf_data[it1:it2, :], axis=0)
-
-                    labelstr = '[' + str(t1) + ', ' + str(t2) + '['
-                    axmat[iplot, ig].plot(r, time_mean_rdf, label=labelstr,
-                                          color=cyc[it])
-
-                axmat[iplot, ig].set_title('rdf' + typ + sep + ' ' + group)
-
-                max_rdf = np.max(rdf_data, axis=1)
-                axmat[iplot, 3].plot(timeaxis, max_rdf, label=group,
-                                     color=get_config(inargs, 'colors', group),
-                                     linewidth=2)
-
-                if iplot == 3:   # Last row
-                    axmat[iplot, ig].set_xlabel('Radius [km]')
-
-    axmat[0, 0].legend(loc=0)
-    axmat[0, 3].legend(loc=0)
-    fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'rdf')
+    save_fig_and_log(fig, rootgroup, inargs, 'rdf_individual')
+
+
+def plot_rdf_composite(inargs):
+    """
+    Plots the radial distribution function as panel over all days. This copies 
+    some stuff from plot_domain_mean_timeseries_composite in 
+    weather_time_series.py
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+
+    ax.set_ylabel('RDF')
+    for group in rootgroup.groups:
+        array = rootgroup.groups[group].variables['rdf'][:]
+        mx = np.nanmax(np.nanmean(array, axis=(0, 3)), axis=1)
+        ax.plot(rootgroup.variables['time'][:], mx, label=group,
+                 c=get_config(inargs, 'colors', group))
+
+    ax.set_ylim(0, 35)
+    ax.set_xlabel('Time [UTC]')
+    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+
+    ax.set_title(comp_str)
+    ax.legend(loc=0)
+
+    plt.tight_layout()
+
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite')
 
 
 ################################################################################
@@ -596,7 +580,8 @@ def main(inargs):
     # Plotting
     plot_prec_freq_hist(inargs)
     plot_cloud_size_prec_hist(inargs)
-    plot_rdf(inargs)
+    plot_rdf_individual(inargs)
+    plot_rdf_composite(inargs)
 
 
 if __name__ == '__main__':
@@ -637,6 +622,10 @@ if __name__ == '__main__':
                         type=str,
                         default='hour',
                         help='Radar mask for [hour, day, total]?')
+    parser.add_argument('--sep_perimeter',
+                        type=int,
+                        default=5,
+                        help='Size of search matrix for cloud separation')
     parser.add_argument('--thresh',
                         type=float,
                         default=1.,
@@ -678,11 +667,16 @@ if __name__ == '__main__':
                         type=float,
                         default=1,
                         help='Radial bin size for RDF in grid points.')
-    parser.add_argument('--rdf_time_binedges',
-                        nargs='+',
-                        type=float,
-                        default=[6, 9, 12, 15, 18, 21, 24],
-                        help='List of time binedges for RDF plots')
+    parser.add_argument('--rdf_sep',
+                        dest='rdf_sep',
+                        action='store_true',
+                        help='If given, compute RDF for separated clouds.')
+    parser.set_defaults(rdf_sep=False)
+    parser.add_argument('--rdf_non_norm',
+                        dest='rdf_non_norm',
+                        action='store_true',
+                        help='If given, compute the non-normalized RDF.')
+    parser.set_defaults(rdf_non_norm=False)
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -703,7 +697,7 @@ if __name__ == '__main__':
     parser.add_argument('--recompute',
                         dest='recompute',
                         action='store_true',
-                        help='If True, recompute pre-processed file.')
+                        help='If given, recompute pre-processed file.')
     parser.set_defaults(recompute=False)
 
     args = parser.parse_args()

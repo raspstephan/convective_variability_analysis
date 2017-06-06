@@ -594,6 +594,9 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
       If true, watershed algorithm is applied to identify clouds
     dx : float, optional
       Grid spacing [m]
+    neighborhood : int or 2D numpy array
+      Defines the search perimeter for cloud separation. Only valid of water is
+      True
 
 
     Returns
@@ -613,6 +616,9 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
         binfield *= opt_field > opt_thresh
 
     if water: # Apply watershed algorithm
+        if type(neighborhood) is int:   # Convert integer to matrix
+            neighborhood = np.ones((neighborhood, neighborhood))
+
         # Get local maxima
         lmax = detect_peaks(field*binfield, neighborhood=neighborhood)
 

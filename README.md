@@ -1,7 +1,17 @@
-# README
+# Convective Variability in COSMO ensembles
 
-This is the repository for my convective variability analysis.
+This is my working repository for my convective organization and variability research which I am doing for my PhD. One main goal of this work is to make the data analysis **reproducible**. Here I am loosely following the footsteps of [Damien Irving](https://github.com/DamienIrving).
 
-`python_scripts` contains all the analysis scripts which load the config file in `config` and 
-save figures and log_files in `log_files`. `aux_files` contain additional files such as radar masks.
+The repository is structured as follows:
+
+- `python scripts` contains the main data analysis and plotting scripts. All scripts are designed to be run from the command line. Typing `python <script_name>.py -h` gives a summary of what the script does and which arguments it takes. Each python script produces figures (figure directory is specified in the configuration file) along with a log file which describes the computing setup and evironment and the command with which the script was called. More details on this can be found in the README inside the directory.
+
+- `config` contains the configuration file which is read by the python scripts. Here some basic settings are specified along with all the directories.
+
+- `jupyter_notebooks` contains, as the name suggests, Jupyter notebooks. This can be little test snippets or larger notebooks.
+
+- `cosmo_runscripts` contains the COSMO runscripts with which the raw data were produced. Again, the README inside the directory gives more information.
+
+- `aux_files` contains some auxiliary files, such as the radar masks.
+
 
