@@ -250,6 +250,8 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     else:
         tmp_labels = labels
 
+    print group, idate, it
+    print np.max(tmp_labels)
     rdf, radius = calc_rdf(tmp_labels, data,
                            normalize=~inargs.rdf_non_norm,
                            dx=float(get_config(inargs, 'domain', 'dx')),

@@ -740,6 +740,7 @@ def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
                 interior_indices.append(i)
 
     num_interior_particles = len(interior_indices)
+    print 'num_rdf', num_interior_particles
 
     edges = np.arange(0., r_max + dr, dr)   # Was originally 1.1?
     num_increments = len(edges) - 1
