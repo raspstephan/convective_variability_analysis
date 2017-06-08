@@ -101,6 +101,7 @@ def create_netcdf(inargs):
         'cld_size_sep_mean': ['date', 'time'],
         'cld_prec_sep_mean': ['date', 'time'],
         'rdf': ['date', 'time', 'rdf_radius'],
+        'rdf_sep': ['date', 'time', 'rdf_radius'],
     }
 
     pp_fn = get_pp_fn(inargs)
@@ -250,17 +251,20 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     else:
         tmp_labels = labels
 
-    if np.sum(tmp_labels > 0)/np.float(tmp_labels.size) < inargs.rdf_cov_thresh:
-        rdf, radius = calc_rdf(tmp_labels, data,
-                               normalize=~inargs.rdf_non_norm,
-                               dx=float(get_config(inargs, 'domain', 'dx')),
-                               r_max=inargs.rdf_r_max,
-                               dr=inargs.rdf_dr,
-                               mask=rdf_mask)
-    else:
-        rdf = np.nan
-    rootgroup.groups[group].variables['rdf'][idate, it, :, ie] \
-        = rdf
+    for l, rdf_type in zip([labels, labels_sep], ['rdf', 'rdf_sep']):
+
+        if np.sum(l > 0)/np.float(l.size) > inargs.rdf_cov_thresh:
+            rdf, radius = calc_rdf(l, data,
+                                   normalize=~inargs.rdf_non_norm,
+                                   dx=float(get_config(inargs, 'domain', 'dx')),
+                                   r_max=inargs.rdf_r_max,
+                                   dr=inargs.rdf_dr,
+                                   mask=rdf_mask)
+        else:
+            rdf = np.nan
+
+        rootgroup.groups[group].variables[rdf_type][idate, it, :, ie] \
+            = rdf
 
     # End function
 
@@ -500,7 +504,10 @@ def plot_rdf_individual(inargs):
         for ig, group in enumerate(rootgroup.groups):
 
             # Get data
-            rdf_data = rootgroup.groups[group].variables['rdf'][iday]
+            if inargs.rdf_sep:
+                rdf_data = rootgroup.groups[group].variables['rdf_sep'][iday]
+            else:
+                rdf_data = rootgroup.groups[group].variables['rdf'][iday]
             # Convert data which at this point has dimensions
             # [time, radius, ens mem]
 
@@ -537,23 +544,44 @@ def plot_rdf_composite(inargs):
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
-    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    fig, axarr = plt.subplots(1, 2, figsize=(6, 3))
 
-    ax.set_ylabel('RDF')
+    axarr[0].set_ylabel('RDF')
     for group in rootgroup.groups:
-        array = rootgroup.groups[group].variables['rdf'][:]
+        if inargs.no_det and group == 'det':
+            continue
+        if inargs.rdf_sep:
+            array = rootgroup.groups[group].variables['rdf_sep'][:]
+        else:
+            array = rootgroup.groups[group].variables['rdf'][:]
+        # Convert data which at this point has dimensions
+        # [date, time, radius, ens mem]
+
+        # 1st: Plot max curve
         mx = np.nanmax(np.nanmean(array, axis=(0, 3)), axis=1)
-        ax.plot(rootgroup.variables['time'][:], mx, label=group,
+        axarr[0].plot(rootgroup.variables['time'][:], mx, label=group,
                  c=get_config(inargs, 'colors', group))
 
-    ax.set_ylim(0, 35)
-    ax.set_xlabel('Time [UTC]')
-    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+        # 2nd: Plot example curves
+        for t in inargs.rdf_curve_times:
+            rdf_curve = np.nanmean(array[:, t, :, :], axis=(0, 2))
+            axarr[1].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
+                          label=group + ' ' + str(rootgroup.variables['time'][t]))
 
-    ax.set_title(comp_str)
-    ax.legend(loc=0)
+    axarr[0].set_ylim(0, 15)
+    axarr[0].set_xlabel('Time [UTC]')
+    axarr[1].set_xlabel('Radius [km]')
 
-    plt.tight_layout()
+    axarr[0].set_title('RDF maximum')
+    axarr[1].set_title('RDF curves')
+
+    axarr[0].legend(loc=0)
+    axarr[1].legend(loc=0)
+
+    fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup) +
+                 ' sep = ' + str(inargs.rdf_sep) +
+                 ' perimeter = ' + str(inargs.sep_perimeter))
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite')
@@ -636,6 +664,7 @@ if __name__ == '__main__':
                         type=float,
                         default=1.,
                         help='Threshold for cloud object identification.')
+
     parser.add_argument('--cld_freq_binedges',
                         nargs='+',
                         type=float,
@@ -665,6 +694,7 @@ if __name__ == '__main__':
                         default=[0, 1e9, 60],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
+
     parser.add_argument('--rdf_r_max',
                         type=float,
                         default=30,
@@ -687,6 +717,24 @@ if __name__ == '__main__':
                         type=float,
                         default=0,
                         help='Minimum coverage fraction for RDF calculation.')
+    parser.add_argument('--rdf_curve_times',
+                        type=int,
+                        nargs='+',
+                        default=[15, 21],
+                        help='Times [UTC} for which to display RDF curves')
+
+    parser.add_argument('--no_det',
+                        dest='no_det',
+                        action='store_true',
+                        help='If given, Do not show det in plots.')
+    parser.set_defaults(no_det=False)
+    parser.add_argument('--which_plot',
+                        type=str,
+                        nargs='+',
+                        default=['prec_freq_hist', 'prec_size_hist', 'rdf'],
+                        help='If nothing listed, plots all of \
+                                 [prec_freq_hist, prec_size_hist, rdf]')
+
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -708,12 +756,6 @@ if __name__ == '__main__':
                         dest='recompute',
                         action='store_true',
                         help='If given, recompute pre-processed file.')
-    parser.add_argument('--which_plot',
-                        type=str,
-                        nargs='+',
-                        default=['prec_freq_hist', 'prec_size_hist', 'rdf'],
-                        help='If nothing listed, plots all of \
-                             [prec_freq_hist, prec_size_hist, rdf]')
     parser.set_defaults(recompute=False)
 
     args = parser.parse_args()
