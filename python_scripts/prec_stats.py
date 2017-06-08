@@ -250,12 +250,15 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     else:
         tmp_labels = labels
 
-    rdf, radius = calc_rdf(tmp_labels, data,
-                           normalize=~inargs.rdf_non_norm,
-                           dx=float(get_config(inargs, 'domain', 'dx')),
-                           r_max=inargs.rdf_r_max,
-                           dr=inargs.rdf_dr,
-                           mask=rdf_mask)
+    if np.sum(tmp_labels > 0)/np.float(tmp_labels.size) < inargs.rdf_cov_thresh:
+        rdf, radius = calc_rdf(tmp_labels, data,
+                               normalize=~inargs.rdf_non_norm,
+                               dx=float(get_config(inargs, 'domain', 'dx')),
+                               r_max=inargs.rdf_r_max,
+                               dr=inargs.rdf_dr,
+                               mask=rdf_mask)
+    else:
+        rdf = np.nan
     rootgroup.groups[group].variables['rdf'][idate, it, :, ie] \
         = rdf
 
@@ -578,10 +581,13 @@ def main(inargs):
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-    plot_prec_freq_hist(inargs)
-    plot_cloud_size_prec_hist(inargs)
-    plot_rdf_individual(inargs)
-    plot_rdf_composite(inargs)
+    if 'prec_freq_hist' in inargs.which_plot:
+        plot_prec_freq_hist(inargs)
+    if 'prec_size_hist' in inargs.which_plot:
+        plot_cloud_size_prec_hist(inargs)
+    if 'rdf' in inargs.which_plot:
+        plot_rdf_individual(inargs)
+        plot_rdf_composite(inargs)
 
 
 if __name__ == '__main__':
@@ -677,6 +683,10 @@ if __name__ == '__main__':
                         action='store_true',
                         help='If given, compute the non-normalized RDF.')
     parser.set_defaults(rdf_non_norm=False)
+    parser.add_argument('--rdf_cov_thresh',
+                        type=float,
+                        default=0,
+                        help='Minimum coverage fraction for RDF calculation.')
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -698,6 +708,12 @@ if __name__ == '__main__':
                         dest='recompute',
                         action='store_true',
                         help='If given, recompute pre-processed file.')
+    parser.add_argument('--which_plot',
+                        type=str,
+                        nargs='+',
+                        default=['prec_freq_hist', 'prec_size_hist', 'rdf'],
+                        help='If nothing listed, plots all of \
+                             [prec_freq_hist, prec_size_hist, rdf]')
     parser.set_defaults(recompute=False)
 
     args = parser.parse_args()
