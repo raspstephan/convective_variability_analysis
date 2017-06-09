@@ -195,9 +195,13 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
     rootgroup.groups[group].variables['cld_prec_mean']\
         [idate, it, ie] = np.mean(cld_prec_list)
 
+    if inargs.sep_perimeter == 0:   # Use default cross
+        footprint = [[0,1,0],[1,1,1],[0,1,0]]
+    else:
+        footprint = inargs.sep_perimeter
     labels_sep, cld_size_sep_list, cld_prec_sep_list = \
         identify_clouds(data, inargs.thresh, water=True,
-                        dx=dx, neighborhood=inargs.sep_perimeter)
+                        dx=dx, neighborhood=footprint)
 
     # Convert to kg / h
     cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
@@ -457,6 +461,9 @@ def plot_cloud_size_prec_hist(inargs):
                 ax.set_xscale('log')
                 ax.set_title(typ + sep)
                 ax.set_xlabel(xlabel)
+
+                if inargs.cld_y_type == 'relative_frequency':
+                    ax.set_ylim(5e-5, 1e0)
 
     axmat[0, 0].set_ylabel(inargs.cld_y_type)
     axmat[1, 0].set_ylabel(inargs.cld_y_type)
