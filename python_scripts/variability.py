@@ -8,7 +8,8 @@ Description:  Compute variance and mean of coarse grained fields
 import argparse
 from netCDF4 import Dataset
 from helpers import pp_exists, get_pp_fn, load_raw_data, make_datelist, \
-                    identify_clouds, get_config, create_log_str
+                    identify_clouds, get_config, create_log_str, \
+                    read_netcdf_dataset
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -47,6 +48,7 @@ def compute_variance(inargs):
 
     # Loop over each time
     for idate, date in enumerate(make_datelist(inargs)):
+        print('Computing variance for ' + date)
         for it in range(rootgroup.dimensions['time'].size):
             # Loop over ensemble members
             # Temporarily save the centers of mass and sums
@@ -146,7 +148,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 
     # Loop over different coarsening sizes
     for i_n, n in enumerate(rootgroup.variables['n']):
-        
+
         # Get size of coarse arrays
         nx = int(np.floor(get_config(inargs, 'domain', 'ana_irange') / n))
         ny = int(np.floor(get_config(inargs, 'domain', 'ana_jrange') / n))
@@ -244,10 +246,39 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                         np.mean(ens_ttens_list)
 
 
-
 ################################################################################
 # PLOTTING FUNCTIONS
 ################################################################################
+def diurnal(inargs):
+    """
+    
+    Parameters
+    ----------
+    inargs
+
+    Returns
+    -------
+
+    """
+
+    # Load dataset
+    rootgroup = read_netcdf_dataset(inargs)
+    # The variables have dimensions [date, time, n, x[n], y[n]]
+
+    # Do some further calculations to get daily composite
+    for i_n, n in enumerate(rootgroup.variables['n']):
+        nx = int(np.floor(get_config(inargs, 'domain', 'ana_irange') / n))
+        ny = int(np.floor(get_config(inargs, 'domain', 'ana_jrange') / n))
+
+        mean_M = rootgroup.variables['mean_M'][:, :, i_n, :nx, :ny]
+
+        print mean_M.shape
+        # Flatten x and y dimensions
+        mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
+                       mean_M.shape[2] * mean_M.shape[3])
+        print mean_M.shape
+
+
 
 
 ################################################################################
@@ -272,7 +303,7 @@ def main(inargs):
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-
+    diurnal(inargs)
 
 
 if __name__ == '__main__':
