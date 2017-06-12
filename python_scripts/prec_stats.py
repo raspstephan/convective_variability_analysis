@@ -250,11 +250,6 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     rdf_mask = convolve2d(rdf_mask, kernel, mode='same', boundary='fill',
                           fillvalue=1) == 0
 
-    if inargs.rdf_sep:
-        tmp_labels = labels_sep
-    else:
-        tmp_labels = labels
-
     for l, rdf_type in zip([labels, labels_sep], ['rdf', 'rdf_sep']):
 
         if np.sum(l > 0)/np.float(l.size) > inargs.rdf_cov_thresh:
@@ -299,73 +294,9 @@ def prec_stats(inargs):
         for idate, date in enumerate(make_datelist(inargs)):
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 # Now do the actually new calculation
-                for it in range(\
-                        rootgroup.groups[group].dimensions['time'].size):
+                for it in range(rootgroup.groups[group].dimensions['time'].
+                                size):
                     data = raw_data.variables['data'][idate, it, ie]
-
-                    # 1st: calculate totla precipitation histogram
-                    rootgroup.groups[group].variables['prec_freq'] \
-                        [idate, it, :, ie] = np.histogram(data,
-                                                          prec_freq_binedges)[0]
-
-                    # 2nd: compute cloud size and precipitation histograms
-                    tmp = compute_cloud_histograms(inargs, data, rootgroup,
-                                                   group, idate, it, ie,
-                                                   cld_size_binedges,
-                                                   cld_prec_binedges,
-                                                   cld_size_sep_binedges,
-                                                   cld_prec_sep_binedges)
-                    labels, labels_sep = tmp
-
-                    # 3rd: Compute radial distribution function
-                    if inargs.radar_mask in ['total', 'day']:
-                        raise Exception('radar_mask type no longer supported for RDF')
-
-                    compute_rdfs(inargs, labels, labels_sep, data, data.mask,
-                                 rootgroup, group, idate, it, ie)
-
-
-    # TODO: This is somewhat the same as domain_mean_weather_ts
-    radar_mask = get_radar_mask(inargs)
-
-    # Load analysis data and store in NetCDF
-    for idate, date in enumerate(make_datelist(inargs)):
-        print('Computing prec_hist for: ' + date)
-
-        # Determine radar mask
-        if inargs.radar_mask == 'total':
-            tmp_mask = np.any(radar_mask, axis=(0, 1))
-        elif inargs.radar_mask == 'day':
-            tmp_mask = np.any(radar_mask[idate], axis=0)
-        elif inargs.radar_mask == 'hour':
-            tmp_mask = radar_mask[idate]
-
-        for group in rootgroup.groups:
-            for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
-                if group in ['det', 'ens']:
-                    if group == 'det':
-                        ens_no = 'det'
-                    else:
-                        ens_no = ie + 1
-                    datalist = get_datalist_model(inargs, date, ens_no,
-                                                  'PREC_ACCUM', tmp_mask)
-                elif group == 'obs':
-                    datalist = get_datalist_radar(inargs, date, tmp_mask)
-                else:
-                    raise Exception('Wrong group.')
-
-
-
-                # Now do the actually new calculation
-                for it, data in enumerate(datalist):
-                    # Data is the precipitation field for one hour
-
-                    # Check here
-                    data_new = datagroup.variables['data'][idate, it, ie]
-                    if group == 'det':
-                        print 'data', np.sum(data)
-                        print 'data_new', np.sum(data_new)
-
 
                     # 1st: calculate totla precipitation histogram
                     rootgroup.groups[group].variables['prec_freq']\
@@ -382,15 +313,81 @@ def prec_stats(inargs):
                     labels, labels_sep = tmp
 
                     # 3rd: Compute radial distribution function
-                    if tmp_mask.ndim == 3:
-                        rdf_mask = tmp_mask[it]
-                    elif tmp_mask.ndim == 2:
-                        rdf_mask = tmp_mask
-                    else:
-                        raise Exception('Wrong dimensions for radar mask')
+                    if inargs.radar_mask in ['total', 'day']:
+                        raise Exception('radar_mask type no longer supported \
+                                        for RDF')
 
-                    compute_rdfs(inargs, labels, labels_sep, data, rdf_mask,
+                    compute_rdfs(inargs, labels, labels_sep, data,
+                                 data.mask.astype(int),
                                  rootgroup, group, idate, it, ie)
+        raw_data.close()
+
+    # # TODO: This is somewhat the same as domain_mean_weather_ts
+    # radar_mask = get_radar_mask(inargs)
+    #
+    # # Load analysis data and store in NetCDF
+    # for idate, date in enumerate(make_datelist(inargs)):
+    #     print('Computing prec_hist for: ' + date)
+    #
+    #     # Determine radar mask
+    #     if inargs.radar_mask == 'total':
+    #         tmp_mask = np.any(radar_mask, axis=(0, 1))
+    #     elif inargs.radar_mask == 'day':
+    #         tmp_mask = np.any(radar_mask[idate], axis=0)
+    #     elif inargs.radar_mask == 'hour':
+    #         tmp_mask = radar_mask[idate]
+    #
+    #     for group in rootgroup.groups:
+    #         for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
+    #             if group in ['det', 'ens']:
+    #                 if group == 'det':
+    #                     ens_no = 'det'
+    #                 else:
+    #                     ens_no = ie + 1
+    #                 datalist = get_datalist_model(inargs, date, ens_no,
+    #                                               'PREC_ACCUM', tmp_mask)
+    #             elif group == 'obs':
+    #                 datalist = get_datalist_radar(inargs, date, tmp_mask)
+    #             else:
+    #                 raise Exception('Wrong group.')
+    #
+    #
+    #
+    #             # Now do the actually new calculation
+    #             for it, data in enumerate(datalist):
+    #                 # Data is the precipitation field for one hour
+    #
+    #                 # Check here
+    #                 data_new = datagroup.variables['data'][idate, it, ie]
+    #                 if group == 'det':
+    #                     print 'data', np.sum(data)
+    #                     print 'data_new', np.sum(data_new)
+    #
+    #
+    #                 # 1st: calculate totla precipitation histogram
+    #                 rootgroup.groups[group].variables['prec_freq']\
+    #                     [idate, it, :, ie] = np.histogram(data,
+    #                                                       prec_freq_binedges)[0]
+    #
+    #                 # 2nd: compute cloud size and precipitation histograms
+    #                 tmp = compute_cloud_histograms(inargs, data, rootgroup,
+    #                                                group, idate, it, ie,
+    #                                                cld_size_binedges,
+    #                                                cld_prec_binedges,
+    #                                                cld_size_sep_binedges,
+    #                                                cld_prec_sep_binedges)
+    #                 labels, labels_sep = tmp
+    #
+    #                 # 3rd: Compute radial distribution function
+    #                 if tmp_mask.ndim == 3:
+    #                     rdf_mask = tmp_mask[it]
+    #                 elif tmp_mask.ndim == 2:
+    #                     rdf_mask = tmp_mask
+    #                 else:
+    #                     raise Exception('Wrong dimensions for radar mask')
+    #
+    #                 compute_rdfs(inargs, labels, labels_sep, data, rdf_mask,
+    #                              rootgroup, group, idate, it, ie)
 
     # Close NetCDF file
     rootgroup.close()

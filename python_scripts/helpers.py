@@ -314,7 +314,12 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     """
 
     # Define file name
-    fn = 1
+    fn = (get_config(inargs, 'paths', 'preproc_data') + 'preloaded_fields/' +
+          var + '_' + group + '_' + inargs.date_start + '_' + inargs.date_end +
+          '_' + str(inargs.time_start) + '_' + str(inargs.time_end) + '_' +
+          str(inargs.time_inc) + '_' + inargs.radar_mask + '.nc')
+
+    print('Preload raw data in ' + fn)
 
     # Create NetCDF file
     rootgroup = Dataset(fn, 'w', format='NETCDF4')
@@ -371,8 +376,6 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
                 datalist = get_datalist_radar(inargs, date, tmp_mask)
             else:
                 raise Exception('Wrong group.')
-
-            print 'datalist_new', datalist
 
             # Save list in NetCDF file
             # The loop is needed to preserve the mask!
