@@ -504,14 +504,14 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask=False, lvl=None):
         'RHO': '.nc_30m_buoy',
         'TTENS_MPHY': '.nc_30m_buoy',
     }
+
     datalist = getfobj_ncdf_timeseries(ncdffn_pref,
                                        timedelta(hours=inargs.time_start),
                                        timedelta(hours=inargs.time_end),
                                        timedelta(hours=inargs.time_inc),
                                        ncdffn_sufx=sufx_dict[var],
                                        return_arrays=True,
-                                       fieldn=var,
-                                       levs=lvl)
+                                       fieldn=var)
 
     # Crop data
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
@@ -519,8 +519,9 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask=False, lvl=None):
 
     # Loop over individual time steps and apply mask
     for i, data in enumerate(datalist):
+
         if data.ndim == 3:
-            data = data[0]
+            data = data[lvl]
 
         if radar_mask is False:
             tmp_mask = np.zeros(data[l11:l12, l21:l22].shape)
