@@ -297,7 +297,7 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     Parameters
     ----------
     inargs
-    var : str
+    var : str or list
       COSMO variable to be loaded. Options are [PREC_ACCUM, W, QTOT, TTENS_MPHY]
     group : str
       Which dataset. Options are [ens, det, obs]
@@ -313,12 +313,31 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
 
     """
 
-    # Define file name
-    fn = (get_config(inargs, 'paths', 'preproc_data') + 'preloaded_fields/' +
-          var + '_' + group + '_' + inargs.date_start + '_' + inargs.date_end +
-          '_' + str(inargs.time_start) + '_' + str(inargs.time_end) + '_' +
-          str(inargs.time_inc) + '_' + inargs.radar_mask + '.nc')
+    if var is not 'PREC_ACCUM' and group is 'obs':
+        raise Exception('obs only valid for PREC_ACCUM!')
 
+    # Define file name
+    var_str = ''
+    if type(var) is not list:
+        var = [var]
+    for v in var:
+        var_str += v + '_'
+
+    fn = (get_config(inargs, 'paths', 'preproc_data') + 'preloaded_fields/' +
+          var_str + group + '_' + inargs.date_start + '_' + inargs.date_end +
+          '_' + str(inargs.time_start) + '_' + str(inargs.time_end) + '_' +
+          str(inargs.time_inc))
+    if hasattr(inargs, 'radar_mask'):
+        fn += '_' + inargs.radar_mask
+    fn += '.nc'
+
+    # check if preloaded raw data exists
+    if os.path.isfile(fn) and inargs.recompute is False:
+        print('Found preloaded file: ' + fn)
+        rootgroup = Dataset(fn)
+        return rootgroup
+
+    # If not preload the raw data, duh
     print('Preload raw data in ' + fn)
 
     # Create NetCDF file
@@ -345,7 +364,8 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
         tmp_var[:] = dim_val
 
     # Create variable
-    rootgroup.createVariable('data', 'f8', ['date', 'time', 'ens_no', 'x', 'y'])
+    for v in var:
+        rootgroup.createVariable(v, 'f8', ['date', 'time', 'ens_no', 'x', 'y'])
 
     # If required load radar_mask
     if radar_mask_type is not False:
@@ -362,26 +382,30 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
             tmp_mask = np.any(radar_mask[idate], axis=0)
         elif radar_mask_type == 'hour':
             tmp_mask = radar_mask[idate]
+        elif radar_mask_type is False:
+            tmp_mask = False
 
         # Loop over ensemble members and load fields for entire day
         for ie in range(nens):
-            if group in ['det', 'ens']:
-                if group == 'det':
-                    ens_no = 'det'
+            for v in var:
+                if group in ['det', 'ens']:
+                    if group == 'det':
+                        ens_no = 'det'
+                    else:
+                        ens_no = ie + 1
+                    datalist = get_datalist_model(inargs, date, ens_no,
+                                                  v, tmp_mask, lvl=lvl)
+                elif group == 'obs':
+                    datalist = get_datalist_radar(inargs, date, tmp_mask)
                 else:
-                    ens_no = ie + 1
-                datalist = get_datalist_model(inargs, date, ens_no,
-                                              var, tmp_mask)
-            elif group == 'obs':
-                datalist = get_datalist_radar(inargs, date, tmp_mask)
-            else:
-                raise Exception('Wrong group.')
+                    raise Exception('Wrong group.')
 
-            # Save list in NetCDF file
-            # The loop is needed to preserve the mask!
-            for it in range(rootgroup.variables['time'].size):
-                rootgroup.variables['data'][idate, it, ie, :, :] = datalist[it]
+                # Save list in NetCDF file
+                # The loop is needed to preserve the mask!
+                for it in range(rootgroup.variables['time'].size):
+                    rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
     return rootgroup
+
 
 def get_datalist_radar(inargs, date, radar_mask=False):
     """
@@ -443,7 +467,7 @@ def get_datalist_radar(inargs, date, radar_mask=False):
     return datalist
 
 
-def get_datalist_model(inargs, date, ens_no, var, radar_mask):
+def get_datalist_model(inargs, date, ens_no, var, radar_mask=False, lvl=None):
     """
     Get data time series for model output.
     Parameters
@@ -458,6 +482,8 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
       Variable
     radar_mask : 2D or 3D numpy array
       Radar mask to create masked arrays
+    lvl : int
+      Vertical level for 3D data
 
     Returns
     -------
@@ -468,13 +494,24 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
     ncdffn_pref = (get_config(inargs, 'paths', 'raw_data') +
                    date + '/deout_ceu_pspens/' + str(ens_no) +
                    '/OUTPUT/lfff')
+    sufx_dict = {
+        'PREC_ACCUM': '.nc_30m_surf',
+        'CAPE': '.nc_30m_surf',
+        'W': '.nc_30m',
+        'QC': '.nc_30m',
+        'QI': '.nc_30m',
+        'QS': '.nc_30m',
+        'RHO': '.nc_30m_buoy',
+        'TTENS_MPHY': '.nc_30m_buoy',
+    }
     datalist = getfobj_ncdf_timeseries(ncdffn_pref,
                                        timedelta(hours=inargs.time_start),
                                        timedelta(hours=inargs.time_end),
                                        timedelta(hours=inargs.time_inc),
-                                       ncdffn_sufx='.nc_30m_surf',
+                                       ncdffn_sufx=sufx_dict[var],
                                        return_arrays=True,
-                                       fieldn=var)
+                                       fieldn=var,
+                                       levs=lvl)
 
     # Crop data
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
@@ -482,7 +519,12 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
 
     # Loop over individual time steps and apply mask
     for i, data in enumerate(datalist):
-        if radar_mask.ndim == 3:
+        if data.ndim == 3:
+            data = data[0]
+
+        if radar_mask is False:
+            tmp_mask = np.zeros(data[l11:l12, l21:l22].shape)
+        elif radar_mask.ndim == 3:
             tmp_mask = radar_mask[i, :, :]
         elif radar_mask.ndim == 2:
             tmp_mask = radar_mask

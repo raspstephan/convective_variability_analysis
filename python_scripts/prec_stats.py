@@ -1,5 +1,5 @@
 """
-Filename:     prec_hist.py
+Filename:     prec_stats.py
 Author:       Stephan Rasp, s.rasp@lmu.de
 Description:  Compute and plot precipitation histograms of deterministic and 
               ensemble runs and observations
@@ -10,8 +10,7 @@ Description:  Compute and plot precipitation histograms of deterministic and
 import argparse
 from netCDF4 import Dataset
 from datetime import datetime, timedelta
-from helpers import make_datelist, get_radar_mask, get_pp_fn, \
-    get_datalist_radar, create_log_str, get_datalist_model, \
+from helpers import make_datelist, get_pp_fn, create_log_str, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
     get_composite_str, calc_rdf, identify_clouds, load_raw_data
 import numpy as np
@@ -195,10 +194,10 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
     rootgroup.groups[group].variables['cld_prec_mean']\
         [idate, it, ie] = np.mean(cld_prec_list)
 
-    if inargs.sep_perimeter == 0:   # Use default cross
+    if inargs.footprint == 0:   # Use default cross
         footprint = [[0,1,0],[1,1,1],[0,1,0]]
     else:
-        footprint = inargs.sep_perimeter
+        footprint = inargs.footprint
     labels_sep, cld_size_sep_list, cld_prec_sep_list = \
         identify_clouds(data, inargs.thresh, water=True,
                         dx=dx, neighborhood=footprint)
@@ -321,73 +320,6 @@ def prec_stats(inargs):
                                  data.mask.astype(int),
                                  rootgroup, group, idate, it, ie)
         raw_data.close()
-
-    # # TODO: This is somewhat the same as domain_mean_weather_ts
-    # radar_mask = get_radar_mask(inargs)
-    #
-    # # Load analysis data and store in NetCDF
-    # for idate, date in enumerate(make_datelist(inargs)):
-    #     print('Computing prec_hist for: ' + date)
-    #
-    #     # Determine radar mask
-    #     if inargs.radar_mask == 'total':
-    #         tmp_mask = np.any(radar_mask, axis=(0, 1))
-    #     elif inargs.radar_mask == 'day':
-    #         tmp_mask = np.any(radar_mask[idate], axis=0)
-    #     elif inargs.radar_mask == 'hour':
-    #         tmp_mask = radar_mask[idate]
-    #
-    #     for group in rootgroup.groups:
-    #         for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
-    #             if group in ['det', 'ens']:
-    #                 if group == 'det':
-    #                     ens_no = 'det'
-    #                 else:
-    #                     ens_no = ie + 1
-    #                 datalist = get_datalist_model(inargs, date, ens_no,
-    #                                               'PREC_ACCUM', tmp_mask)
-    #             elif group == 'obs':
-    #                 datalist = get_datalist_radar(inargs, date, tmp_mask)
-    #             else:
-    #                 raise Exception('Wrong group.')
-    #
-    #
-    #
-    #             # Now do the actually new calculation
-    #             for it, data in enumerate(datalist):
-    #                 # Data is the precipitation field for one hour
-    #
-    #                 # Check here
-    #                 data_new = datagroup.variables['data'][idate, it, ie]
-    #                 if group == 'det':
-    #                     print 'data', np.sum(data)
-    #                     print 'data_new', np.sum(data_new)
-    #
-    #
-    #                 # 1st: calculate totla precipitation histogram
-    #                 rootgroup.groups[group].variables['prec_freq']\
-    #                     [idate, it, :, ie] = np.histogram(data,
-    #                                                       prec_freq_binedges)[0]
-    #
-    #                 # 2nd: compute cloud size and precipitation histograms
-    #                 tmp = compute_cloud_histograms(inargs, data, rootgroup,
-    #                                                group, idate, it, ie,
-    #                                                cld_size_binedges,
-    #                                                cld_prec_binedges,
-    #                                                cld_size_sep_binedges,
-    #                                                cld_prec_sep_binedges)
-    #                 labels, labels_sep = tmp
-    #
-    #                 # 3rd: Compute radial distribution function
-    #                 if tmp_mask.ndim == 3:
-    #                     rdf_mask = tmp_mask[it]
-    #                 elif tmp_mask.ndim == 2:
-    #                     rdf_mask = tmp_mask
-    #                 else:
-    #                     raise Exception('Wrong dimensions for radar mask')
-    #
-    #                 compute_rdfs(inargs, labels, labels_sep, data, rdf_mask,
-    #                              rootgroup, group, idate, it, ie)
 
     # Close NetCDF file
     rootgroup.close()
@@ -625,7 +557,7 @@ def plot_rdf_composite(inargs):
 
     fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup) +
                  ' sep = ' + str(inargs.rdf_sep) +
-                 ' perimeter = ' + str(inargs.sep_perimeter))
+                 ' perimeter = ' + str(inargs.footprint))
     plt.tight_layout(rect=[0, 0, 1, 0.93])
 
     # Save figure and log
@@ -701,9 +633,9 @@ if __name__ == '__main__':
                         type=str,
                         default='hour',
                         help='Radar mask for [hour, day, total]?')
-    parser.add_argument('--sep_perimeter',
+    parser.add_argument('--footprint',
                         type=int,
-                        default=5,
+                        default=3,
                         help='Size of search matrix for cloud separation')
     parser.add_argument('--thresh',
                         type=float,
