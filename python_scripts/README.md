@@ -6,3 +6,12 @@ The scripts are all designed (with the exception of `helpers.py` which contains 
 
 Note that I am using an Anaconda environent. The details are specified in the log file.
 
+The table below lists the files plots and options:
+
+| File | Plots |
+|------|-------|
+| `prec_stats.py` | Precipitation frequency histogram |
+|                 | Cloud size and cloud precipitation sum distributions |
+|                 | Precipitation radial distribution function |
+
+

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
-    get_composite_str, calc_rdf, identify_clouds
+    get_composite_str, calc_rdf, identify_clouds, load_raw_data
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
@@ -293,6 +293,38 @@ def prec_stats(inargs):
     # Make netCDF file
     rootgroup = create_netcdf(inargs)
 
+    for group in rootgroup.groups:
+        raw_data = load_raw_data(inargs, 'PREC_ACCUM', group,
+                                 radar_mask_type=inargs.radar_mask)
+        for idate, date in enumerate(make_datelist(inargs)):
+            for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
+                # Now do the actually new calculation
+                for it in range(\
+                        rootgroup.groups[group].dimensions['time'].size):
+                    data = raw_data.variables['data'][idate, it, ie]
+
+                    # 1st: calculate totla precipitation histogram
+                    rootgroup.groups[group].variables['prec_freq'] \
+                        [idate, it, :, ie] = np.histogram(data,
+                                                          prec_freq_binedges)[0]
+
+                    # 2nd: compute cloud size and precipitation histograms
+                    tmp = compute_cloud_histograms(inargs, data, rootgroup,
+                                                   group, idate, it, ie,
+                                                   cld_size_binedges,
+                                                   cld_prec_binedges,
+                                                   cld_size_sep_binedges,
+                                                   cld_prec_sep_binedges)
+                    labels, labels_sep = tmp
+
+                    # 3rd: Compute radial distribution function
+                    if inargs.radar_mask in ['total', 'day']:
+                        raise Exception('radar_mask type no longer supported for RDF')
+
+                    compute_rdfs(inargs, labels, labels_sep, data, data.mask,
+                                 rootgroup, group, idate, it, ie)
+
+
     # TODO: This is somewhat the same as domain_mean_weather_ts
     radar_mask = get_radar_mask(inargs)
 
@@ -322,9 +354,18 @@ def prec_stats(inargs):
                 else:
                     raise Exception('Wrong group.')
 
+
+
                 # Now do the actually new calculation
                 for it, data in enumerate(datalist):
                     # Data is the precipitation field for one hour
+
+                    # Check here
+                    data_new = datagroup.variables['data'][idate, it, ie]
+                    if group == 'det':
+                        print 'data', np.sum(data)
+                        print 'data_new', np.sum(data_new)
+
 
                     # 1st: calculate totla precipitation histogram
                     rootgroup.groups[group].variables['prec_freq']\

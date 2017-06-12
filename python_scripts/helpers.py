@@ -289,6 +289,97 @@ def pp_exists(inargs):
     return os.path.isfile(get_pp_fn(inargs))
 
 
+def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
+    """
+    This function loads the required COSMO fields and returns a netcdf object 
+    which has dimensions [date, time, ens_no, x, y]
+    
+    Parameters
+    ----------
+    inargs
+    var : str
+      COSMO variable to be loaded. Options are [PREC_ACCUM, W, QTOT, TTENS_MPHY]
+    group : str
+      Which dataset. Options are [ens, det, obs]
+    lvl : int
+      Vertical level for 3D fields
+    radar_mask_type : bool or str
+      If given, appropriate radar mask is applied. Options are 
+      [total, day, hour]
+
+    Returns
+    -------
+    rootgroup
+
+    """
+
+    # Define file name
+    fn = 1
+
+    # Create NetCDF file
+    rootgroup = Dataset(fn, 'w', format='NETCDF4')
+
+    # Set options for group
+    if group in ['det', 'obs']:
+        nens = 1
+    elif group is 'ens':
+        nens = inargs.nens
+
+    # Create dimensions (Partly copied from prec_stats.py)
+    dimensions = {
+        'date': np.array(make_datelist(inargs, out_format='netcdf')),
+        'time': np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
+                          inargs.time_inc),
+        'ens_no': np.arange(1, nens + 1),
+        'x': np.arange(get_config(inargs, 'domain', 'ana_irange')),
+        'y': np.arange(get_config(inargs, 'domain', 'ana_jrange')),
+    }
+    for dim_name, dim_val in dimensions.items():
+        rootgroup.createDimension(dim_name, dim_val.shape[0])
+        tmp_var = rootgroup.createVariable(dim_name, 'f8', dim_name)
+        tmp_var[:] = dim_val
+
+    # Create variable
+    rootgroup.createVariable('data', 'f8', ['date', 'time', 'ens_no', 'x', 'y'])
+
+    # If required load radar_mask
+    if radar_mask_type is not False:
+        radar_mask = get_radar_mask(inargs)
+
+    # Load the data, process and save it in NetCDF file
+    for idate, date in enumerate(make_datelist(inargs)):
+        print('Loading raw data for: ' + date)
+
+        # Determine radar mask
+        if radar_mask_type == 'total':
+            tmp_mask = np.any(radar_mask, axis=(0, 1))
+        elif radar_mask_type == 'day':
+            tmp_mask = np.any(radar_mask[idate], axis=0)
+        elif radar_mask_type == 'hour':
+            tmp_mask = radar_mask[idate]
+
+        # Loop over ensemble members and load fields for entire day
+        for ie in range(nens):
+            if group in ['det', 'ens']:
+                if group == 'det':
+                    ens_no = 'det'
+                else:
+                    ens_no = ie + 1
+                datalist = get_datalist_model(inargs, date, ens_no,
+                                              var, tmp_mask)
+            elif group == 'obs':
+                datalist = get_datalist_radar(inargs, date, tmp_mask)
+            else:
+                raise Exception('Wrong group.')
+
+            print 'datalist_new', datalist
+
+            # Save list in NetCDF file
+            # The loop is needed to preserve the mask!
+            for it in range(rootgroup.variables['time'].size):
+                rootgroup.variables['data'][idate, it, ie, :, :] = datalist[it]
+    return rootgroup
+
 def get_datalist_radar(inargs, date, radar_mask=False):
     """
     Get data time series for radar observation.
@@ -402,43 +493,6 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask):
                                        mask=tmp_mask + np.isnan(
                                            data[l11:l12, l21:l22]))
     return datalist
-
-
-def get_and_crop_radar_fobj(inargs, date, time):
-    """
-    Returns radar fobj, cropped to my specific model domain.
-    
-    Parameters
-    ----------
-    inargs : argparse object
-      Argparse object with all input arguments
-    date : str 
-      Date in yyyymmddhh format
-    time : timedelta object
-      Forecast time
-
-    Returns
-    -------
-    fobj : cosmo_utils field object
-      Cropped radar object
-    """
-    radarpref = (get_config(inargs, 'paths', 'radar_data') +
-                 get_config(inargs, 'paths', 'radar_prefx'))
-    radarsufx = get_config(inargs, 'paths', 'radar_sufix')
-    dtradar = timedelta(minutes=10)
-    t_rad = yyyymmddhh_strtotime(date) + time - dtradar
-    fobj = getfobj_ncdf(radarpref + yymmddhhmm(t_rad) +
-                        radarsufx, 'pr', dwdradar=True)
-    # Crop radar field
-    fobj.data = fobj.data[62:62 + 357, 22:22 + 357]
-    fobj.lats = fobj.lats[62:62 + 357, 22:22 + 357]
-    fobj.lons = fobj.lons[62:62 + 357, 22:22 + 357]
-    fobj.rlats = fobj.rlats[62:62 + 357, 22:22 + 357]
-    fobj.rlons = fobj.rlons[62:62 + 357, 22:22 + 357]
-    fobj.nx = 357
-    fobj.ny = 357
-
-    return fobj
 
 
 def read_netcdf_dataset(inargs):
@@ -578,7 +632,8 @@ def detect_peaks(image, neighborhood = [[0,1,0],[1,1,1],[0,1,0]]):
 
 def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
                     water = False, dx = 2800., rho = None,
-                    neighborhood=[[0, 1, 0], [1, 1, 1], [0, 1, 0]]):
+                    neighborhood=[[0, 1, 0], [1, 1, 1], [0, 1, 0]],
+                    return_com=False):
     """
     Parameters
     ----------
@@ -597,6 +652,8 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
     neighborhood : int or 2D numpy array
       Defines the search perimeter for cloud separation. Only valid of water is
       True
+    return_com : bool
+     If true, also returns list of centers of mass
 
 
     Returns
@@ -607,6 +664,8 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
       List of cloud sizes
     cld_sum : list
       List of summed value of field for each cloud
+    cof : np.array
+      2D array with centers of mass, if return_com is True
 
     """
 
@@ -638,7 +697,15 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
         field *= rho
     cld_sum = measurements.sum(field, labels, range(1, ncld+1))
 
-    return labels, cld_size*dx*dx, cld_sum
+    if return_com is not True:
+        return labels, cld_size*dx*dx, cld_sum
+
+    else:
+        num = np.unique(labels).shape[0]  # Number of identified objects
+        # Get centers of mass for each object
+        cof = measurements.center_of_mass(field, labels, range(1, num))
+        cof = np.array(cof)
+        return labels, cld_size * dx * dx, cld_sum, cof
 
 
 def calc_rdf(labels, field, normalize=True, dx=2800., r_max=30, dr=1, mask=None):
