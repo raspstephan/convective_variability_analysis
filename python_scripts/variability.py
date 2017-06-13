@@ -40,7 +40,8 @@ def compute_variance(inargs):
     # Load the raw_data
     if inargs.var == 'm':   # Load data for mass flux calculation
         raw_data = load_raw_data(inargs, ['W', 'QC', 'QI', 'QS', 'RHO',
-                                          'TTENS_MPHY'], 'ens', lvl=inargs.lvl)
+                                          'TTENS_MPHY'], 'ens', lvl=inargs.lvl,
+                                 npar = 2)
     elif inargs.var == 'prec':   # Load data for precipitation calculation
         raw_data = load_raw_data(inargs, ['PREC_ACCUM'], 'ens')
     else:
@@ -76,8 +77,9 @@ def compute_variance(inargs):
                                     dx=dx, neighborhood=inargs.footprint,
                                     return_com=True, opt_thresh=opt_thresh)
 
-                # if com.shape[0] == 0:   # Accout for empty arrays, Need that?
-                #    com = np.empty((0,2))
+                if com_list.shape[0] == 0:   # Accout for empty arrays, Need that?
+                    com_list = np.empty((0,2))
+
                 com_ens_list.append(com_list)
                 sum_ens_list.append(sum_list)
 
@@ -134,8 +136,9 @@ def create_netcdf(inargs):
 
     # Create variables
     for var_name, var_dims in variables.items():
-        rootgroup.createVariable(var_name, 'f8', var_dims)
-
+        tmp_var = rootgroup.createVariable(var_name, 'f8', var_dims)
+        # Set all variables to nan by default to save time later
+        tmp_var[:] = np.nan
     return rootgroup
 
 
@@ -157,6 +160,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
         for ico in range(nx):
             for jco in range(ny):
                 # Get limits for each N box
+                n = int(n)
                 xmin = ico * n
                 xmax = (ico + 1) * n
                 ymin = jco * n
@@ -223,21 +227,21 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                         np.mean(ens_N_list)
                     rootgroup.variables['mean_m'][idate, it, i_n, ico, jco] = \
                         np.mean(ens_m_list)
-
-                else:
-                    rootgroup.variables['var_M'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                    rootgroup.variables['var_N'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                    rootgroup.variables['var_m'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                    rootgroup.variables['mean_M'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                    rootgroup.variables['mean_N'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                    rootgroup.variables['mean_m'][idate, it, i_n, ico, jco] = \
-                        np.nan
-                # This means NaNs only appear when minmem criterion is not met
+                #  Now set to NaN by default to save time!
+                # else:
+                #     rootgroup.variables['var_M'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                #     rootgroup.variables['var_N'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                #     rootgroup.variables['var_m'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                #     rootgroup.variables['mean_M'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                #     rootgroup.variables['mean_N'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                #     rootgroup.variables['mean_m'][idate, it, i_n, ico, jco] = \
+                #         np.nan
+                # # This means NaNs only appear when minmem criterion is not met
 
                 if inargs.var is 'm':
                     rootgroup.variables['var_TTENS'][idate, it, i_n, ico, jco] = \
@@ -277,8 +281,6 @@ def diurnal(inargs):
         mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
                        mean_M.shape[2] * mean_M.shape[3])
         print mean_M.shape
-
-
 
 
 ################################################################################

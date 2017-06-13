@@ -23,6 +23,7 @@ from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_erosion
 from scipy.ndimage.filters import maximum_filter
 from skimage import morphology, segmentation
+import multiprocessing as mp
 
 
 # Define functions
@@ -289,7 +290,8 @@ def pp_exists(inargs):
     return os.path.isfile(get_pp_fn(inargs))
 
 
-def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
+def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False,
+                  npar=None):
     """
     This function loads the required COSMO fields and returns a netcdf object 
     which has dimensions [date, time, ens_no, x, y]
@@ -370,41 +372,100 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     # If required load radar_mask
     if radar_mask_type is not False:
         radar_mask = get_radar_mask(inargs)
+    else:
+        radar_mask = None
 
-    # Load the data, process and save it in NetCDF file
-    for idate, date in enumerate(make_datelist(inargs)):
-        print('Loading raw data for: ' + date)
+    if npar is None:
+        # Load the data, process and save it in NetCDF file
+        for idate, date in enumerate(make_datelist(inargs)):
+            print('Loading raw data for: ' + date)
 
-        # Determine radar mask
-        if radar_mask_type == 'total':
-            tmp_mask = np.any(radar_mask, axis=(0, 1))
-        elif radar_mask_type == 'day':
-            tmp_mask = np.any(radar_mask[idate], axis=0)
-        elif radar_mask_type == 'hour':
-            tmp_mask = radar_mask[idate]
-        elif radar_mask_type is False:
-            tmp_mask = False
+            # Determine radar mask
+            if radar_mask_type == 'total':
+                tmp_mask = np.any(radar_mask, axis=(0, 1))
+            elif radar_mask_type == 'day':
+                tmp_mask = np.any(radar_mask[idate], axis=0)
+            elif radar_mask_type == 'hour':
+                tmp_mask = radar_mask[idate]
+            elif radar_mask_type is False:
+                tmp_mask = False
 
-        # Loop over ensemble members and load fields for entire day
-        for ie in range(nens):
-            for v in var:
-                if group in ['det', 'ens']:
-                    if group == 'det':
-                        ens_no = 'det'
+            # Loop over ensemble members and load fields for entire day
+            for ie in range(nens):
+                for v in var:
+                    if group in ['det', 'ens']:
+                        if group == 'det':
+                            ens_no = 'det'
+                        else:
+                            ens_no = ie + 1
+                        datalist = get_datalist_model(inargs, date, ens_no,
+                                                      v, tmp_mask, lvl=lvl)
+                    elif group == 'obs':
+                        datalist = get_datalist_radar(inargs, date, tmp_mask)
                     else:
-                        ens_no = ie + 1
-                    datalist = get_datalist_model(inargs, date, ens_no,
-                                                  v, tmp_mask, lvl=lvl)
-                elif group == 'obs':
-                    datalist = get_datalist_radar(inargs, date, tmp_mask)
-                else:
-                    raise Exception('Wrong group.')
+                        raise Exception('Wrong group.')
 
-                # Save list in NetCDF file
-                # The loop is needed to preserve the mask!
-                for it in range(rootgroup.variables['time'].size):
-                    rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
+                    # Save list in NetCDF file
+                    # The loop is needed to preserve the mask!
+                    for it in range(rootgroup.variables['time'].size):
+                        rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
+    else:
+        # Parallel read in!
+        intuple_list = []
+        for idate, date in enumerate(make_datelist(inargs)):
+            intuple_list.append((inargs, idate, date,
+                                radar_mask_type, radar_mask, group, nens,
+                                var, lvl))
+        pool = mp.Pool(processes=npar)
+        pool.map(load_raw_data_single_day, intuple_list)
+
+
     return rootgroup
+
+
+def load_raw_data_single_day(intuple):
+    """
+    For parallel processing!
+    
+    Returns
+    -------
+
+    """
+    inargs, idate, date, radar_mask_type, radar_mask, group, nens, \
+    var, lvl = intuple
+
+
+    print('Loading raw data for: ' + date)
+
+    # Determine radar mask
+    if radar_mask_type == 'total':
+        tmp_mask = np.any(radar_mask, axis=(0, 1))
+    elif radar_mask_type == 'day':
+        tmp_mask = np.any(radar_mask[idate], axis=0)
+    elif radar_mask_type == 'hour':
+        tmp_mask = radar_mask[idate]
+    elif radar_mask_type is False:
+        tmp_mask = False
+
+    # Loop over ensemble members and load fields for entire day
+    for ie in range(nens):
+        for v in var:
+            if group in ['det', 'ens']:
+                if group == 'det':
+                    ens_no = 'det'
+                else:
+                    ens_no = ie + 1
+                datalist = get_datalist_model(inargs, date, ens_no,
+                                              v, tmp_mask, lvl=lvl)
+            elif group == 'obs':
+                datalist = get_datalist_radar(inargs, date, tmp_mask)
+            else:
+                raise Exception('Wrong group.')
+
+            # Save list in NetCDF file
+            # The loop is needed to preserve the mask!
+            #for it in range(rootgroup.variables['time'].size):
+                #rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
 
 
 def get_datalist_radar(inargs, date, radar_mask=False):
@@ -717,7 +778,7 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
 
     # Get binary field, 1s where there are clouds
     binfield = field > thresh
-    if not opt_field == None:
+    if opt_field is not None:
         binfield *= opt_field > opt_thresh
 
     if water: # Apply watershed algorithm
@@ -739,7 +800,7 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
 
     # Get sizes and sums
     cld_size = measurements.sum(binfield, labels, range(1, ncld+1))
-    if not rho == None:
+    if rho is not None:
         field *= rho
     cld_sum = measurements.sum(field, labels, range(1, ncld+1))
 
