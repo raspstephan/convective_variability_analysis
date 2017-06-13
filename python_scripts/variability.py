@@ -40,8 +40,7 @@ def compute_variance(inargs):
     # Load the raw_data
     if inargs.var == 'm':   # Load data for mass flux calculation
         raw_data = load_raw_data(inargs, ['W', 'QC', 'QI', 'QS', 'RHO',
-                                          'TTENS_MPHY'], 'ens', lvl=inargs.lvl,
-                                 npar = 2)
+                                          'TTENS_MPHY'], 'ens', lvl=inargs.lvl)
     elif inargs.var == 'prec':   # Load data for precipitation calculation
         raw_data = load_raw_data(inargs, ['PREC_ACCUM'], 'ens')
     else:
@@ -149,6 +148,22 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     for one date and one time.
     """
 
+    # Load raw_data for ttens
+    tmp_ttens = raw_data.variables['TTENS_MPHY'][idate, it]
+
+    # Create temporarty numpy arrays
+    arr_shape = rootgroup.variables['var_M'][idate, it, :, :, :].shape
+    tmp_var_M = np.zeros(arr_shape) * np.nan
+    tmp_var_N = np.zeros(arr_shape) * np.nan
+    tmp_var_m = np.zeros(arr_shape) * np.nan
+    tmp_mean_M = np.zeros(arr_shape) * np.nan
+    tmp_mean_N = np.zeros(arr_shape) * np.nan
+    tmp_mean_m = np.zeros(arr_shape) * np.nan
+
+    if inargs.var is 'm':
+        tmp_var_ttens = np.zeros(arr_shape) * np.nan
+        tmp_mean_ttens = np.zeros(arr_shape) * np.nan
+
     # Loop over different coarsening sizes
     for i_n, n in enumerate(rootgroup.variables['n']):
 
@@ -201,9 +216,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 
                     if inargs.var is 'm':
                         # This is the MEAN heating rate
-                        ens_ttens_list.append(np.mean(raw_data.
-                                                      variables['TTENS_MPHY']
-                                                      [idate, it, ie]
+                        ens_ttens_list.append(np.mean(tmp_ttens[ie]
                                                       [ico * n:(ico + 1) * n,
                                                        jco * n:(jco + 1) * n]))
                     # End member loop
@@ -215,39 +228,28 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                 # Check if x number of members have clouds in them
 
                 if np.sum(np.array(ens_N_list) > 0) >= inargs.minobj:
-                    rootgroup.variables['var_M'][idate, it, i_n, ico, jco] = \
-                        np.var(ens_M_list, ddof=1)
-                    rootgroup.variables['var_N'][idate, it, i_n, ico, jco] = \
-                        np.var(ens_N_list, ddof=1)
-                    rootgroup.variables['var_m'][idate, it, i_n, ico, jco] = \
-                        np.var(ens_m_list, ddof=1)
-                    rootgroup.variables['mean_M'][idate, it, i_n, ico, jco] = \
-                        np.mean(ens_M_list)
-                    rootgroup.variables['mean_N'][idate, it, i_n, ico, jco] = \
-                        np.mean(ens_N_list)
-                    rootgroup.variables['mean_m'][idate, it, i_n, ico, jco] = \
-                        np.mean(ens_m_list)
-                #  Now set to NaN by default to save time!
-                # else:
-                #     rootgroup.variables['var_M'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                #     rootgroup.variables['var_N'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                #     rootgroup.variables['var_m'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                #     rootgroup.variables['mean_M'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                #     rootgroup.variables['mean_N'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                #     rootgroup.variables['mean_m'][idate, it, i_n, ico, jco] = \
-                #         np.nan
-                # # This means NaNs only appear when minmem criterion is not met
+                    tmp_var_M[i_n, ico, jco] = np.var(ens_M_list, ddof=1)
+                    tmp_var_N[i_n, ico, jco] = np.var(ens_N_list, ddof=1)
+                    tmp_var_m[i_n, ico, jco] = np.var(ens_m_list, ddof=1)
+                    tmp_mean_M[i_n, ico, jco] = np.mean(ens_M_list)
+                    tmp_mean_N[i_n, ico, jco] = np.mean(ens_N_list)
+                    tmp_mean_m[i_n, ico, jco] = np.mean(ens_m_list)
 
                 if inargs.var is 'm':
-                    rootgroup.variables['var_TTENS'][idate, it, i_n, ico, jco] = \
-                        np.var(ens_ttens_list, ddof=1)
-                    rootgroup.variables['mean_TTENS'][idate, it, i_n, ico, jco] = \
-                        np.mean(ens_ttens_list)
+                    tmp_var_ttens[i_n, ico, jco] = np.var(ens_ttens_list, ddof=1)
+                    tmp_mean_ttens[i_n, ico, jco] = np.mean(ens_ttens_list)
+
+    # Now write to NetCDF
+    rootgroup.variables['var_M'][idate, it] = tmp_var_M
+    rootgroup.variables['var_N'][idate, it] = tmp_var_N
+    rootgroup.variables['var_m'][idate, it] = tmp_var_m
+    rootgroup.variables['mean_M'][idate, it] = tmp_mean_M
+    rootgroup.variables['mean_N'][idate, it] = tmp_mean_N
+    rootgroup.variables['mean_m'][idate, it] = tmp_mean_m
+
+    if inargs.var is 'm':
+        rootgroup.variables['var_TTENS'][idate, it] = tmp_var_ttens
+        rootgroup.variables['mean_TTENS'][idate, it] = tmp_mean_ttens
 
 
 ################################################################################

@@ -290,8 +290,7 @@ def pp_exists(inargs):
     return os.path.isfile(get_pp_fn(inargs))
 
 
-def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False,
-                  npar=None):
+def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     """
     This function loads the required COSMO fields and returns a netcdf object 
     which has dimensions [date, time, ens_no, x, y]
@@ -331,6 +330,8 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False,
           str(inargs.time_inc))
     if hasattr(inargs, 'radar_mask'):
         fn += '_' + inargs.radar_mask
+    if group == 'ens':
+        fn += '_' + str(inargs.nens)
     fn += '.nc'
 
     # check if preloaded raw data exists
@@ -365,9 +366,12 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False,
         tmp_var = rootgroup.createVariable(dim_name, 'f8', dim_name)
         tmp_var[:] = dim_val
 
-    # Create variable
+    # Create variable and arrays to temporarily save data
+    var_list = []
     for v in var:
-        rootgroup.createVariable(v, 'f8', ['date', 'time', 'ens_no', 'x', 'y'])
+        tmp_var = rootgroup.createVariable(v, 'f8', ['date', 'time', 'ens_no',
+                                                     'x', 'y'])
+        var_list.append(np.empty(tmp_var[:].shape))
 
     # If required load radar_mask
     if radar_mask_type is not False:
@@ -375,97 +379,45 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False,
     else:
         radar_mask = None
 
-    if npar is None:
-        # Load the data, process and save it in NetCDF file
-        for idate, date in enumerate(make_datelist(inargs)):
-            print('Loading raw data for: ' + date)
+    # Load the data, process and save it in NetCDF file
+    for idate, date in enumerate(make_datelist(inargs)):
+        print('Loading raw data for: ' + date)
 
-            # Determine radar mask
-            if radar_mask_type == 'total':
-                tmp_mask = np.any(radar_mask, axis=(0, 1))
-            elif radar_mask_type == 'day':
-                tmp_mask = np.any(radar_mask[idate], axis=0)
-            elif radar_mask_type == 'hour':
-                tmp_mask = radar_mask[idate]
-            elif radar_mask_type is False:
-                tmp_mask = False
+        # Determine radar mask
+        if radar_mask_type == 'total':
+            tmp_mask = np.any(radar_mask, axis=(0, 1))
+        elif radar_mask_type == 'day':
+            tmp_mask = np.any(radar_mask[idate], axis=0)
+        elif radar_mask_type == 'hour':
+            tmp_mask = radar_mask[idate]
+        elif radar_mask_type is False:
+            tmp_mask = False
 
-            # Loop over ensemble members and load fields for entire day
-            for ie in range(nens):
-                for v in var:
-                    if group in ['det', 'ens']:
-                        if group == 'det':
-                            ens_no = 'det'
-                        else:
-                            ens_no = ie + 1
-                        datalist = get_datalist_model(inargs, date, ens_no,
-                                                      v, tmp_mask, lvl=lvl)
-                    elif group == 'obs':
-                        datalist = get_datalist_radar(inargs, date, tmp_mask)
+        # Loop over ensemble members and load fields for entire day
+        for ie in range(nens):
+            for iv, v in enumerate(var):
+                if group in ['det', 'ens']:
+                    if group == 'det':
+                        ens_no = 'det'
                     else:
-                        raise Exception('Wrong group.')
+                        ens_no = ie + 1
+                    datalist = get_datalist_model(inargs, date, ens_no,
+                                                  v, tmp_mask, lvl=lvl)
+                elif group == 'obs':
+                    datalist = get_datalist_radar(inargs, date, tmp_mask)
+                else:
+                    raise Exception('Wrong group.')
 
-                    # Save list in NetCDF file
-                    # The loop is needed to preserve the mask!
-                    for it in range(rootgroup.variables['time'].size):
-                        rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
-    else:
-        # Parallel read in!
-        intuple_list = []
-        for idate, date in enumerate(make_datelist(inargs)):
-            intuple_list.append((inargs, idate, date,
-                                radar_mask_type, radar_mask, group, nens,
-                                var, lvl))
-        pool = mp.Pool(processes=npar)
-        pool.map(load_raw_data_single_day, intuple_list)
+                # Save list in NetCDF file
+                # The loop is needed to preserve the mask!
+                for it in range(rootgroup.variables['time'].size):
+                    var_list[iv][idate, it, ie, :, :] = datalist[it]
 
+    # Now write to file all at once!
+    for iv, v in enumerate(var):
+        rootgroup.variables[v][:] = var_list[iv]
 
     return rootgroup
-
-
-def load_raw_data_single_day(intuple):
-    """
-    For parallel processing!
-    
-    Returns
-    -------
-
-    """
-    inargs, idate, date, radar_mask_type, radar_mask, group, nens, \
-    var, lvl = intuple
-
-
-    print('Loading raw data for: ' + date)
-
-    # Determine radar mask
-    if radar_mask_type == 'total':
-        tmp_mask = np.any(radar_mask, axis=(0, 1))
-    elif radar_mask_type == 'day':
-        tmp_mask = np.any(radar_mask[idate], axis=0)
-    elif radar_mask_type == 'hour':
-        tmp_mask = radar_mask[idate]
-    elif radar_mask_type is False:
-        tmp_mask = False
-
-    # Loop over ensemble members and load fields for entire day
-    for ie in range(nens):
-        for v in var:
-            if group in ['det', 'ens']:
-                if group == 'det':
-                    ens_no = 'det'
-                else:
-                    ens_no = ie + 1
-                datalist = get_datalist_model(inargs, date, ens_no,
-                                              v, tmp_mask, lvl=lvl)
-            elif group == 'obs':
-                datalist = get_datalist_radar(inargs, date, tmp_mask)
-            else:
-                raise Exception('Wrong group.')
-
-            # Save list in NetCDF file
-            # The loop is needed to preserve the mask!
-            #for it in range(rootgroup.variables['time'].size):
-                #rootgroup.variables[v][idate, it, ie, :, :] = datalist[it]
 
 
 def get_datalist_radar(inargs, date, radar_mask=False):
