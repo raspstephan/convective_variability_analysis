@@ -81,6 +81,8 @@ def compute_variance(inargs):
                 if com_list.shape[0] == 0:   # Accout for empty arrays, Need that?
                     com_list = np.empty((0,2))
 
+                if inargs.var == 'm':
+                    sum_list = sum_list * dx * dx   # to convert to mass flux
                 com_ens_list.append(com_list)
                 sum_ens_list.append(sum_list)
 
