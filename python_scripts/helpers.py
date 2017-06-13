@@ -16,15 +16,14 @@ from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
 from subprocess import check_output
 from git import Repo
-from cosmo_utils.helpers import yyyymmddhh_strtotime, yymmddhhmm
+from cosmo_utils.helpers import yyyymmddhh_strtotime
 from numpy.ma import masked_array
-from cosmo_utils.pyncdf import getfobj_ncdf_timeseries, getfobj_ncdf
+from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_erosion
 from scipy.ndimage.filters import maximum_filter
-from skimage import morphology, segmentation
-import multiprocessing as mp
-
+from skimage import morphology
+from scipy.optimize import leastsq
 
 # Define functions
 def create_log_str(inargs, step):
@@ -757,7 +756,7 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
     cld_sum = measurements.sum(field, labels, range(1, ncld+1))
 
     if return_com is not True:
-        return labels, cld_size*dx*dx, cld_sum
+        return labels, cld_size * dx * dx, cld_sum
 
     else:
         num = np.unique(labels).shape[0]  # Number of identified objects
@@ -893,3 +892,29 @@ def pair_correlation_2d(x, y, S, r_max, dr, normalize=True, mask=None):
         g_average[i] = np.mean(g[:, i]) / (np.pi * (rOuter**2 - rInner**2))
 
     return g_average, radii, interior_indices
+
+
+def residual_b_sqrt(p, y, x):
+    b = p
+    err = np.abs(y - np.sqrt(b * x))
+
+    return err
+
+def fit_curve(x, y):
+    """
+    
+    Parameters
+    ----------
+    x
+    y
+
+    Returns
+    -------
+
+    """
+
+    x = np.array(x)
+    y = np.array(y)
+    mask = np.isfinite(y)
+    result = leastsq(residual_b_sqrt, [1], args=(y[mask], x[mask]))
+    return result[0]

@@ -10,7 +10,8 @@ from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from helpers import pp_exists, get_pp_fn, load_raw_data, make_datelist, \
                     identify_clouds, get_config, create_log_str, \
-                    read_netcdf_dataset, save_fig_and_log, get_composite_str
+                    read_netcdf_dataset, save_fig_and_log, get_composite_str, \
+                    fit_curve
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -256,7 +257,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 ################################################################################
 # PLOTTING FUNCTIONS
 ################################################################################
-def diurnal(inargs):
+def plot_diurnal(inargs):
     """
     
     Parameters
@@ -358,7 +359,8 @@ def diurnal(inargs):
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'r_v_individual')
+    save_fig_and_log(fig, rootgroup, inargs, inargs.plot_type + '_' +
+                     inargs.ana_type)
 
 
 def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
@@ -432,6 +434,118 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     ax.set_ylim(0.1, 2.5)
     ax.axhline(y=1, c='gray', zorder=0.1)
 
+
+def plot_std_vs_mean(inargs):
+    """
+    
+    Parameters
+    ----------
+    inargs
+
+    Returns
+    -------
+
+    """
+    dx2 = 2.8e3 ** 2
+
+
+    # Load dataset
+    rootgroup = read_netcdf_dataset(inargs)
+    # The variables have dimensions [date, time, n, x[n], y[n]]
+
+    # Set up figure
+    fig, ax = plt.subplots(1, 1, figsize=(4, 3.5))
+
+    # Data processing
+    # Start with n loop for CC06 fit
+    fit_list = []
+    for i_n, n in enumerate(rootgroup.variables['n'][:]):
+        tmp_std_M = np.sqrt(np.ravel(rootgroup.variables['var_M'][:, :, i_n,
+                                     :, :])) * dx2
+        tmp_mean_M = np.ravel(rootgroup.variables['mean_M'][:, :, i_n, :, :]) * dx2
+        fit_list.append(fit_curve(tmp_mean_M, tmp_std_M))
+
+    print fit_list
+
+    # Bin all the data
+    std_M = np.sqrt(np.ravel(rootgroup.variables['var_M'][:])) * dx2
+    mean_M = np.ravel(rootgroup.variables['mean_M'][:]) * dx2
+
+    mask = np.isfinite(mean_M)
+    std_M = std_M[mask]
+    mean_M = mean_M[mask]
+    print std_M, mean_M
+
+    nbins = 10
+    binedges = np.logspace(6, 11, nbins + 1)
+    bininds = np.digitize(mean_M, binedges)
+    binmeans = []
+    bin5 = []
+    bin25 = []
+    bin75 = []
+    bin95 = []
+    binnum = []
+    for i in range(1, nbins + 1):
+        num = (std_M[bininds == i]).shape[0]
+        if num == 0:
+            binmeans.append(np.nan)
+            bin25.append(np.nan)
+            bin75.append(np.nan)
+            bin5.append(np.nan)
+            bin95.append(np.nan)
+        else:
+            binmeans.append(np.average(std_M[bininds == i]))
+            bin25.append(np.percentile(std_M[bininds == i], 25))
+            bin75.append(np.percentile(std_M[bininds == i], 75))
+            bin5.append(np.percentile(std_M[bininds == i], 5))
+            bin95.append(np.percentile(std_M[bininds == i], 95))
+        binnum.append(num / float((std_M[np.isfinite(std_M)]).shape[0]) * 50)
+    # xmean = (binedges[:-1] + binedges[1:]) / 2.
+    logmean = np.exp((np.log(binedges[:-1]) + np.log(binedges[1:])) / 2.)
+    logleft = np.exp(np.log(binedges[:-1]) + 0.2)
+    logright = np.exp(np.log(binedges[1:]) - 0.2)
+    height = np.array(bin75) - np.array(bin25)
+    width = logright - logleft
+    ax.bar(logleft, height, width, bin25, linewidth=0, color='gray')
+    for i, binmean in enumerate(binmeans):
+        ax.plot([logleft[i], logright[i]], [binmean, binmean],
+                color='black', zorder=2)
+        ax.plot([logmean[i], logmean[i]], [bin5[i], bin95[i]],
+                color='black', zorder=0.5)
+
+    ax.set_xlim(1e6, 1e11)
+    ax.set_ylim(4e6, 2e9)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
+    ax.set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
+
+    ax.set_title('Scaling of standard deviation with mean')
+
+    ax.legend(loc=2, ncol=1, prop={'size': 8})
+
+    ax2 = plt.axes([.65, .3, .2, .2], axisbg='lightgray')
+    blist = np.array(fit_list) / 1.e8
+    x = np.array(rootgroup.variables['n'][:]) * 2.8
+    ax2.plot(x, blist, c='orangered')
+    ax2.scatter(x, blist, c='orangered')
+    ax2.set_title('Slope of CC06 fit', fontsize=8)
+    ax2.set_ylabel(r'$b\times 10^8$', fontsize=8, labelpad=0.05)
+    ax2.set_xlabel('n [km]', fontsize=8, labelpad=0.07)
+    ax2.set_xscale('log')
+    print x
+    ax2.set_xlim(5, 1000)
+    ax2.set_xticks([5, 50, 500])
+    ax2.set_xticklabels([5, 50, 500], fontsize=8)
+    ax2.set_yticks([0.5, 1.5])
+    ax2.set_yticklabels([0.5, 1.5], fontsize=8)
+
+    plt.tight_layout()
+
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean')
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -454,7 +568,9 @@ def main(inargs):
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-    diurnal(inargs)
+    # plot_diurnal(inargs)
+    # plot_diurnal(inargs)
+    plot_std_vs_mean(inargs)
 
 
 if __name__ == '__main__':
