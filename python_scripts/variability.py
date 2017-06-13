@@ -291,19 +291,48 @@ def diurnal(inargs):
 
         mean_M = rootgroup.variables['mean_M'][:, :, i_n, :nx, :ny]
         mean_m = rootgroup.variables['mean_m'][:, :, i_n, :nx, :ny]
+        mean_N = rootgroup.variables['mean_N'][:, :, i_n, :nx, :ny]
         var_M = rootgroup.variables['var_M'][:, :, i_n, :nx, :ny]
+        var_m = rootgroup.variables['var_m'][:, :, i_n, :nx, :ny]
+        var_N = rootgroup.variables['var_N'][:, :, i_n, :nx, :ny]
 
         # Flatten x and y dimensions
         mean_M = mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
                        mean_M.shape[2] * mean_M.shape[3])
         mean_m = mean_m.reshape(mean_m.shape[0], mean_m.shape[1],
                                 mean_m.shape[2] * mean_m.shape[3])
+        mean_N = mean_N.reshape(mean_N.shape[0], mean_N.shape[1],
+                                mean_N.shape[2] * mean_N.shape[3])
         var_M = var_M.reshape(var_M.shape[0], var_M.shape[1],
                               var_M.shape[2] * var_M.shape[3])
+        var_m = var_m.reshape(var_m.shape[0], var_m.shape[1],
+                              var_m.shape[2] * var_m.shape[3])
+        var_N = var_N.reshape(var_N.shape[0], var_N.shape[1],
+                              var_N.shape[2] * var_N.shape[3])
         # Array now has dimensions [date, time, points]
 
         # Computations
-        r_v = var_M / (2. * mean_M * mean_m)
+        if inargs.ana_type == 'r_v':
+            data = var_M / (2. * mean_M * mean_m)
+            ylabel = r'$R_V$'
+        elif inargs.ana_type == 'alpha':
+            data = var_N / mean_N
+            ylabel = r'$\alpha$'
+        elif inargs.ana_type == 'beta':
+            data = var_m / (mean_m**2)
+            ylabel = r'$\beta$'
+        elif inargs.ana_type == 'r_v_alpha':
+            data = var_M / ((1 + var_N / mean_N) * mean_M * mean_m)
+            ylabel = r'$\alpha$-adjusted $R_V$'
+        elif inargs.ana_type == 'r_v_beta':
+            data = var_M / ((1 + var_m / (mean_m**2)) * mean_M * mean_m)
+            ylabel = r'$\beta$-adjusted $R_V$'
+        elif inargs.ana_type == 'r_v_alpha_beta':
+            data = var_M / ((var_N / mean_N + var_m / (mean_m**2)) * mean_M *
+                            mean_m)
+            ylabel = r'$\alpha$ and $\beta$-adjusted $R_V$'
+        else:
+            raise Exception('ana_type wrong!')
 
         # Loop over days
         for iday in range(n_days):
@@ -323,13 +352,20 @@ def diurnal(inargs):
                 if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
                     axflat[iday].set_xlabel('Time [UTC]')
                 if iday % n_cols == 0:   # Only left column
-                    axflat[iday].set_ylabel(r'$R_V$')
+                    axflat[iday].set_ylabel(ylabel)
 
             # Get the data to be plotted
-            r_v_daily_mean = np.nanmean(r_v[iday], axis=1)
+            daily_mean = np.nanmean(data[iday], axis=1)
+            per25 = np.nanpercentile(data[iday], 25, axis=1)
+            per75 = np.nanpercentile(data[iday], 75, axis=1)
 
-            axflat[iday].plot(rootgroup.variables['time'][:], r_v_daily_mean,
-                              label=labellist[i], c=clist[i])
+            axflat[iday].plot(rootgroup.variables['time'][:], daily_mean,
+                              label=labellist[i], c=clist[i], zorder=1)
+            axflat[iday].fill_between(rootgroup.variables['time'][:],
+                                      per25, per75,
+                                      where=per25 < per75,
+                                      linewidth=0, facecolor=clist[i],
+                                      alpha=0.3, zorder=0.5)
 
 
     # Finish figure
@@ -426,6 +462,12 @@ if __name__ == '__main__':
                         type=int,
                         default=3,
                         help='Size of search matrix for cloud separation')
+    parser.add_argument('--ana_type',
+                        type=str,
+                        default='r_v',
+                        help='Analysis to be done. '
+                             '[r_v, alpha, beta, r_v_alpha, r_v_beta, '
+                             'r_v_alpha_beta]')
 
     parser.add_argument('--config_file',
                         type=str,
