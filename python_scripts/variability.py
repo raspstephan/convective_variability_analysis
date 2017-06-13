@@ -7,9 +7,10 @@ Description:  Compute variance and mean of coarse grained fields
 
 import argparse
 from netCDF4 import Dataset
+from datetime import datetime, timedelta
 from helpers import pp_exists, get_pp_fn, load_raw_data, make_datelist, \
                     identify_clouds, get_config, create_log_str, \
-                    read_netcdf_dataset
+                    read_netcdf_dataset, save_fig_and_log
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -271,18 +272,76 @@ def diurnal(inargs):
     rootgroup = read_netcdf_dataset(inargs)
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
+    # Set up figure
+    n_days = rootgroup.dimensions['date'].size
+    n_cols = 4
+    n_rows = int(np.ceil(float(n_days) / n_cols))
+
+    fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
+                              figsize=(10, 3 * n_rows))
+    axflat = np.ravel(axmat)
+    clist = ['#3366ff', '#009933', '#ff3300']
+    labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
+
     # Do some further calculations to get daily composite
-    for i_n, n in enumerate(rootgroup.variables['n']):
+    for i, i_n in enumerate([6, 3, 0]):
+        n = rootgroup.variables['n'][i_n]
         nx = int(np.floor(get_config(inargs, 'domain', 'ana_irange') / n))
         ny = int(np.floor(get_config(inargs, 'domain', 'ana_jrange') / n))
 
         mean_M = rootgroup.variables['mean_M'][:, :, i_n, :nx, :ny]
+        mean_m = rootgroup.variables['mean_m'][:, :, i_n, :nx, :ny]
+        var_M = rootgroup.variables['var_M'][:, :, i_n, :nx, :ny]
 
-        print mean_M.shape
         # Flatten x and y dimensions
-        mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
+        mean_M = mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
                        mean_M.shape[2] * mean_M.shape[3])
-        print mean_M.shape
+        mean_m = mean_m.reshape(mean_m.shape[0], mean_m.shape[1],
+                                mean_m.shape[2] * mean_m.shape[3])
+        var_M = var_M.reshape(var_M.shape[0], var_M.shape[1],
+                              var_M.shape[2] * var_M.shape[3])
+        # Array now has dimensions [date, time, points]
+
+        # Computations
+        r_v = var_M / (2. * mean_M * mean_m)
+
+        # Loop over days
+        for iday in range(n_days):
+            if i == 0:   # Do once for each axis
+                dateobj = (
+                timedelta(seconds=int(rootgroup.variables['date'][iday])) +
+                datetime(1, 1, 1))
+                datestr = dateobj.strftime(
+                    get_config(inargs, 'plotting', 'date_fmt'))
+                axflat[iday].set_title(datestr)
+                #axflat[iday].set_yscale('log')
+                #axflat[iday].set_yticks([0.5, 1, 2])
+                #axflat[iday].set_yticklabels([0.5, 1, 2])
+                #axflat[iday].set_yticks(np.arange(0.1, 3, 0.1), minor='True')
+                axflat[iday].set_ylim(0.1, 3)
+                axflat[iday].axhline(y=1, c='gray', zorder=0.1)
+                if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
+                    axflat[iday].set_xlabel('Time [UTC]')
+                if iday % n_cols == 0:   # Only left column
+                    axflat[iday].set_ylabel(r'$R_V$')
+
+            # Get the data to be plotted
+            r_v_daily_mean = np.nanmean(r_v[iday], axis=1)
+
+            axflat[iday].plot(rootgroup.variables['time'][:], r_v_daily_mean,
+                              label=labellist[i], c=clist[i])
+
+
+    # Finish figure
+    axflat[0].legend(loc=0)
+
+    plt.tight_layout()
+
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'r_v_individual')
+
+
+
 
 
 ################################################################################
