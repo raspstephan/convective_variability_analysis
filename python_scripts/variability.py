@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from helpers import pp_exists, get_pp_fn, load_raw_data, make_datelist, \
                     identify_clouds, get_config, create_log_str, \
-                    read_netcdf_dataset, save_fig_and_log
+                    read_netcdf_dataset, save_fig_and_log, get_composite_str
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -273,13 +273,20 @@ def diurnal(inargs):
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
     # Set up figure
-    n_days = rootgroup.dimensions['date'].size
-    n_cols = 4
-    n_rows = int(np.ceil(float(n_days) / n_cols))
+    if inargs.plot_type == 'individual':
+        n_days = rootgroup.dimensions['date'].size
+        n_cols = 4
+        n_rows = int(np.ceil(float(n_days) / n_cols))
 
-    fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
-                              figsize=(10, 3 * n_rows))
-    axflat = np.ravel(axmat)
+        fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
+                                  figsize=(10, 3 * n_rows))
+        axflat = np.ravel(axmat)
+
+    elif inargs.plot_type == 'composite':
+        fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    else:
+        raise Exception('wrong Plot type!')
+
     clist = ['#3366ff', '#009933', '#ff3300']
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
 
@@ -334,42 +341,19 @@ def diurnal(inargs):
         else:
             raise Exception('ana_type wrong!')
 
-        # Loop over days
-        for iday in range(n_days):
-            if i == 0:   # Do once for each axis
-                dateobj = (
-                timedelta(seconds=int(rootgroup.variables['date'][iday])) +
-                datetime(1, 1, 1))
-                datestr = dateobj.strftime(
-                    get_config(inargs, 'plotting', 'date_fmt'))
-                axflat[iday].set_title(datestr)
-                #axflat[iday].set_yscale('log')
-                #axflat[iday].set_yticks([0.5, 1, 2])
-                #axflat[iday].set_yticklabels([0.5, 1, 2])
-                #axflat[iday].set_yticks(np.arange(0.1, 3, 0.1), minor='True')
-                axflat[iday].set_ylim(0.1, 3)
-                axflat[iday].axhline(y=1, c='gray', zorder=0.1)
-                if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
-                    axflat[iday].set_xlabel('Time [UTC]')
-                if iday % n_cols == 0:   # Only left column
-                    axflat[iday].set_ylabel(ylabel)
+        if inargs.plot_type == 'individual':
+            for iday, date in enumerate(rootgroup.variables['date']):
+                plot_individual_panel(inargs, rootgroup, i, iday, axflat,
+                                      n_cols, n_rows, ylabel, data, labellist,
+                                      clist)
 
-            # Get the data to be plotted
-            daily_mean = np.nanmean(data[iday], axis=1)
-            per25 = np.nanpercentile(data[iday], 25, axis=1)
-            per75 = np.nanpercentile(data[iday], 75, axis=1)
-
-            axflat[iday].plot(rootgroup.variables['time'][:], daily_mean,
-                              label=labellist[i], c=clist[i], zorder=1)
-            axflat[iday].fill_between(rootgroup.variables['time'][:],
-                                      per25, per75,
-                                      where=per25 < per75,
-                                      linewidth=0, facecolor=clist[i],
-                                      alpha=0.3, zorder=0.5)
-
+        else:
+            plot_composite(inargs, rootgroup, i, data, ax, labellist, clist,
+                           ylabel)
 
     # Finish figure
-    axflat[0].legend(loc=0)
+    if inargs.plot_type == 'individual':
+        axflat[0].legend(loc=0)
 
     plt.tight_layout()
 
@@ -377,8 +361,76 @@ def diurnal(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'r_v_individual')
 
 
+def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
+                          ylabel, data, labellist, clist):
+    """
+    
+    Returns
+    -------
+
+    """
+    if i == 0:  # Do once for each axis
+        dateobj = (
+            timedelta(seconds=int(rootgroup.variables['date'][iday])) +
+            datetime(1, 1, 1))
+        datestr = dateobj.strftime(
+            get_config(inargs, 'plotting', 'date_fmt'))
+        axflat[iday].set_title(datestr)
+        # axflat[iday].set_yscale('log')
+        # axflat[iday].set_yticks([0.5, 1, 2])
+        # axflat[iday].set_yticklabels([0.5, 1, 2])
+        # axflat[iday].set_yticks(np.arange(0.1, 3, 0.1), minor='True')
+        axflat[iday].set_ylim(0.1, 2.5)
+        axflat[iday].axhline(y=1, c='gray', zorder=0.1)
+        if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
+            axflat[iday].set_xlabel('Time [UTC]')
+        if iday % n_cols == 0:  # Only left column
+            axflat[iday].set_ylabel(ylabel)
+
+    # Get the data to be plotted
+    daily_mean = np.nanmean(data[iday], axis=1)
+    per25 = np.nanpercentile(data[iday], 25, axis=1)
+    per75 = np.nanpercentile(data[iday], 75, axis=1)
+
+    axflat[iday].plot(rootgroup.variables['time'][:], daily_mean,
+                      label=labellist[i], c=clist[i], zorder=1)
+    axflat[iday].fill_between(rootgroup.variables['time'][:],
+                              per25, per75,
+                              where=per25 < per75,
+                              linewidth=0, facecolor=clist[i],
+                              alpha=0.3, zorder=0.5)
 
 
+def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
+    """
+    
+    Parameters
+    ----------
+    inargs
+
+    Returns
+    -------
+
+    """
+
+    composite_mean = np.nanmean(data, axis=(0,2))
+    per25 = np.nanpercentile(data, 25, axis=(0,2))
+    per75 = np.nanpercentile(data, 75, axis=(0,2))
+
+    ax.plot(rootgroup.variables['time'][:], composite_mean,
+                      label=labellist[i], c=clist[i], zorder=1)
+    ax.fill_between(rootgroup.variables['time'][:],
+                              per25, per75,
+                              where=per25 < per75,
+                              linewidth=0, facecolor=clist[i],
+                              alpha=0.3, zorder=0.5)
+
+    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+    ax.set_title(comp_str)
+    ax.legend(loc=0)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(0.1, 2.5)
+    ax.axhline(y=1, c='gray', zorder=0.1)
 
 ################################################################################
 # MAIN FUNCTION
@@ -468,6 +520,10 @@ if __name__ == '__main__':
                         help='Analysis to be done. '
                              '[r_v, alpha, beta, r_v_alpha, r_v_beta, '
                              'r_v_alpha_beta]')
+    parser.add_argument('--plot_type',
+                        type=str,
+                        default='composite',
+                        help='Plot type [individual, composite]')
 
     parser.add_argument('--config_file',
                         type=str,
