@@ -26,3 +26,4 @@ colors:
 
 plotting:
     date_fmt: '%d %b'
+    page_width: 7.87

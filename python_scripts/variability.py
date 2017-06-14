@@ -259,6 +259,8 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 ################################################################################
 # PLOTTING FUNCTIONS
 ################################################################################
+
+
 def plot_diurnal(inargs):
     """
     
@@ -276,19 +278,18 @@ def plot_diurnal(inargs):
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
     # Set up figure
-    if inargs.plot_type == 'individual':
+    pw = get_config(inargs, 'plotting', 'page_width')
+    if inargs.individual_days:
         n_days = rootgroup.dimensions['date'].size
         n_cols = 4
         n_rows = int(np.ceil(float(n_days) / n_cols))
 
         fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
-                                  figsize=(10, 3 * n_rows))
+                                  figsize=(pw, 3 * n_rows))
         axflat = np.ravel(axmat)
 
-    elif inargs.plot_type == 'composite':
-        fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     else:
-        raise Exception('wrong Plot type!')
+        fig, ax = plt.subplots(1, 1, figsize=(pw / 3., pw / 3.))
 
     clist = ['#3366ff', '#009933', '#ff3300']
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
@@ -322,29 +323,27 @@ def plot_diurnal(inargs):
         # Array now has dimensions [date, time, points]
 
         # Computations
-        if inargs.ana_type == 'r_v':
+        if inargs.plot_type == 'r_v':
             data = var_M / (2. * mean_M * mean_m)
             ylabel = r'$R_V$'
-        elif inargs.ana_type == 'alpha':
+        elif inargs.plot_type == 'alpha':
             data = var_N / mean_N
             ylabel = r'$\alpha$'
-        elif inargs.ana_type == 'beta':
+        elif inargs.plot_type == 'beta':
             data = var_m / (mean_m**2)
             ylabel = r'$\beta$'
-        elif inargs.ana_type == 'r_v_alpha':
+        elif inargs.plot_type == 'r_v_alpha':
             data = var_M / ((1 + var_N / mean_N) * mean_M * mean_m)
             ylabel = r'$\alpha$-adjusted $R_V$'
-        elif inargs.ana_type == 'r_v_beta':
+        elif inargs.plot_type == 'r_v_beta':
             data = var_M / ((1 + var_m / (mean_m**2)) * mean_M * mean_m)
             ylabel = r'$\beta$-adjusted $R_V$'
-        elif inargs.ana_type == 'r_v_alpha_beta':
+        elif inargs.plot_type == 'r_v_alpha_beta':
             data = var_M / ((var_N / mean_N + var_m / (mean_m**2)) * mean_M *
                             mean_m)
             ylabel = r'$\alpha$ and $\beta$-adjusted $R_V$'
-        else:
-            raise Exception('ana_type wrong!')
 
-        if inargs.plot_type == 'individual':
+        if inargs.individual_days:
             for iday, date in enumerate(rootgroup.variables['date']):
                 plot_individual_panel(inargs, rootgroup, i, iday, axflat,
                                       n_cols, n_rows, ylabel, data, labellist,
@@ -448,39 +447,44 @@ def plot_std_vs_mean(inargs):
     -------
 
     """
-    dx2 = 2.8e3 ** 2
-
 
     # Load dataset
     rootgroup = read_netcdf_dataset(inargs)
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
     # Set up figure
-    fig, ax = plt.subplots(1, 1, figsize=(4, 3.5))
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * get_config(inargs, 'plotting',
+                                                           'page_width'), 3.5))
 
     # Data processing
+    var = inargs.std_vs_mean_var
+    if not var in ['M', 'TTENS']:
+        raise Exception('Wrong variable for std_vs_mean.')
     # Start with n loop for CC06 fit
     fit_list = []
     for i_n, n in enumerate(rootgroup.variables['n'][:]):
-        tmp_std_M = np.sqrt(np.ravel(rootgroup.variables['var_M'][:, :, i_n,
-                                     :, :])) * dx2
-        tmp_mean_M = np.ravel(rootgroup.variables['mean_M'][:, :, i_n, :, :]) * dx2
-        fit_list.append(fit_curve(tmp_mean_M, tmp_std_M))
+        tmp_std = np.sqrt(np.ravel(rootgroup.variables['var_' + var][:, :, i_n,
+                                     :, :]))
+        tmp_mean = np.ravel(rootgroup.variables['mean_' + var][:, :, i_n, :, :])
+        fit_list.append(fit_curve(tmp_mean, tmp_std))
 
     print fit_list
 
     # Bin all the data
-    std_M = np.sqrt(np.ravel(rootgroup.variables['var_M'][:])) * dx2
-    mean_M = np.ravel(rootgroup.variables['mean_M'][:]) * dx2
+    std = np.sqrt(np.ravel(rootgroup.variables['var_' + var][:]))
+    mean = np.ravel(rootgroup.variables['mean_' + var][:])
 
-    mask = np.isfinite(mean_M)
-    std_M = std_M[mask]
-    mean_M = mean_M[mask]
-    print std_M, mean_M
+    mask = np.isfinite(mean)
+    std = std[mask]
+    mean = mean[mask]
+    print std, mean
 
     nbins = 10
-    binedges = np.logspace(6, 11, nbins + 1)
-    bininds = np.digitize(mean_M, binedges)
+    if inargs.std_vs_mean_var == 'M':
+        binedges = np.logspace(6, 11, nbins + 1)
+    else:
+        binedges = np.logspace(2, 7, nbins + 1)
+    bininds = np.digitize(mean, binedges)
     binmeans = []
     bin5 = []
     bin25 = []
@@ -488,7 +492,7 @@ def plot_std_vs_mean(inargs):
     bin95 = []
     binnum = []
     for i in range(1, nbins + 1):
-        num = (std_M[bininds == i]).shape[0]
+        num = (std[bininds == i]).shape[0]
         if num == 0:
             binmeans.append(np.nan)
             bin25.append(np.nan)
@@ -496,12 +500,12 @@ def plot_std_vs_mean(inargs):
             bin5.append(np.nan)
             bin95.append(np.nan)
         else:
-            binmeans.append(np.average(std_M[bininds == i]))
-            bin25.append(np.percentile(std_M[bininds == i], 25))
-            bin75.append(np.percentile(std_M[bininds == i], 75))
-            bin5.append(np.percentile(std_M[bininds == i], 5))
-            bin95.append(np.percentile(std_M[bininds == i], 95))
-        binnum.append(num / float((std_M[np.isfinite(std_M)]).shape[0]) * 50)
+            binmeans.append(np.average(std[bininds == i]))
+            bin25.append(np.percentile(std[bininds == i], 25))
+            bin75.append(np.percentile(std[bininds == i], 75))
+            bin5.append(np.percentile(std[bininds == i], 5))
+            bin95.append(np.percentile(std[bininds == i], 95))
+        binnum.append(num / float((std[np.isfinite(std)]).shape[0]) * 50)
     # xmean = (binedges[:-1] + binedges[1:]) / 2.
     logmean = np.exp((np.log(binedges[:-1]) + np.log(binedges[1:])) / 2.)
     logleft = np.exp(np.log(binedges[:-1]) + 0.2)
@@ -515,38 +519,45 @@ def plot_std_vs_mean(inargs):
         ax.plot([logmean[i], logmean[i]], [bin5[i], bin95[i]],
                 color='black', zorder=0.5)
 
-    ax.set_xlim(1e6, 1e11)
-    ax.set_ylim(4e6, 2e9)
+    if inargs.std_vs_mean_var == 'M':
+        ax.set_xlim(1e6, 1e11)
+        ax.set_ylim(4e6, 2e9)
+        ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
+        ax.set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
+    else:
+        ax.set_xlim(1e2, 1e7)
+        ax.set_ylim(1e2,5e6)
+        ax.set_xlabel(r'$\langle Q \rangle * A$ [kg/s * m^2]')
+        ax.set_ylabel(r'$\langle (\delta Q)^2 \rangle^{1/2} * A$ [kg/s * m^2]')
+
     ax.set_xscale('log')
     ax.set_yscale('log')
-
-    ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
-    ax.set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
 
     ax.set_title('Scaling of standard deviation with mean')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})
 
-    ax2 = plt.axes([.65, .3, .2, .2], axisbg='lightgray')
-    blist = np.array(fit_list) / 1.e8
-    x = np.array(rootgroup.variables['n'][:]) * 2.8
-    ax2.plot(x, blist, c='orangered')
-    ax2.scatter(x, blist, c='orangered')
-    ax2.set_title('Slope of CC06 fit', fontsize=8)
-    ax2.set_ylabel(r'$b\times 10^8$', fontsize=8, labelpad=0.05)
-    ax2.set_xlabel('n [km]', fontsize=8, labelpad=0.07)
-    ax2.set_xscale('log')
-    print x
-    ax2.set_xlim(5, 1000)
-    ax2.set_xticks([5, 50, 500])
-    ax2.set_xticklabels([5, 50, 500], fontsize=8)
-    ax2.set_yticks([0.5, 1.5])
-    ax2.set_yticklabels([0.5, 1.5], fontsize=8)
+    if inargs.std_vs_var_plot_inlay:
+        ax2 = plt.axes([.65, .3, .2, .2], axisbg='lightgray')
+        blist = np.array(fit_list) / 1.e8
+        x = np.array(rootgroup.variables['n'][:]) * 2.8
+        ax2.plot(x, blist, c='orangered')
+        ax2.scatter(x, blist, c='orangered')
+        ax2.set_title('Slope of CC06 fit', fontsize=8)
+        ax2.set_ylabel(r'$b\times 10^8$', fontsize=8, labelpad=0.05)
+        ax2.set_xlabel('n [km]', fontsize=8, labelpad=0.07)
+        ax2.set_xscale('log')
+        ax2.set_xlim(5, 1000)
+        ax2.set_xticks([5, 50, 500])
+        ax2.set_xticklabels([5, 50, 500], fontsize=8)
+        ax2.set_yticks([0.5, 1.5])
+        ax2.set_yticklabels([0.5, 1.5], fontsize=8)
 
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean')
+    save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean_' +
+                     inargs.std_vs_mean_var)
 
 ################################################################################
 # MAIN FUNCTION
@@ -570,9 +581,13 @@ def main(inargs):
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-    # plot_diurnal(inargs)
-    # plot_diurnal(inargs)
-    plot_std_vs_mean(inargs)
+    if inargs.plot_type in ['r_v', 'alpha', 'beta', 'r_v_alpha', 'r_v_beta',
+                            'r_v_alpha_beta']:
+        plot_diurnal(inargs)
+    elif inargs.plot_type == 'std_vs_mean':
+        plot_std_vs_mean(inargs)
+    else:
+        print('No or wrong plot_type. Nothing plotted.')
 
 
 if __name__ == '__main__':
@@ -581,6 +596,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=description)
 
+    # Analysis arguments
     parser.add_argument('--date_start',
                         type=str,
                         help='Start date of analysis in yyyymmddhh')
@@ -632,17 +648,31 @@ if __name__ == '__main__':
                         type=int,
                         default=3,
                         help='Size of search matrix for cloud separation')
-    parser.add_argument('--ana_type',
-                        type=str,
-                        default='r_v',
-                        help='Analysis to be done. '
-                             '[r_v, alpha, beta, r_v_alpha, r_v_beta, '
-                             'r_v_alpha_beta]')
+
+    # Plotting arguments
+    parser.add_argument('--individual_days',
+                        dest='individual_days',
+                        action='store_true',
+                        help='If given, plots all days individually for the '
+                             'CC06 plots.')
+    parser.set_defaults(individual_days=False)
     parser.add_argument('--plot_type',
                         type=str,
-                        default='composite',
-                        help='Plot type [individual, composite]')
+                        default='',
+                        help='Plot type [std_vs_mean, r_v, alpha, beta, '
+                             'r_v_alpha, r_v_beta, r_v_alpha_beta]')
+    # For std_vs_mean
+    parser.add_argument('--std_vs_mean_var',
+                        type=str,
+                        default='M',
+                        help='Which variable to use. [M, TTENS]')
+    parser.add_argument('--std_vs_mean_plot_inlay',
+                        dest='std_vs_mean_plot_inlay',
+                        action='store_true',
+                        help='If given, plots fit inlay for std_vs_mean.')
+    parser.set_defaults(std_vs_mean_plot_inlay=False)
 
+    # General options
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
