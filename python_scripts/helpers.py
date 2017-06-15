@@ -375,22 +375,21 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     # If required load radar_mask
     if radar_mask_type is not False:
         radar_mask = get_radar_mask(inargs)
-    else:
-        radar_mask = None
+        mask_var = rootgroup.createVariable('mask', 'i4', ['date', 'time', 'x',
+                                                           'y'])
+        # Determine radar mask
+        if radar_mask_type == 'total':
+            mask_var[:] = np.any(radar_mask, axis=(0, 1))
+        elif radar_mask_type == 'day':
+            mask_var[:] = np.any(radar_mask, axis=1)
+        elif radar_mask_type == 'hour':
+            mask_var[:] = radar_mask
 
     # Load the data, process and save it in NetCDF file
     for idate, date in enumerate(make_datelist(inargs)):
         print('Loading raw data for: ' + date)
 
-        # Determine radar mask
-        if radar_mask_type == 'total':
-            tmp_mask = np.any(radar_mask, axis=(0, 1))
-        elif radar_mask_type == 'day':
-            tmp_mask = np.any(radar_mask[idate], axis=0)
-        elif radar_mask_type == 'hour':
-            tmp_mask = radar_mask[idate]
-        elif radar_mask_type is False:
-            tmp_mask = False
+
 
         # Loop over ensemble members and load fields for entire day
         for ie in range(nens):
@@ -400,10 +399,10 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
                         ens_no = 'det'
                     else:
                         ens_no = ie + 1
-                    datalist = get_datalist_model(inargs, date, ens_no,
-                                                  v, tmp_mask, lvl=lvl)
+                    datalist = get_datalist_model(inargs, date, ens_no, v,
+                                                  lvl=lvl)
                 elif group == 'obs':
-                    datalist = get_datalist_radar(inargs, date, tmp_mask)
+                    datalist = get_datalist_radar(inargs, date)
                 else:
                     raise Exception('Wrong group.')
 
@@ -419,7 +418,7 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     return rootgroup
 
 
-def get_datalist_radar(inargs, date, radar_mask=False):
+def get_datalist_radar(inargs, date):
     """
     Get data time series for radar observation.
     Parameters
@@ -464,17 +463,7 @@ def get_datalist_radar(inargs, date, radar_mask=False):
     l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
         get_domain_limits(inargs)
     for i, data in enumerate(datalist):
-        if radar_mask is False:
-            tmp_mask = np.zeros(data[l11_rad:l12_rad, l21_rad:l22_rad].shape)
-        elif radar_mask.ndim == 3:
-            tmp_mask = radar_mask[i, :, :]
-        elif radar_mask.ndim == 2:
-            tmp_mask = radar_mask
-        else:
-            raise Exception('Wrong dimensions for radar mask.')
-
-        datalist[i] = masked_array(data[l11_rad:l12_rad, l21_rad:l22_rad],
-                                   mask=tmp_mask)
+        datalist[i] = data[l11_rad:l12_rad, l21_rad:l22_rad]
 
     return datalist
 
@@ -535,21 +524,7 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask=False, lvl=None):
         if data.ndim == 3:
             data = data[lvl]
 
-        if radar_mask is False:
-            tmp_mask = np.zeros(data[l11:l12, l21:l22].shape)
-        elif radar_mask.ndim == 3:
-            tmp_mask = radar_mask[i, :, :]
-        elif radar_mask.ndim == 2:
-            tmp_mask = radar_mask
-        else:
-            raise Exception('Wrong dimensions for radar mask.')
-
-        datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                   mask=tmp_mask)
-        if var == 'TAU_C':   # Additionally mask out nans
-            datalist[i] = masked_array(data[l11:l12, l21:l22],
-                                       mask=tmp_mask + np.isnan(
-                                           data[l11:l12, l21:l22]))
+        datalist[i] = data[l11:l12, l21:l22]
     return datalist
 
 

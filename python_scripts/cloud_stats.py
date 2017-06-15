@@ -1,5 +1,5 @@
 """
-Filename:     prec_stats.py
+Filename:     cloud_stats.py
 Author:       Stephan Rasp, s.rasp@lmu.de
 Description:  Compute and plot precipitation histograms of deterministic and 
               ensemble runs and observations
@@ -16,7 +16,6 @@ from helpers import make_datelist, get_pp_fn, create_log_str, \
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
-from scipy.stats import binned_statistic
 
 
 ################################################################################
@@ -38,19 +37,19 @@ def create_bin_edges(inargs):
       Bin edges
     """
 
-    prec_freq_binedges = inargs.cld_freq_binedges
+    prec_freq_binedges = inargs.prec_freq_binedges
     cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
                                     inargs.cld_size_bin_triplet[1],
                                     inargs.cld_size_bin_triplet[2])
-    cld_prec_binedges = np.linspace(inargs.cld_prec_bin_triplet[0],
-                                    inargs.cld_prec_bin_triplet[1],
-                                    inargs.cld_prec_bin_triplet[2])
+    cld_prec_binedges = np.linspace(inargs.cld_sum_bin_triplet[0],
+                                    inargs.cld_sum_bin_triplet[1],
+                                    inargs.cld_sum_bin_triplet[2])
     cld_size_sep_binedges = np.linspace(inargs.cld_size_sep_bin_triplet[0],
                                         inargs.cld_size_sep_bin_triplet[1],
                                         inargs.cld_size_sep_bin_triplet[2])
-    cld_prec_sep_binedges = np.linspace(inargs.cld_prec_sep_bin_triplet[0],
-                                        inargs.cld_prec_sep_bin_triplet[1],
-                                        inargs.cld_prec_sep_bin_triplet[2])
+    cld_prec_sep_binedges = np.linspace(inargs.cld_sum_sep_bin_triplet[0],
+                                        inargs.cld_sum_sep_bin_triplet[1],
+                                        inargs.cld_sum_sep_bin_triplet[2])
     return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
            cld_size_sep_binedges, cld_prec_sep_binedges
 
@@ -78,11 +77,10 @@ def create_netcdf(inargs):
                           inargs.time_inc)
     rdf_radius = np.arange(0., inargs.rdf_r_max + inargs.rdf_dr, inargs.rdf_dr)
     rdf_radius = (rdf_radius[:-1] + rdf_radius[1:]) / 2.
-    groups = ['obs', 'det', 'ens']
+
     dimensions = {
         'time': timearray,
         'date': datearray,
-        'prec_freq_bins': np.array(prec_freq_binedges[1:]),
         'cld_size_bins': np.array(cld_size_binedges[1:]),
         'cld_prec_bins': np.array(cld_prec_binedges[1:]),
         'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
@@ -90,7 +88,6 @@ def create_netcdf(inargs):
         'rdf_radius': rdf_radius
     }
     variables = {
-        'prec_freq': ['date', 'time', 'prec_freq_bins'],
         'cld_size': ['date', 'time', 'cld_size_bins'],
         'cld_prec': ['date', 'time', 'cld_prec_bins'],
         'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
@@ -102,6 +99,14 @@ def create_netcdf(inargs):
         'rdf': ['date', 'time', 'rdf_radius'],
         'rdf_sep': ['date', 'time', 'rdf_radius'],
     }
+    if inargs.var == 'PREC_ACCUM':
+        groups = ['obs', 'det', 'ens']
+        dimensions.update({'prec_freq_bins': np.array(prec_freq_binedges[1:])})
+        variables.update({'prec_freq': ['date', 'time', 'prec_freq_bins']})
+    elif inargs.var == 'm':
+        groups = ['ens', 'det']
+    else:
+        raise Exception('Wrong variable.')
 
     pp_fn = get_pp_fn(inargs)
 
@@ -137,7 +142,8 @@ def create_netcdf(inargs):
     return rootgroup
 
 
-def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
+# noinspection PyTupleAssignmentBalance
+def compute_cloud_histograms(inargs, raw_data, rootgroup, group, idate, it, ie,
                              cld_size_binedges, cld_prec_binedges,
                              cld_size_sep_binedges, cld_prec_sep_binedges):
     """
@@ -175,11 +181,27 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
       
     """
     dx = float(get_config(inargs, 'domain', 'dx'))
-    data[data.mask] = 0  # set all masked points to zero, otherwise strage...
+
+    # Identify the clouds
+    if inargs.var is 'm':
+        field = raw_data.variables['W'][idate, it, ie]
+        opt_field = (raw_data.variables['QC'][idate, it, ie] +
+                     raw_data.variables['QI'][idate, it, ie] +
+                     raw_data.variables['QS'][idate, it, ie])
+        rho = raw_data.variables['RHO'][idate, it, ie]
+        opt_thresh = 0.
+
+    else:
+        field = raw_data.variables['PREC_ACCUM'][idate, it, ie]
+        opt_field = None
+        rho = None
+        opt_thresh = None
+        # set all masked points to zero
+        field[raw_data.variables['mask'][idate, it]] = 0
 
     labels, cld_size_list, cld_prec_list = \
-        identify_clouds(data, inargs.thresh, water=False,
-                        dx=dx)
+        identify_clouds(field, inargs.thresh, opt_field=opt_field,
+                        water=False, rho=rho, dx=dx, opt_thresh=opt_thresh)
 
     # Convert to kg / h
     cld_prec_list = np.array(cld_prec_list) * dx * dx
@@ -199,8 +221,10 @@ def compute_cloud_histograms(inargs, data, rootgroup, group, idate, it, ie,
     else:
         footprint = inargs.footprint
     labels_sep, cld_size_sep_list, cld_prec_sep_list = \
-        identify_clouds(data, inargs.thresh, water=True,
-                        dx=dx, neighborhood=footprint)
+        identify_clouds(field, inargs.thresh, opt_field=opt_field,
+                        water=True, rho=rho,
+                        dx=dx, neighborhood=footprint,
+                        opt_thresh=opt_thresh)
 
     # Convert to kg / h
     cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
@@ -267,7 +291,7 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     # End function
 
 
-def prec_stats(inargs):
+def cloud_stats(inargs):
     """
     Compute and save precipitation amount and cloud size and cloud 
     precipitation histograms and radial distrubution function.
@@ -288,22 +312,30 @@ def prec_stats(inargs):
     rootgroup = create_netcdf(inargs)
 
     for group in rootgroup.groups:
-        raw_data = load_raw_data(inargs, 'PREC_ACCUM', group,
-                                 radar_mask_type=inargs.radar_mask)
+        if inargs.var == 'PREC_ACCUM':
+            raw_data = load_raw_data(inargs, 'PREC_ACCUM', group,
+                                     radar_mask_type=inargs.radar_mask)
+        else:
+            raw_data = load_raw_data(inargs, ['W', 'QC', 'QI', 'QS', 'RHO'],
+                                     group, radar_mask_type=inargs.radar_mask)
+
         for idate, date in enumerate(make_datelist(inargs)):
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
                 # Now do the actually new calculation
                 for it in range(rootgroup.groups[group].dimensions['time'].
                                 size):
-                    data = raw_data.variables['data'][idate, it, ie]
 
-                    # 1st: calculate totla precipitation histogram
-                    rootgroup.groups[group].variables['prec_freq']\
-                        [idate, it, :, ie] = np.histogram(data,
-                                                          prec_freq_binedges)[0]
+                    if inargs.var == 'PREC_ACCUM':
+                        # 1st: calculate totla precipitation histogram
+                        data = raw_data.variables['PREC_ACCUM'][idate, it, ie]
+                        rootgroup.groups[group].variables['prec_freq']\
+                            [idate, it, :, ie] = np.histogram(data,
+                                                        prec_freq_binedges)[0]
+                    else:
+                        data = raw_data.variables['W'][idate, it, ie]
 
                     # 2nd: compute cloud size and precipitation histograms
-                    tmp = compute_cloud_histograms(inargs, data, rootgroup,
+                    tmp = compute_cloud_histograms(inargs, raw_data, rootgroup,
                                                    group, idate, it, ie,
                                                    cld_size_binedges,
                                                    cld_prec_binedges,
@@ -317,7 +349,7 @@ def prec_stats(inargs):
                                         for RDF')
 
                     compute_rdfs(inargs, labels, labels_sep, data,
-                                 data.mask.astype(int),
+                                 raw_data.variables['mask'][idate, it].astype(int),
                                  rootgroup, group, idate, it, ie)
         raw_data.close()
 
@@ -368,7 +400,7 @@ def plot_prec_freq_hist(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'prec_freq_hist')
 
 
-def plot_cloud_size_prec_hist(inargs):
+def plot_cloud_size_hist(inargs):
     """
     Plot histograms of cloud size and precipitation
     
@@ -401,19 +433,19 @@ def plot_cloud_size_prec_hist(inargs):
                 # Load data
                 hist_data = rootgroup.groups[group].variables[typ + sep][:]
 
-                if inargs.cld_y_type == 'relative_frequency':
+                if inargs.size_hist_y_type == 'relative_frequency':
                     mean_hist = np.mean(hist_data, axis=(0, 1, 3))
 
                     # Convert to relative frequency
                     mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
                     plot_data = mean_hist / mean_hr_no_cld
-                elif inargs.cld_y_type == 'mean_number':
+                elif inargs.size_hist_y_type == 'mean_number':
                     plot_data = np.mean(hist_data, axis=(0, 1, 3))
-                elif inargs.cld_y_type == 'total_number':
+                elif inargs.size_hist_y_type == 'total_number':
                     plot_data = np.mean(hist_data, axis=3)
                     plot_data = np.sum(plot_data, axis=(0, 1))
                 else:
-                    raise Exception('cld_y_type wrong!')
+                    raise Exception('size_hist_y_type wrong!')
 
                 # Plot on log-linear
                 ax = axmat[isep, ityp * 2]
@@ -432,11 +464,11 @@ def plot_cloud_size_prec_hist(inargs):
                 ax.set_title(typ + sep)
                 ax.set_xlabel(xlabel)
 
-                if inargs.cld_y_type == 'relative_frequency':
+                if inargs.size_hist_y_type == 'relative_frequency':
                     ax.set_ylim(5e-5, 1e0)
 
-    axmat[0, 0].set_ylabel(inargs.cld_y_type)
-    axmat[1, 0].set_ylabel(inargs.cld_y_type)
+    axmat[0, 0].set_ylabel(inargs.size_hist_y_type)
+    axmat[1, 0].set_ylabel(inargs.size_hist_y_type)
     axmat[0, 0].legend(loc=0)
     fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
     plt.tight_layout(rect=[0, 0, 1, 0.93])
@@ -581,16 +613,16 @@ def main(inargs):
     if (pp_exists(inargs) is False) or (inargs.recompute is True):
         print('Compute preprocessed file: ' + get_pp_fn(inargs))
         # Call preprocessing routine with arguments
-        prec_stats(inargs)
+        cloud_stats(inargs)
     else:
         print('Found pre-processed file:' + get_pp_fn(inargs))
 
     # Plotting
-    if 'prec_freq_hist' in inargs.which_plot:
+    if 'freq_hist' in inargs.plot_type:
         plot_prec_freq_hist(inargs)
-    if 'prec_size_hist' in inargs.which_plot:
-        plot_cloud_size_prec_hist(inargs)
-    if 'rdf' in inargs.which_plot:
+    if 'size_hist' in inargs.plot_type:
+        plot_cloud_size_hist(inargs)
+    if 'rdf' in inargs.plot_type:
         plot_rdf_individual(inargs)
         plot_rdf_composite(inargs)
 
@@ -601,6 +633,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=description)
 
+    # General analysis options
     parser.add_argument('--date_start',
                         type=str,
                         help='Start date of analysis in yyyymmddhh')
@@ -624,11 +657,6 @@ if __name__ == '__main__':
     parser.add_argument('--nens',
                         type=int,
                         help='Number of ensemble members')
-    parser.add_argument('--cld_y_type',
-                        type=str,
-                        default='relative_frequency',
-                        help='Which y-axis scale for cloud plot. '
-                             '[relative_frequency, mean_number, total_number]')
     parser.add_argument('--radar_mask',
                         type=str,
                         default='hour',
@@ -641,37 +669,45 @@ if __name__ == '__main__':
                         type=float,
                         default=1.,
                         help='Threshold for cloud object identification.')
+    parser.add_argument('--var',
+                        type=str,
+                        default='PREC_ACCUM',
+                        help='Variable [PREC_ACCUM, m]')
 
-    parser.add_argument('--cld_freq_binedges',
+    # Prec_freq analyis options
+    parser.add_argument('--prec_freq_binedges',
                         nargs='+',
                         type=float,
                         default=[0, 0.1, 0.2, 0.5, 1, 2, 5, 10, 1000],
                         help='List of binedges.')
+
+    # size hist analyis options
     parser.add_argument('--cld_size_bin_triplet',
                         nargs='+',
                         type=float,
-                        default=[0, 1.6464e9, 60],
+                        default=[0.0, 3000000000.0, 40.0],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
-    parser.add_argument('--cld_prec_bin_triplet',
+    parser.add_argument('--cld_sum_bin_triplet',
                         nargs='+',
                         type=float,
-                        default=[0, 3.5e9, 60],
+                        default=[0.0, 7000000000.0, 40.0],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
     parser.add_argument('--cld_size_sep_bin_triplet',
                         nargs='+',
                         type=float,
-                        default=[0, 4.704e8, 60],
+                        default=[0.0, 2000000000.0, 40.0],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
-    parser.add_argument('--cld_prec_sep_bin_triplet',
+    parser.add_argument('--cld_sum_sep_bin_triplet',
                         nargs='+',
                         type=float,
-                        default=[0, 1e9, 60],
+                        default=[0.0, 4000000000.0, 40.0],
                         help='Triplet for binedge creation. '
                              '[start_left, end_right, n_bins]')
 
+    # RDF analysis options
     parser.add_argument('--rdf_r_max',
                         type=float,
                         default=30,
@@ -694,24 +730,32 @@ if __name__ == '__main__':
                         type=float,
                         default=0,
                         help='Minimum coverage fraction for RDF calculation.')
+
+    # General plotting options
+    parser.add_argument('--plot_type',
+                        type=str,
+                        default='',
+                        help='Which plot to plot. [freq_hist, size_hist, rdf]')
+    parser.add_argument('--no_det',
+                        dest='no_det',
+                        action='store_true',
+                        help='If given, Do not show det in plots.')
+    parser.set_defaults(no_det=False)
+    
+    # size_hist plotting op
+    parser.add_argument('--size_hist_y_type',
+                        type=str,
+                        default='relative_frequency',
+                        help='Which y-axis scale for cloud plot. '
+                             '[relative_frequency, mean_number, total_number]')
+    # RDF plotting options 
     parser.add_argument('--rdf_curve_times',
                         type=int,
                         nargs='+',
                         default=[15, 21],
                         help='Times [UTC} for which to display RDF curves')
 
-    parser.add_argument('--no_det',
-                        dest='no_det',
-                        action='store_true',
-                        help='If given, Do not show det in plots.')
-    parser.set_defaults(no_det=False)
-    parser.add_argument('--which_plot',
-                        type=str,
-                        nargs='+',
-                        default=['prec_freq_hist', 'prec_size_hist', 'rdf'],
-                        help='If nothing listed, plots all of \
-                                 [prec_freq_hist, prec_size_hist, rdf]')
-
+    # General settings
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
@@ -719,7 +763,7 @@ if __name__ == '__main__':
                               Default = config.yml')
     parser.add_argument('--sub_dir',
                         type=str,
-                        default='prec_stats',
+                        default='cloud_stats',
                         help='Sub-directory for figures and pp_files')
     parser.add_argument('--plot_name',
                         type=str,

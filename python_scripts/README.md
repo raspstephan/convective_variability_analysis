@@ -10,9 +10,9 @@ The table below lists the files plots and options. Every script processes the ra
 
 | File | Plots |
 |------|-------|
-| `prec_stats.py` | Precipitation frequency histogram |
+| `cloud_stats.py` | Precipitation frequency histogram |
 |                 | Cloud size and cloud precipitation sum distributions |
-|                 | Precipitation radial distribution function |
+|                 | Radial distribution function |
 | `variability.py` | Std_vs_mean |
 |                 | Cloud size and cloud precipitation sum distributions |
 |                 | Precipitation radial distribution function |
