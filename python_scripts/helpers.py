@@ -389,8 +389,6 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
     for idate, date in enumerate(make_datelist(inargs)):
         print('Loading raw data for: ' + date)
 
-
-
         # Loop over ensemble members and load fields for entire day
         for ie in range(nens):
             for iv, v in enumerate(var):
@@ -410,6 +408,7 @@ def load_raw_data(inargs, var, group, lvl=None, radar_mask_type=False):
                 # The loop is needed to preserve the mask!
                 for it in range(rootgroup.variables['time'].size):
                     var_list[iv][idate, it, ie, :, :] = datalist[it]
+
 
     # Now write to file all at once!
     for iv, v in enumerate(var):
@@ -886,6 +885,27 @@ def residual_b(p, y, x):
     return err
 
 
+def residual_linear(p, y, x):
+    a, b = p
+    err = y - (a + b * x)
+
+    return err
+
+
+def residual_pow(p, y, x):
+    a, b = p
+    err = np.log(y) - (a - b * np.log(x))
+
+    return err
+
+
+def residual_exp(p, y, x):
+    a, b = p
+    err = np.log(y) - (a - b * x)
+
+    return err
+
+
 def fit_curve(x, y, fit_type='sqrt'):
     """
     
@@ -907,6 +927,12 @@ def fit_curve(x, y, fit_type='sqrt'):
         result = leastsq(residual_b_sqrt, [1], args=(y[mask], x[mask]))
     elif fit_type == 'linear':
         result = leastsq(residual_b, [1], args=(y[mask], x[mask]))
+    elif fit_type == 'exp':
+        mask = mask * y > 0
+        result = leastsq(residual_exp, [10, 1], args=(y[mask], x[mask]))
+    elif fit_type == 'pow':
+        mask = mask * y > 0
+        result = leastsq(residual_pow, [10, 1], args=(y[mask], x[mask]))
     else:
         raise Exception('Wrong fit type!')
     return result[0]

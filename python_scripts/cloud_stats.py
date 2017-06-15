@@ -12,7 +12,7 @@ from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from helpers import make_datelist, get_pp_fn, create_log_str, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
-    get_composite_str, calc_rdf, identify_clouds, load_raw_data
+    get_composite_str, calc_rdf, identify_clouds, load_raw_data, fit_curve
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
@@ -51,7 +51,7 @@ def create_bin_edges(inargs):
                                         inargs.cld_sum_sep_bin_triplet[1],
                                         inargs.cld_sum_sep_bin_triplet[2])
     return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
-           cld_size_sep_binedges, cld_prec_sep_binedges
+            cld_size_sep_binedges, cld_prec_sep_binedges
 
 
 def create_netcdf(inargs):
@@ -104,7 +104,7 @@ def create_netcdf(inargs):
         dimensions.update({'prec_freq_bins': np.array(prec_freq_binedges[1:])})
         variables.update({'prec_freq': ['date', 'time', 'prec_freq_bins']})
     elif inargs.var == 'm':
-        groups = ['ens', 'det']
+        groups = ['det', 'ens']
     else:
         raise Exception('Wrong variable.')
 
@@ -317,7 +317,8 @@ def cloud_stats(inargs):
                                      radar_mask_type=inargs.radar_mask)
         else:
             raw_data = load_raw_data(inargs, ['W', 'QC', 'QI', 'QS', 'RHO'],
-                                     group, radar_mask_type=inargs.radar_mask)
+                                     group, radar_mask_type=inargs.radar_mask,
+                                     lvl=inargs.lvl)
 
         for idate, date in enumerate(make_datelist(inargs)):
             for ie in range(rootgroup.groups[group].dimensions['ens_no'].size):
@@ -420,6 +421,8 @@ def plot_cloud_size_hist(inargs):
     # Convert data for plotting
     for isep, sep in enumerate(['_sep', '']):
         for ityp, typ in enumerate(['cld_size', 'cld_prec']):
+            ax1 = axmat[isep, ityp * 2]
+            ax2 = axmat[isep, ityp * 2 + 1]
             right_edges = rootgroup.variables[typ + sep + '_bins'][:]
             x = right_edges - np.diff(right_edges)[0] / 2
 
@@ -447,25 +450,38 @@ def plot_cloud_size_hist(inargs):
                 else:
                     raise Exception('size_hist_y_type wrong!')
 
-                # Plot on log-linear
-                ax = axmat[isep, ityp * 2]
-                ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
-                        label=group)
-                ax.set_yscale('log')
-                ax.set_title(typ + sep)
-                ax.set_xlabel(xlabel)
+                # Fit curves only for ens
+                if group == 'ens':
+                    print(typ + sep)
+                    # Exponential
+                    a, b = fit_curve(x, plot_data, fit_type='exp')
+                    print a, b
+                    ax1.plot(x, np.exp(a - b * x), c='orange', label='exponential')
+                    ax2.plot(x, np.exp(a - b * x), c='orange', label='exponential')
+                    # Power law
+                    a, b = fit_curve(x, plot_data, fit_type='pow')
+                    print a, b
+                    ax1.plot(x, np.exp(a-b*np.log(x)), c='blue', label='power law')
+                    ax2.plot(x, np.exp(a-b*np.log(x)), c='blue', label='power law')
+
+                    # Plot on log-linear
+                    ax1.plot(x, plot_data, color=get_config(inargs, 'colors', group),
+                            label=group)
+                    ax1.set_yscale('log')
+                    ax1.set_title(typ + sep)
+                    ax1.set_xlabel(xlabel)
 
                 # plot on log-log
-                ax = axmat[isep, ityp * 2 + 1]
-                ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
+
+                ax2.plot(x, plot_data, color=get_config(inargs, 'colors', group),
                         label=group)
-                ax.set_yscale('log')
-                ax.set_xscale('log')
-                ax.set_title(typ + sep)
-                ax.set_xlabel(xlabel)
+                ax2.set_yscale('log')
+                ax2.set_xscale('log')
+                ax2.set_title(typ + sep)
+                ax2.set_xlabel(xlabel)
 
                 if inargs.size_hist_y_type == 'relative_frequency':
-                    ax.set_ylim(5e-5, 1e0)
+                    ax1.set_ylim(5e-5, 1e0)
 
     axmat[0, 0].set_ylabel(inargs.size_hist_y_type)
     axmat[1, 0].set_ylabel(inargs.size_hist_y_type)
@@ -474,7 +490,7 @@ def plot_cloud_size_hist(inargs):
     plt.tight_layout(rect=[0, 0, 1, 0.93])
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'cld_size_prec_hist')
+    save_fig_and_log(fig, rootgroup, inargs, 'size_hist')
 
 
 def plot_rdf_individual(inargs):
@@ -673,6 +689,10 @@ if __name__ == '__main__':
                         type=str,
                         default='PREC_ACCUM',
                         help='Variable [PREC_ACCUM, m]')
+    parser.add_argument('--lvl',
+                        type=int,
+                        default=30,
+                        help='Vertical level for m analysis.')
 
     # Prec_freq analyis options
     parser.add_argument('--prec_freq_binedges',
