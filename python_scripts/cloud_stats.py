@@ -32,8 +32,8 @@ def create_bin_edges(inargs):
 
     Returns
     -------
-    prec_freq_binedges, cld_size_binedges, cld_prec_binedges,
-    cld_size_sep_binedges, cld_prec_sep_binedges : numpy.arrays
+    prec_freq_binedges, cld_size_binedges, cld_sum_binedges,
+    cld_size_sep_binedges, cld_sum_sep_binedges : numpy.arrays
       Bin edges
     """
 
@@ -41,17 +41,17 @@ def create_bin_edges(inargs):
     cld_size_binedges = np.linspace(inargs.cld_size_bin_triplet[0],
                                     inargs.cld_size_bin_triplet[1],
                                     inargs.cld_size_bin_triplet[2])
-    cld_prec_binedges = np.linspace(inargs.cld_sum_bin_triplet[0],
+    cld_sum_binedges = np.linspace(inargs.cld_sum_bin_triplet[0],
                                     inargs.cld_sum_bin_triplet[1],
                                     inargs.cld_sum_bin_triplet[2])
     cld_size_sep_binedges = np.linspace(inargs.cld_size_sep_bin_triplet[0],
                                         inargs.cld_size_sep_bin_triplet[1],
                                         inargs.cld_size_sep_bin_triplet[2])
-    cld_prec_sep_binedges = np.linspace(inargs.cld_sum_sep_bin_triplet[0],
+    cld_sum_sep_binedges = np.linspace(inargs.cld_sum_sep_bin_triplet[0],
                                         inargs.cld_sum_sep_bin_triplet[1],
                                         inargs.cld_sum_sep_bin_triplet[2])
-    return prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
-            cld_size_sep_binedges, cld_prec_sep_binedges
+    return prec_freq_binedges, cld_size_binedges, cld_sum_binedges, \
+            cld_size_sep_binedges, cld_sum_sep_binedges
 
 
 def create_netcdf(inargs):
@@ -69,8 +69,8 @@ def create_netcdf(inargs):
 
     """
 
-    prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
-        cld_size_sep_binedges, cld_prec_sep_binedges = create_bin_edges(inargs)
+    prec_freq_binedges, cld_size_binedges, cld_sum_binedges, \
+        cld_size_sep_binedges, cld_sum_sep_binedges = create_bin_edges(inargs)
 
     datearray = np.array(make_datelist(inargs, out_format='netcdf'))
     timearray = np.arange(inargs.time_start, inargs.time_end + inargs.time_inc,
@@ -82,20 +82,20 @@ def create_netcdf(inargs):
         'time': timearray,
         'date': datearray,
         'cld_size_bins': np.array(cld_size_binedges[1:]),
-        'cld_prec_bins': np.array(cld_prec_binedges[1:]),
+        'cld_sum_bins': np.array(cld_sum_binedges[1:]),
         'cld_size_sep_bins': np.array(cld_size_sep_binedges[1:]),
-        'cld_prec_sep_bins': np.array(cld_prec_sep_binedges[1:]),
+        'cld_sum_sep_bins': np.array(cld_sum_sep_binedges[1:]),
         'rdf_radius': rdf_radius
     }
     variables = {
         'cld_size': ['date', 'time', 'cld_size_bins'],
-        'cld_prec': ['date', 'time', 'cld_prec_bins'],
+        'cld_sum': ['date', 'time', 'cld_sum_bins'],
         'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
-        'cld_prec_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_sum_sep': ['date', 'time', 'cld_size_sep_bins'],
         'cld_size_mean': ['date', 'time'],
-        'cld_prec_mean': ['date', 'time'],
+        'cld_sum_mean': ['date', 'time'],
         'cld_size_sep_mean': ['date', 'time'],
-        'cld_prec_sep_mean': ['date', 'time'],
+        'cld_sum_sep_mean': ['date', 'time'],
         'rdf': ['date', 'time', 'rdf_radius'],
         'rdf_sep': ['date', 'time', 'rdf_radius'],
     }
@@ -144,8 +144,8 @@ def create_netcdf(inargs):
 
 # noinspection PyTupleAssignmentBalance
 def compute_cloud_histograms(inargs, raw_data, rootgroup, group, idate, it, ie,
-                             cld_size_binedges, cld_prec_binedges,
-                             cld_size_sep_binedges, cld_prec_sep_binedges):
+                             cld_size_binedges, cld_sum_binedges,
+                             cld_size_sep_binedges, cld_sum_sep_binedges):
     """
     Compute the histograms for the given parameters and wirte in netCDF file
     
@@ -167,11 +167,11 @@ def compute_cloud_histograms(inargs, raw_data, rootgroup, group, idate, it, ie,
       Ensemble index
     cld_size_binedges : numpy array or list
       Bin edges
-    cld_prec_binedges : numpy array or list
+    cld_sum_binedges : numpy array or list
       Bin edges
     cld_size_sep_binedges : numpy array or list
       Bin edges
-    cld_prec_sep_binedges : numpy array or list
+    cld_sum_sep_binedges : numpy array or list
       Bin edges
 
     Returns
@@ -199,47 +199,47 @@ def compute_cloud_histograms(inargs, raw_data, rootgroup, group, idate, it, ie,
         # set all masked points to zero
         field[raw_data.variables['mask'][idate, it]] = 0
 
-    labels, cld_size_list, cld_prec_list = \
+    labels, cld_size_list, cld_sum_list = \
         identify_clouds(field, inargs.thresh, opt_field=opt_field,
                         water=False, rho=rho, dx=dx, opt_thresh=opt_thresh)
 
     # Convert to kg / h
-    cld_prec_list = np.array(cld_prec_list) * dx * dx
+    cld_sum_list = np.array(cld_sum_list) * dx * dx
     rootgroup.groups[group].variables['cld_size']\
         [idate, it, :, ie] = np.histogram(cld_size_list,
                                           cld_size_binedges)[0]
-    rootgroup.groups[group].variables['cld_prec']\
-        [idate, it, :, ie] = np.histogram(cld_prec_list,
-                                          cld_prec_binedges)[0]
+    rootgroup.groups[group].variables['cld_sum']\
+        [idate, it, :, ie] = np.histogram(cld_sum_list,
+                                          cld_sum_binedges)[0]
     rootgroup.groups[group].variables['cld_size_mean']\
         [idate, it, ie] = np.mean(cld_size_list)
-    rootgroup.groups[group].variables['cld_prec_mean']\
-        [idate, it, ie] = np.mean(cld_prec_list)
+    rootgroup.groups[group].variables['cld_sum_mean']\
+        [idate, it, ie] = np.mean(cld_sum_list)
 
     if inargs.footprint == 0:   # Use default cross
         footprint = [[0,1,0],[1,1,1],[0,1,0]]
     else:
         footprint = inargs.footprint
-    labels_sep, cld_size_sep_list, cld_prec_sep_list = \
+    labels_sep, cld_size_sep_list, cld_sum_sep_list = \
         identify_clouds(field, inargs.thresh, opt_field=opt_field,
                         water=True, rho=rho,
                         dx=dx, neighborhood=footprint,
                         opt_thresh=opt_thresh)
 
     # Convert to kg / h
-    cld_prec_sep_list = np.array(cld_prec_sep_list) * dx * dx
+    cld_sum_sep_list = np.array(cld_sum_sep_list) * dx * dx
     rootgroup.groups[group].variables['cld_size_sep']\
         [idate, it, :, ie] = \
         np.histogram(cld_size_sep_list,
                      cld_size_sep_binedges)[0]
-    rootgroup.groups[group].variables['cld_prec_sep']\
+    rootgroup.groups[group].variables['cld_sum_sep']\
         [idate, it, :, ie] = \
-        np.histogram(cld_prec_sep_list,
-                     cld_prec_sep_binedges)[0]
+        np.histogram(cld_sum_sep_list,
+                     cld_sum_sep_binedges)[0]
     rootgroup.groups[group].variables['cld_size_sep_mean']\
         [idate, it, ie] = np.mean(cld_size_sep_list)
-    rootgroup.groups[group].variables['cld_prec_sep_mean']\
-        [idate, it, ie] = np.mean(cld_prec_sep_list)
+    rootgroup.groups[group].variables['cld_sum_sep_mean']\
+        [idate, it, ie] = np.mean(cld_sum_sep_list)
 
     return labels, labels_sep
 
@@ -305,8 +305,8 @@ def cloud_stats(inargs):
     """
 
     # TODO: This function is also called in create_ncdf, could do better!
-    prec_freq_binedges, cld_size_binedges, cld_prec_binedges, \
-        cld_size_sep_binedges, cld_prec_sep_binedges = create_bin_edges(inargs)
+    prec_freq_binedges, cld_size_binedges, cld_sum_binedges, \
+        cld_size_sep_binedges, cld_sum_sep_binedges = create_bin_edges(inargs)
 
     # Make netCDF file
     rootgroup = create_netcdf(inargs)
@@ -339,9 +339,9 @@ def cloud_stats(inargs):
                     tmp = compute_cloud_histograms(inargs, raw_data, rootgroup,
                                                    group, idate, it, ie,
                                                    cld_size_binedges,
-                                                   cld_prec_binedges,
+                                                   cld_sum_binedges,
                                                    cld_size_sep_binedges,
-                                                   cld_prec_sep_binedges)
+                                                   cld_sum_sep_binedges)
                     labels, labels_sep = tmp
 
                     # 3rd: Compute radial distribution function
@@ -416,81 +416,76 @@ def plot_cloud_size_hist(inargs):
     rootgroup = read_netcdf_dataset(inargs)
 
     # Set up figure
-    fig, axmat = plt.subplots(2, 4, figsize=(10, 7), sharey=True)
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
 
     # Convert data for plotting
-    for isep, sep in enumerate(['_sep', '']):
-        for ityp, typ in enumerate(['cld_size', 'cld_prec']):
-            ax1 = axmat[isep, ityp * 2]
-            ax2 = axmat[isep, ityp * 2 + 1]
-            right_edges = rootgroup.variables[typ + sep + '_bins'][:]
-            x = right_edges - np.diff(right_edges)[0] / 2
+    var = 'cld_'
+    if inargs.size_hist_sum:
+        var += 'sum'
+    else:
+        var += 'size'
+    if inargs.size_hist_sep:
+        var += '_sep'
+    right_edges = rootgroup.variables[var + '_bins'][:]
+    x = right_edges - np.diff(right_edges)[0] / 2
 
-            if ityp == 0:
-                xlabel = 'Cloud size [m^2]'
-            else:
-                xlabel = 'Cloud precipitation [kg /h]'
 
-            # Loop over groups
-            for ig, group in enumerate(rootgroup.groups):
-                # Load data
-                hist_data = rootgroup.groups[group].variables[typ + sep][:]
+    # Loop over groups
+    for ig, group in enumerate(rootgroup.groups):
+        # Load data
+        hist_data = rootgroup.groups[group].variables[var][:]
 
-                if inargs.size_hist_y_type == 'relative_frequency':
-                    mean_hist = np.mean(hist_data, axis=(0, 1, 3))
+        if inargs.size_hist_y_type == 'relative_frequency':
+            mean_hist = np.mean(hist_data, axis=(0, 1, 3))
 
-                    # Convert to relative frequency
-                    mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
-                    plot_data = mean_hist / mean_hr_no_cld
-                elif inargs.size_hist_y_type == 'mean_number':
-                    plot_data = np.mean(hist_data, axis=(0, 1, 3))
-                elif inargs.size_hist_y_type == 'total_number':
-                    plot_data = np.mean(hist_data, axis=3)
-                    plot_data = np.sum(plot_data, axis=(0, 1))
-                else:
-                    raise Exception('size_hist_y_type wrong!')
+            # Convert to relative frequency
+            mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
+            plot_data = mean_hist / mean_hr_no_cld
+        elif inargs.size_hist_y_type == 'mean_number':
+            plot_data = np.mean(hist_data, axis=(0, 1, 3))
+        elif inargs.size_hist_y_type == 'total_number':
+            plot_data = np.mean(hist_data, axis=3)
+            plot_data = np.sum(plot_data, axis=(0, 1))
+        else:
+            raise Exception('size_hist_y_type wrong!')
 
-                # Fit curves only for ens
-                if group == 'ens':
-                    print(typ + sep)
-                    # Exponential
-                    a, b = fit_curve(x, plot_data, fit_type='exp')
-                    print a, b
-                    ax1.plot(x, np.exp(a - b * x), c='orange', label='exponential')
-                    ax2.plot(x, np.exp(a - b * x), c='orange', label='exponential')
-                    # Power law
-                    a, b = fit_curve(x, plot_data, fit_type='pow')
-                    print a, b
-                    ax1.plot(x, np.exp(a-b*np.log(x)), c='blue', label='power law')
-                    ax2.plot(x, np.exp(a-b*np.log(x)), c='blue', label='power law')
+        # Fit curves only for ens
+        if group == 'ens':
+            # Exponential
+            a, b = fit_curve(x, plot_data, fit_type='exp')
+            print a, b
+            ax.plot(x, np.exp(a - b * x), c='orangered', label='exponential')
+            # Power law
+            a, b = fit_curve(x, plot_data, fit_type='pow')
+            print a, b
+            ax.plot(x, np.exp(a-b*np.log(x)), c='plum', label='power law')
 
-                    # Plot on log-linear
-                    ax1.plot(x, plot_data, color=get_config(inargs, 'colors', group),
-                            label=group)
-                    ax1.set_yscale('log')
-                    ax1.set_title(typ + sep)
-                    ax1.set_xlabel(xlabel)
+        # Plot on log-linear
+        ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
+                label=group)
+        ax.set_yscale('log')
+        ax.set_title(var)
 
-                # plot on log-log
+        if inargs.size_hist_sum:
+            xlabel = 'Cloud sum [???]'
+        else:
+            xlabel = 'Cloud size [m^2]'
 
-                ax2.plot(x, plot_data, color=get_config(inargs, 'colors', group),
-                        label=group)
-                ax2.set_yscale('log')
-                ax2.set_xscale('log')
-                ax2.set_title(typ + sep)
-                ax2.set_xlabel(xlabel)
+        ax.set_xlabel(xlabel)
+        if inargs.size_hist_log:
+            ax.set_yscale('log')
 
-                if inargs.size_hist_y_type == 'relative_frequency':
-                    ax1.set_ylim(5e-5, 1e0)
+        if inargs.size_hist_y_type == 'relative_frequency':
+            ax.set_ylim(5e-5, 1e0)
 
-    axmat[0, 0].set_ylabel(inargs.size_hist_y_type)
-    axmat[1, 0].set_ylabel(inargs.size_hist_y_type)
-    axmat[0, 0].legend(loc=0)
-    fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    ax.set_ylabel(inargs.size_hist_y_type)
+    ax.legend(loc=0)
+    # fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
+    plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'size_hist')
+    save_fig_and_log(fig, rootgroup, inargs, 'size_hist', tight=True)
 
 
 def plot_rdf_individual(inargs):
@@ -768,6 +763,22 @@ if __name__ == '__main__':
                         default='relative_frequency',
                         help='Which y-axis scale for cloud plot. '
                              '[relative_frequency, mean_number, total_number]')
+    parser.add_argument('--size_hist_sep',
+                       dest='size_hist_sep',
+                       action='store_true',
+                       help='If given, plot separated.')
+    parser.set_defaults(size_hist_sep=False)
+    parser.add_argument('--size_hist_log',
+                        dest='size_hist_log',
+                        action='store_true',
+                        help='If given, Plot log-log.')
+    parser.set_defaults(size_hist_log=False)
+    parser.add_argument('--size_hist_sum',
+                        dest='size_hist_sum',
+                        action='store_true',
+                        help='If given, Plot summed values')
+    parser.set_defaults(size_hist_sum=False)
+
     # RDF plotting options 
     parser.add_argument('--rdf_curve_times',
                         type=int,

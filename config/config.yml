@@ -19,9 +19,9 @@ domain:
     dx: 2.8e3  # Grid spacing in x-y
 
 colors:
-    det: blue
+    det: mediumseagreen
     obs: black
-    ens: darkgreen
+    ens: cornflowerblue
     ens_range: lightgreen
 
 plotting:
