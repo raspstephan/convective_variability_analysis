@@ -448,6 +448,8 @@ def plot_std_vs_mean(inargs):
 
     """
 
+    dx = float(get_config(inargs, 'domain', 'dx'))
+
     # Load dataset
     rootgroup = read_netcdf_dataset(inargs)
     # The variables have dimensions [date, time, n, x[n], y[n]]
@@ -458,26 +460,39 @@ def plot_std_vs_mean(inargs):
 
     # Data processing
     var = inargs.std_vs_mean_var
-    if not var in ['M', 'TTENS']:
+    if var not in ['M', 'TTENS']:
         raise Exception('Wrong variable for std_vs_mean.')
+
+    std = np.sqrt(rootgroup.variables['var_' + var][:])
+    mean = rootgroup.variables['mean_' + var][:]
+
     # Start with n loop for CC06 fit
     fit_list = []
     for i_n, n in enumerate(rootgroup.variables['n'][:]):
-        tmp_std = np.sqrt(np.ravel(rootgroup.variables['var_' + var][:, :, i_n,
-                                     :, :]))
-        tmp_mean = np.ravel(rootgroup.variables['mean_' + var][:, :, i_n, :, :])
+        if inargs.std_vs_mean_var == 'TTENS':  # Multiply with area
+            std[:, :, i_n, :, :] *= (n * dx) ** 2
+            mean[:, :, i_n, :, :] *= (n * dx) ** 2
+        tmp_std = np.sqrt(np.ravel(std[:, :, i_n, :, :]))
+        tmp_mean = np.ravel(mean[:, :, i_n, :, :])
         fit_list.append(fit_curve(tmp_mean, tmp_std))
 
-    print fit_list
-
     # Bin all the data
-    std = np.sqrt(np.ravel(rootgroup.variables['var_' + var][:]))
-    mean = np.ravel(rootgroup.variables['mean_' + var][:])
+    std = np.ravel(std)
+    mean = np.ravel(mean)
 
     mask = np.isfinite(mean)
+
     std = std[mask]
     mean = mean[mask]
-    print std, mean
+
+    # Fit curves for entire dataset
+    sqrt_fit = fit_curve(mean, std)
+    lin_fit = fit_curve(mean, std, 'linear')
+    tmp_x = np.logspace(1, 12, 1000)
+    ax.plot(tmp_x, np.sqrt(sqrt_fit * tmp_x), alpha=1, c='orangered',
+            linestyle='-', zorder=0.2, label=r'CC06: $y=\sqrt{bx}$')
+    ax.plot(tmp_x, lin_fit * tmp_x, alpha=1, color='cornflowerblue',
+            linestyle='--', zorder=0.2, label=r'SPPT: $y = bx$')
 
     nbins = 10
     if inargs.std_vs_mean_var == 'M':
@@ -512,7 +527,9 @@ def plot_std_vs_mean(inargs):
     logright = np.exp(np.log(binedges[1:]) - 0.2)
     height = np.array(bin75) - np.array(bin25)
     width = logright - logleft
-    ax.bar(logleft, height, width, bin25, linewidth=0, color='gray')
+
+    ax.bar(logleft, height, width, bin25, linewidth=1.3, color='gray',
+           edgecolor='gray', align='edge')
     for i, binmean in enumerate(binmeans):
         ax.plot([logleft[i], logright[i]], [binmean, binmean],
                 color='black', zorder=2)
@@ -523,12 +540,12 @@ def plot_std_vs_mean(inargs):
         ax.set_xlim(1e6, 1e11)
         ax.set_ylim(4e6, 2e9)
         ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
-        ax.set_ylabel(r'$\langle (\delta M)^2 \rangle^{1/2}$ [kg/s]')
+        ax.set_ylabel(r'$\mathrm{std}(M)$ [kg/s]')
     else:
         ax.set_xlim(1e2, 1e7)
         ax.set_ylim(1e2,5e6)
-        ax.set_xlabel(r'$\langle Q \rangle * A$ [kg/s * m^2]')
-        ax.set_ylabel(r'$\langle (\delta Q)^2 \rangle^{1/2} * A$ [kg/s * m^2]')
+        ax.set_xlabel(r'$\langle Q \rangle \times A$ [kg/s * m^2]')
+        ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [kg/s * m^2]')
 
     ax.set_xscale('log')
     ax.set_yscale('log')
@@ -537,12 +554,14 @@ def plot_std_vs_mean(inargs):
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})
 
-    if inargs.std_vs_var_plot_inlay:
-        ax2 = plt.axes([.65, .3, .2, .2], axisbg='lightgray')
+    if inargs.std_vs_mean_plot_inlay:
+        if inargs.std_vs_mean_var == 'TTENS':
+            raise Exception('Does not work because of line fitting.')
+        ax2 = plt.axes([.67, .3, .2, .2], axisbg='lightgray')
         blist = np.array(fit_list) / 1.e8
-        x = np.array(rootgroup.variables['n'][:]) * 2.8
+        x = np.array(rootgroup.variables['n'][:]) * dx
         ax2.plot(x, blist, c='orangered')
-        ax2.scatter(x, blist, c='orangered')
+        ax2.scatter(x, blist, c='orangered', s=20)
         ax2.set_title('Slope of CC06 fit', fontsize=8)
         ax2.set_ylabel(r'$b\times 10^8$', fontsize=8, labelpad=0.05)
         ax2.set_xlabel('n [km]', fontsize=8, labelpad=0.07)
@@ -558,6 +577,7 @@ def plot_std_vs_mean(inargs):
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean_' +
                      inargs.std_vs_mean_var)
+
 
 ################################################################################
 # MAIN FUNCTION

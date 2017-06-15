@@ -900,7 +900,15 @@ def residual_b_sqrt(p, y, x):
 
     return err
 
-def fit_curve(x, y):
+
+def residual_b(p, y, x):
+    b = p
+    err = np.abs(y - (b * x))
+
+    return err
+
+
+def fit_curve(x, y, fit_type='sqrt'):
     """
     
     Parameters
@@ -916,5 +924,11 @@ def fit_curve(x, y):
     x = np.array(x)
     y = np.array(y)
     mask = np.isfinite(y)
-    result = leastsq(residual_b_sqrt, [1], args=(y[mask], x[mask]))
+    if fit_type == 'sqrt':
+        mask = mask * x > 0
+        result = leastsq(residual_b_sqrt, [1], args=(y[mask], x[mask]))
+    elif fit_type == 'linear':
+        result = leastsq(residual_b, [1], args=(y[mask], x[mask]))
+    else:
+        raise Exception('Wrong fit type!')
     return result[0]
