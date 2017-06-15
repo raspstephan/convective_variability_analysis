@@ -279,7 +279,7 @@ def plot_diurnal(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
-    if inargs.individual_days:
+    if inargs.diurnal_individual_days:
         n_days = rootgroup.dimensions['date'].size
         n_cols = 4
         n_rows = int(np.ceil(float(n_days) / n_cols))
@@ -291,7 +291,7 @@ def plot_diurnal(inargs):
     else:
         fig, ax = plt.subplots(1, 1, figsize=(pw / 3., pw / 3.))
 
-    clist = ['#3366ff', '#009933', '#ff3300']
+    clist = ['cornflowerblue', '#009933', 'orangered']
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
 
     # Do some further calculations to get daily composite
@@ -343,7 +343,7 @@ def plot_diurnal(inargs):
                             mean_m)
             ylabel = r'$\alpha$ and $\beta$-adjusted $R_V$'
 
-        if inargs.individual_days:
+        if inargs.diurnal_individual_days:
             for iday, date in enumerate(rootgroup.variables['date']):
                 plot_individual_panel(inargs, rootgroup, i, iday, axflat,
                                       n_cols, n_rows, ylabel, data, labellist,
@@ -354,14 +354,14 @@ def plot_diurnal(inargs):
                            ylabel)
 
     # Finish figure
-    if inargs.plot_type == 'individual':
-        axflat[0].legend(loc=0)
+    if inargs.diurnal_individual_days and inargs.diurnal_legend:
+        axflat[0].legend(loc=0, fontsize=8)
 
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, inargs.plot_type + '_' +
-                     inargs.ana_type)
+    save_fig_and_log(fig, rootgroup, inargs, inargs.plot_type + '_individual-' +
+                     str(inargs.diurnal_individual_days), tight=True)
 
 
 def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
@@ -428,11 +428,28 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
                               linewidth=0, facecolor=clist[i],
                               alpha=0.3, zorder=0.5)
 
-    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
-    ax.set_title(comp_str)
-    ax.legend(loc=0)
+    if inargs.diurnal_title:
+        comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+        ax.set_title(comp_str)
+    if inargs.diurnal_legend:
+        ax.legend(loc=0, fontsize=8)
     ax.set_ylabel(ylabel)
-    ax.set_ylim(0.1, 2.5)
+    ax.set_xticks([6, 9, 12, 15, 18, 21, 24])
+    ax.set_xticklabels([6, 9, 12, 15, 18, 21, 24])
+    ax.set_xlabel('Time [h/UTC]')
+    if inargs.diurnal_log:
+        ax.set_yscale('log')
+
+        ax.set_yticks(np.arange(0.1, 3, 0.1), minor='True')
+        ax.set_ylim(inargs.diurnal_ylim[0], inargs.diurnal_ylim[1])
+        # Fix from https://github.com/matplotlib/matplotlib/issues/8386/
+        from matplotlib.ticker import StrMethodFormatter, NullFormatter
+        ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.set_yticks([0.5, 1, 2])
+        ax.set_yticklabels([0.5, 1, 2])
+    else:
+        ax.set_ylim(0.1, 2.5)
     ax.axhline(y=1, c='gray', zorder=0.1)
 
 
@@ -670,17 +687,40 @@ if __name__ == '__main__':
                         help='Size of search matrix for cloud separation')
 
     # Plotting arguments
-    parser.add_argument('--individual_days',
-                        dest='individual_days',
-                        action='store_true',
-                        help='If given, plots all days individually for the '
-                             'CC06 plots.')
-    parser.set_defaults(individual_days=False)
     parser.add_argument('--plot_type',
                         type=str,
                         default='',
                         help='Plot type [std_vs_mean, r_v, alpha, beta, '
                              'r_v_alpha, r_v_beta, r_v_alpha_beta]')
+
+    # For diurnal
+    parser.add_argument('--diurnal_individual_days',
+                        dest='diurnal_individual_days',
+                        action='store_true',
+                        help='If given, plots all days individually for the '
+                             'CC06 plots.')
+    parser.set_defaults(diurnal_individual_days=False)
+    parser.add_argument('--diurnal_title',
+                        dest='diurnal_title',
+                        action='store_true',
+                        help='If given, plot composite title string.')
+    parser.set_defaults(diurnal_title=False)
+    parser.add_argument('--diurnal_log',
+                        dest='diurnal_log',
+                        action='store_true',
+                        help='If given, plot on log y axis.')
+    parser.set_defaults(diurnal_log=False)
+    parser.add_argument('--diurnal_legend',
+                        dest='diurnal_legend',
+                        action='store_true',
+                        help='If given, plot legend')
+    parser.set_defaults(diurnal_legend=False)
+    parser.add_argument('--diurnal_ylim',
+                        type=float,
+                        nargs='+',
+                        default=[0.4, 2.2],
+                        help='Ylims for diurnal plots. Default [0.4, 2.2]')
+
     # For std_vs_mean
     parser.add_argument('--std_vs_mean_var',
                         type=str,

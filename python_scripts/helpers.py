@@ -573,7 +573,7 @@ def read_netcdf_dataset(inargs):
 
 
 def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
-                     time=None):
+                     time=None, tight=False):
     """
     Saves given figure and log file with same name.
     
@@ -604,7 +604,10 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         plotfn += '_' + str(date) + '_' + str(time)
     plotfn += '.pdf'
     print('Saving figure: ' + plotfn)
-    fig.savefig(plotfn)
+    if tight:
+        fig.savefig(plotfn, bbox_inches='tight')
+    else:
+        fig.savefig(plotfn)
 
     # Save log file
     if inargs.plot_name == '':
