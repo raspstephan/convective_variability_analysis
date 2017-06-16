@@ -270,8 +270,9 @@ def compute_rdfs(inargs, labels, labels_sep, data, rdf_mask, rootgroup, group,
     y_tmp, x_tmp = np.ogrid[-r_max:kernel_size - r_max,
                    -r_max:kernel_size - r_max]
     kernel = x_tmp * x_tmp + y_tmp * y_tmp <= r_max * r_max
-    rdf_mask = convolve2d(rdf_mask, kernel, mode='same', boundary='fill',
-                          fillvalue=1) == 0
+    if rdf_mask is not None:
+        rdf_mask = convolve2d(rdf_mask, kernel, mode='same', boundary='fill',
+                              fillvalue=1) == 0
 
     for l, rdf_type in zip([labels, labels_sep], ['rdf', 'rdf_sep']):
 
@@ -317,7 +318,7 @@ def cloud_stats(inargs):
                                      radar_mask_type=inargs.radar_mask)
         else:
             raw_data = load_raw_data(inargs, ['W', 'QC', 'QI', 'QS', 'RHO'],
-                                     group, radar_mask_type=inargs.radar_mask,
+                                     group, radar_mask_type=False,
                                      lvl=inargs.lvl)
 
         for idate, date in enumerate(make_datelist(inargs)):
@@ -348,10 +349,15 @@ def cloud_stats(inargs):
                     if inargs.radar_mask in ['total', 'day']:
                         raise Exception('radar_mask type no longer supported \
                                         for RDF')
-
-                    compute_rdfs(inargs, labels, labels_sep, data,
-                                 raw_data.variables['mask'][idate, it].astype(int),
-                                 rootgroup, group, idate, it, ie)
+                    if inargs.radar_mask == 'hour' and \
+                                    inargs.var == 'PREC_ACCUM':
+                        compute_rdfs(inargs, labels, labels_sep, data,
+                                     raw_data.variables[
+                                         'mask'][idate, it].astype(int),
+                                     rootgroup, group, idate, it, ie)
+                    else:
+                        compute_rdfs(inargs, labels, labels_sep, data,
+                                     None, rootgroup, group, idate, it, ie)
         raw_data.close()
 
     # Close NetCDF file
@@ -417,7 +423,7 @@ def plot_cloud_size_hist(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5, pw / 2.5))
 
     # Convert data for plotting
     var = 'cld_'
@@ -455,15 +461,17 @@ def plot_cloud_size_hist(inargs):
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
             print a, b
-            ax.plot(x, np.exp(a - b * x), c='orangered', label='exponential')
+            ax.plot(x, np.exp(a - b * x), c='orangered', label='exponential',
+                    zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
             print a, b
-            ax.plot(x, np.exp(a-b*np.log(x)), c='plum', label='power law')
+            ax.plot(x, np.exp(a-b*np.log(x)), c='plum', label='power law',
+                    zorder=0.1)
 
         # Plot on log-linear
         ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
-                label=group)
+                label=group, linewidth=2)
         ax.set_yscale('log')
         ax.set_title(var)
 
