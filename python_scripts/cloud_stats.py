@@ -564,7 +564,10 @@ def plot_rdf_composite(inargs):
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
-    fig, axarr = plt.subplots(1, 2, figsize=(6, 3))
+
+    # Set up figure
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, axarr = plt.subplots(1, 2, figsize=(0.5 * pw, pw / 3.))
 
     axarr[0].set_ylabel('RDF')
     for group in rootgroup.groups:
@@ -586,25 +589,31 @@ def plot_rdf_composite(inargs):
         for t in inargs.rdf_curve_times:
             rdf_curve = np.nanmean(array[:, t, :, :], axis=(0, 2))
             axarr[1].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
-                          label=group + ' ' + str(rootgroup.variables['time'][t]))
+                          label=group + ' ' +
+                                str(rootgroup.variables['time'][t]))
 
-    axarr[0].set_ylim(0, 15)
+    axarr[0].set_ylim(0, inargs.rdf_y_max)
+    axarr[1].set_ylim(0, inargs.rdf_y_max)
     axarr[0].set_xlabel('Time [UTC]')
     axarr[1].set_xlabel('Radius [km]')
 
     axarr[0].set_title('RDF maximum')
     axarr[1].set_title('RDF curves')
 
-    axarr[0].legend(loc=0)
-    axarr[1].legend(loc=0)
+    axarr[0].legend(loc=0, fontsize=6)
+    axarr[1].legend(loc=0, fontsize=6)
+
+    axarr[1].set_xticks(np.arange(0, 100, 20))
+    axarr[1].axhline(y=1, c='gray', zorder=0.1)
 
     fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup) +
                  ' sep = ' + str(inargs.rdf_sep) +
-                 ' perimeter = ' + str(inargs.footprint))
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+                 ' perimeter = ' + str(inargs.footprint), fontsize=6)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    plt.subplots_adjust(wspace=0.25)
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite')
+    save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite', tight=True)
 
 
 ################################################################################
@@ -633,8 +642,9 @@ def main(inargs):
         plot_prec_freq_hist(inargs)
     if 'size_hist' in inargs.plot_type:
         plot_cloud_size_hist(inargs)
-    if 'rdf' in inargs.plot_type:
+    if 'rdf_individual' in inargs.plot_type:
         plot_rdf_individual(inargs)
+    if 'rdf_composite' in inargs.plot_type:
         plot_rdf_composite(inargs)
 
 
@@ -731,11 +741,6 @@ if __name__ == '__main__':
                         type=float,
                         default=1,
                         help='Radial bin size for RDF in grid points.')
-    parser.add_argument('--rdf_sep',
-                        dest='rdf_sep',
-                        action='store_true',
-                        help='If given, compute RDF for separated clouds.')
-    parser.set_defaults(rdf_sep=False)
     parser.add_argument('--rdf_non_norm',
                         dest='rdf_non_norm',
                         action='store_true',
@@ -750,7 +755,8 @@ if __name__ == '__main__':
     parser.add_argument('--plot_type',
                         type=str,
                         default='',
-                        help='Which plot to plot. [freq_hist, size_hist, rdf]')
+                        help='Which plot to plot. [freq_hist, size_hist, '
+                             'rdf_composite, rdf_individual]')
     parser.add_argument('--no_det',
                         dest='no_det',
                         action='store_true',
@@ -785,6 +791,15 @@ if __name__ == '__main__':
                         nargs='+',
                         default=[15, 21],
                         help='Times [UTC} for which to display RDF curves')
+    parser.add_argument('--rdf_sep',
+                        dest='rdf_sep',
+                        action='store_true',
+                        help='If given, compute RDF for separated clouds.')
+    parser.set_defaults(rdf_sep=False)
+    parser.add_argument('--rdf_y_max',
+                        type=float,
+                        default=15,
+                        help='y-axis maximum for RDF plots')
 
     # General settings
     parser.add_argument('--config_file',

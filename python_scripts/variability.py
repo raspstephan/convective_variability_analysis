@@ -289,7 +289,7 @@ def plot_diurnal(inargs):
         axflat = np.ravel(axmat)
 
     else:
-        fig, ax = plt.subplots(1, 1, figsize=(pw / 3., pw / 3.))
+        fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
 
     clist = ['cornflowerblue', '#009933', 'orangered']
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
