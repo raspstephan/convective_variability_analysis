@@ -134,10 +134,10 @@ def plot_individual(inargs):
     pw = get_config(inargs, 'plotting', 'page_width')
     fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
 
-    jpl0, jpl1, ipl0, ipl1 = (50 + inargs.zoom_lon1,
-                              357 - 51 + inargs.zoom_lon2,
-                              50 + inargs.zoom_lat1,
-                              357 - 51 + inargs.zoom_lat2)
+    jpl0, jpl1, ipl0, ipl1 = (50 + inargs.zoom_lat1,
+                              357 - 51 + inargs.zoom_lat2,
+                              50 + inargs.zoom_lon1,
+                              357 - 51 + inargs.zoom_lon2)
     print jpl0, jpl1, ipl0, ipl1
     data = fobj.data
     lats = fobj.lats[jpl0:jpl1, ipl0:ipl1]
@@ -174,10 +174,10 @@ def plot_individual(inargs):
 
     if inargs.ind_box:
         jpl0_box, jpl1_box, ipl0_box, ipl1_box = (
-            50 + inargs.ind_box_lon1,
-            357 - 51 + inargs.ind_box_lon2,
             50 + inargs.ind_box_lat1,
-            357 - 51 + inargs.ind_box_lat2)
+            357 - 51 + inargs.ind_box_lat2,
+            50 + inargs.ind_box_lon1,
+            357 - 51 + inargs.ind_box_lon2)
 
         lon_bl = fobj.lons[jpl0_box, ipl0_box]
         lon_br = fobj.lons[jpl0_box, ipl1_box]
