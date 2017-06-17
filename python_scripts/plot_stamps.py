@@ -7,10 +7,10 @@ Description:  Plot stamps of precipitation
 
 import argparse
 from helpers import get_config, save_fig_and_log, \
-    make_datelist#, get_and_crop_radar_fobj
+    make_datelist, identify_clouds#, get_and_crop_radar_fobj
 from datetime import timedelta
 from cosmo_utils.plot import ax_contourf
-from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens
+from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens, getfield_ncdf
 from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime,\
     make_timelist
 import matplotlib.pyplot as plt
@@ -125,10 +125,45 @@ def plot_individual(inargs):
     date_dir = (get_config(inargs, 'paths', 'raw_data') + inargs.date_start +
                 '/deout_ceu_pspens/')
     t = timedelta(hours=inargs.time_start)
-    ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
 
-    fobj = getfobj_ncdf(date_dir + str(inargs.individual_ens) + '/OUTPUT/' +
-                        ncdffn, fieldn='PREC_ACCUM')
+    if inargs.ind_var == 'PREC_ACCUM':
+        ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
+        fobj = getfobj_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                            ncdffn, fieldn='PREC_ACCUM')
+        cmap = None
+        colors = cmPrec
+        levels = levelsPrec
+    elif inargs.ind_var in ['obj_m', 'obj_prec']:
+        if inargs.ind_var == 'obj_m':
+            lvl = 30
+            ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m'
+            fobj = getfobj_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                                ncdffn, fieldn='W', levs=lvl)
+            opt_field = (
+                getfield_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                              ncdffn, fieldn='QC', levs=lvl) +
+                getfield_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                              ncdffn, fieldn='QS', levs=lvl) +
+                getfield_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                              ncdffn, fieldn='QI', levs=lvl)
+            )
+        else:
+            ncdffn = 'lfff' + ddhhmmss(t) + '.nc_30m_surf'
+            fobj = getfobj_ncdf(date_dir + str(inargs.ind_ens) + '/OUTPUT/' +
+                                ncdffn, fieldn='PREC_ACCUM')
+            opt_field = None
+
+        labels, size_list, sum_list = identify_clouds(fobj.data, 1.,
+                                                      opt_field=opt_field,
+                                                      water=True,
+                                                      neighborhood=3,
+                                                      opt_thresh=0)
+        fobj.data = labels
+        cmap = plt.cm.prism
+        colors = None
+        levels = None
+    else:
+        raise Exception('Wrong variable!')
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
@@ -138,7 +173,7 @@ def plot_individual(inargs):
                               357 - 51 + inargs.zoom_lat2,
                               50 + inargs.zoom_lon1,
                               357 - 51 + inargs.zoom_lon2)
-    print jpl0, jpl1, ipl0, ipl1
+
     data = fobj.data
     lats = fobj.lats[jpl0:jpl1, ipl0:ipl1]
     lons = fobj.lons[jpl0:jpl1, ipl0:ipl1]
@@ -162,8 +197,14 @@ def plot_individual(inargs):
     m = Basemap(**Basemap_kwargs)
     x, y = m(lons, lats)
 
-    cfplot = m.contourf(x, y, data[jpl0:jpl1, ipl0:ipl1], levels=levelsPrec,
-                        colors=cmPrec, ax=ax)
+    if inargs.ind_var == 'PREC_ACCUM':
+        cfplot = m.contourf(x, y, data[jpl0:jpl1, ipl0:ipl1], levels=levels,
+                            colors=colors, ax=ax, cmap=cmap)
+    else:
+        cm_prism = plt.cm.prism
+        cm_prism.set_under(color='white')
+        cfplot = m.imshow(data[jpl0:jpl1, ipl0:ipl1], cmap=cm_prism,
+                          origin='lower', vmin=1)
 
     m.drawcoastlines()  # linewidth=0.1, antialiased=0)
     m.drawcountries(linewidth=0.1, antialiased=0)
@@ -291,10 +332,14 @@ if __name__ == '__main__':
                         help='Zoom index for prec_stamps. Lat2')
 
     # Individual plot arguments
-    parser.add_argument('--individual_ens',
+    parser.add_argument('--ind_var',
+                        type=str,
+                        default='PREC_ACCUM',
+                        help='Which field to plot [PREC_ACCUM, obj]')
+    parser.add_argument('--ind_ens',
                         type=str,
                         default='',
-                        help='Plot type [stamps, individual]')
+                        help='which ensemble member')
     parser.add_argument('--ind_scale_pos',
                         type=float,
                         nargs='+',
