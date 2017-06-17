@@ -330,6 +330,10 @@ if __name__ == '__main__':
                         type=int,
                         default=0,
                         help='Zoom index for prec_stamps. Lat2')
+    parser.add_argument('--plot_format',
+                        type=str,
+                        default='pdf',
+                        help='Which format for figure file.')
 
     # Individual plot arguments
     parser.add_argument('--ind_var',

@@ -439,6 +439,10 @@ def plot_cloud_size_hist(inargs):
 
     # Loop over groups
     for ig, group in enumerate(rootgroup.groups):
+        if inargs.no_det and group == 'det':
+            continue
+        if inargs.no_obs and group == 'obs':
+            continue
         # Load data
         hist_data = rootgroup.groups[group].variables[var][:]
 
@@ -461,17 +465,19 @@ def plot_cloud_size_hist(inargs):
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
             print a, b
-            ax.plot(x, np.exp(a - b * x), c='orangered', label='exponential',
+            ax.plot(x, np.exp(a - b * x), c='orange', label='exponential',
                     zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
             print a, b
-            ax.plot(x, np.exp(a-b*np.log(x)), c='plum', label='power law',
+            ax.plot(x, np.exp(a-b*np.log(x)), c='darkgreen', label='power law',
                     zorder=0.1)
 
         # Plot on log-linear
-        ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
-                label=group, linewidth=2)
+        # ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
+        #         label=group, linewidth=2)
+        ax.scatter(x, plot_data, color=get_config(inargs, 'colors', group),
+                   label=group, s=15, linewidth=0.5, edgecolor='k')
         ax.set_yscale('log')
         ax.set_title(var)
 
@@ -482,13 +488,13 @@ def plot_cloud_size_hist(inargs):
 
         ax.set_xlabel(xlabel)
         if inargs.size_hist_log:
-            ax.set_yscale('log')
+            ax.set_xscale('log')
 
         if inargs.size_hist_y_type == 'relative_frequency':
             ax.set_ylim(5e-5, 1e0)
 
     ax.set_ylabel(inargs.size_hist_y_type)
-    ax.legend(loc=0)
+    ax.legend(loc=0, fontsize=7)
     # fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
     plt.tight_layout()
 
@@ -574,6 +580,11 @@ def plot_rdf_composite(inargs):
     rootgroup = read_netcdf_dataset(inargs)
 
     # Set up figure
+    curve_c_dict = {
+        'ens': ['darkblue', 'lightblue'],
+        'obs': ['darkgray', 'lightgray'],
+        'det': ['darkgreen', 'lightgreen'],
+    }
     pw = get_config(inargs, 'plotting', 'page_width')
     fig, axarr = plt.subplots(1, 2, figsize=(0.5 * pw, pw / 3.))
 
@@ -594,11 +605,12 @@ def plot_rdf_composite(inargs):
                  c=get_config(inargs, 'colors', group))
 
         # 2nd: Plot example curves
-        for t in inargs.rdf_curve_times:
+        for it, t in enumerate(inargs.rdf_curve_times):
             rdf_curve = np.nanmean(array[:, t, :, :], axis=(0, 2))
             axarr[1].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
                           label=group + ' ' +
-                                str(rootgroup.variables['time'][t]))
+                                str(rootgroup.variables['time'][t]),
+                          c=curve_c_dict[group][it])
 
     axarr[0].set_ylim(0, inargs.rdf_y_max)
     axarr[1].set_ylim(0, inargs.rdf_y_max)
@@ -770,6 +782,15 @@ if __name__ == '__main__':
                         action='store_true',
                         help='If given, Do not show det in plots.')
     parser.set_defaults(no_det=False)
+    parser.add_argument('--no_obs',
+                        dest='no_obs',
+                        action='store_true',
+                        help='If given, Do not show obs in plots.')
+    parser.set_defaults(no_obs=False)
+    parser.add_argument('--plot_format',
+                        type=str,
+                        default='pdf',
+                        help='Which format for figure file.')
     
     # size_hist plotting op
     parser.add_argument('--size_hist_y_type',

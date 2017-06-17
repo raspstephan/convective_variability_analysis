@@ -576,12 +576,16 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         plotfn = plotdir + plot_type + '_' + inargs.plot_name
     if date is not None and time is not None:
         plotfn += '_' + str(date) + '_' + str(time)
-    plotfn += '.pdf'
+    plotfn += '.' + inargs.plot_format
+    if inargs.plot_format == 'pdf':
+        dpi = None
+    else:
+        dpi = 300
     print('Saving figure: ' + plotfn)
     if tight:
-        fig.savefig(plotfn, bbox_inches='tight')
+        fig.savefig(plotfn, bbox_inches='tight', dpi=dpi)
     else:
-        fig.savefig(plotfn)
+        fig.savefig(plotfn, dpi=dpi)
 
     # Save log file
     if inargs.plot_name == '':

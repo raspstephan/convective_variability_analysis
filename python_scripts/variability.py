@@ -692,6 +692,10 @@ if __name__ == '__main__':
                         default='',
                         help='Plot type [std_vs_mean, r_v, alpha, beta, '
                              'r_v_alpha, r_v_beta, r_v_alpha_beta]')
+    parser.add_argument('--plot_format',
+                        type=str,
+                        default='pdf',
+                        help='Which format for figure file.')
 
     # For diurnal
     parser.add_argument('--diurnal_individual_days',
