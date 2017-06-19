@@ -289,9 +289,9 @@ def plot_diurnal(inargs):
         axflat = np.ravel(axmat)
 
     else:
-        fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
+        fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5, pw / 2.5))
 
-    clist = ['cornflowerblue', '#009933', 'orangered']
+    clist = ['navy', 'forestgreen', 'orangered']
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
 
     # Do some further calculations to get daily composite
@@ -355,7 +355,7 @@ def plot_diurnal(inargs):
 
     # Finish figure
     if inargs.diurnal_individual_days and inargs.diurnal_legend:
-        axflat[0].legend(loc=0, fontsize=8)
+        axflat[0].legend(loc=2, fontsize=8)
 
     plt.tight_layout()
 
@@ -421,7 +421,8 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     per75 = np.nanpercentile(data, 75, axis=(0,2))
 
     ax.plot(rootgroup.variables['time'][:], composite_mean,
-                      label=labellist[i], c=clist[i], zorder=1)
+            label=labellist[i], c=clist[i], zorder=1,
+            linewidth=2)
     ax.fill_between(rootgroup.variables['time'][:],
                               per25, per75,
                               where=per25 < per75,
@@ -432,7 +433,7 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
         comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
         ax.set_title(comp_str)
     if inargs.diurnal_legend:
-        ax.legend(loc=0, fontsize=8)
+        ax.legend(loc=2, fontsize=8)
     ax.set_ylabel(ylabel)
     ax.set_xticks([6, 9, 12, 15, 18, 21, 24])
     ax.set_xticklabels([6, 9, 12, 15, 18, 21, 24])
