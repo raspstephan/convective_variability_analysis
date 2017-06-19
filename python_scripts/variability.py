@@ -472,8 +472,9 @@ def plot_std_vs_mean(inargs):
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
     # Set up figure
-    fig, ax = plt.subplots(1, 1, figsize=(0.5 * get_config(inargs, 'plotting',
-                                                           'page_width'), 3.5))
+    aspect = 1.
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5 * aspect, pw / 2.5))
 
     # Data processing
     var = inargs.std_vs_mean_var
@@ -489,7 +490,7 @@ def plot_std_vs_mean(inargs):
         if inargs.std_vs_mean_var == 'TTENS':  # Multiply with area
             std[:, :, i_n, :, :] *= (n * dx) ** 2
             mean[:, :, i_n, :, :] *= (n * dx) ** 2
-        tmp_std = np.sqrt(np.ravel(std[:, :, i_n, :, :]))
+        tmp_std = np.ravel(std[:, :, i_n, :, :])
         tmp_mean = np.ravel(mean[:, :, i_n, :, :])
         fit_list.append(fit_curve(tmp_mean, tmp_std))
 
@@ -566,8 +567,7 @@ def plot_std_vs_mean(inargs):
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-
-    ax.set_title('Scaling of standard deviation with mean')
+    #ax.set_title('Scaling of standard deviation with mean')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})
 
@@ -576,24 +576,24 @@ def plot_std_vs_mean(inargs):
             raise Exception('Does not work because of line fitting.')
         ax2 = plt.axes([.67, .3, .2, .2], axisbg='lightgray')
         blist = np.array(fit_list) / 1.e8
-        x = np.array(rootgroup.variables['n'][:]) * dx
+        x = np.array(rootgroup.variables['n'][:]) * dx / 1000.
         ax2.plot(x, blist, c='orangered')
         ax2.scatter(x, blist, c='orangered', s=20)
-        ax2.set_title('Slope of CC06 fit', fontsize=8)
-        ax2.set_ylabel(r'$b\times 10^8$', fontsize=8, labelpad=0.05)
-        ax2.set_xlabel('n [km]', fontsize=8, labelpad=0.07)
+        ax2.set_title('Slope of CC06 fit', fontsize=7)
+        ax2.set_ylabel(r'$b\times 10^8$', fontsize=6, labelpad=0.05)
+        ax2.set_xlabel('n [km]', fontsize=6, labelpad=0.07)
         ax2.set_xscale('log')
-        ax2.set_xlim(5, 1000)
+        ax2.set_xlim(5, 1200)
         ax2.set_xticks([5, 50, 500])
-        ax2.set_xticklabels([5, 50, 500], fontsize=8)
+        ax2.set_xticklabels([5, 50, 500], fontsize=6)
         ax2.set_yticks([0.5, 1.5])
-        ax2.set_yticklabels([0.5, 1.5], fontsize=8)
+        ax2.set_yticklabels([0.5, 1.5], fontsize=6)
 
     plt.tight_layout()
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean_' +
-                     inargs.std_vs_mean_var)
+                     inargs.std_vs_mean_var, tight=True)
 
 
 ################################################################################

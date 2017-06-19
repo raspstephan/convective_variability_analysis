@@ -491,7 +491,8 @@ def plot_cloud_size_hist(inargs):
             ax.set_xscale('log')
 
         if inargs.size_hist_y_type == 'relative_frequency':
-            ax.set_ylim(5e-5, 1e0)
+            pass
+            #ax.set_ylim(5e-5, 1e0)
 
     ax.set_ylabel(inargs.size_hist_y_type)
     ax.legend(loc=0, fontsize=7)
