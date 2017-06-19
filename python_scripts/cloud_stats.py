@@ -626,6 +626,8 @@ def plot_rdf_composite(inargs):
 
     axarr[0].set_ylim(0, inargs.rdf_y_max)
     axarr[1].set_ylim(0, inargs.rdf_y_max)
+    axarr[0].set_xlim([6, 24])
+    axarr[1].set_xlim([0, rootgroup.variables['rdf_radius'][-1] * 2.8])
     axarr[0].set_xlabel('Time [UTC]')
     axarr[1].set_xlabel('Radius [km]')
 
@@ -655,7 +657,7 @@ def plot_rdf_composite(inargs):
     #              ' sep = ' + str(inargs.rdf_sep) +
     #              ' perimeter = ' + str(inargs.footprint), fontsize=6)
     plt.tight_layout()
-    plt.subplots_adjust(wspace=0.25)
+    plt.subplots_adjust(wspace=0.1)
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite', tight=True)
