@@ -423,7 +423,7 @@ def plot_cloud_size_hist(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5, pw / 2.5))
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 3., pw / 2.5))
 
     # Convert data for plotting
     var = 'cld_'
@@ -465,26 +465,30 @@ def plot_cloud_size_hist(inargs):
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
             print a, b
-            ax.plot(x, np.exp(a - b * x), c='orange', label='exponential',
+            ax.plot(x, np.exp(a - b * x), c='orange', label='Exponential',
                     zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
             print a, b
-            ax.plot(x, np.exp(a-b*np.log(x)), c='darkgreen', label='power law',
+            ax.plot(x, np.exp(a-b*np.log(x)), c='darkgreen', label='Power-law',
                     zorder=0.1)
 
         # Plot on log-linear
         # ax.plot(x, plot_data, color=get_config(inargs, 'colors', group),
         #         label=group, linewidth=2)
+        # ax.scatter(x, plot_data, color=get_config(inargs, 'colors', group),
+        #            label=group, s=15, linewidth=0.5, edgecolor='k')
         ax.scatter(x, plot_data, color=get_config(inargs, 'colors', group),
-                   label=group, s=15, linewidth=0.5, edgecolor='k')
+                   s=20, linewidth=0.3, edgecolor='k')
         ax.set_yscale('log')
-        ax.set_title(var)
+        # ax.set_title(var)
 
         if inargs.size_hist_sum:
             xlabel = 'Cloud sum [???]'
+            if inargs.var == 'm':
+                xlabel = r'Cloud mass flux [kg/s]'
         else:
-            xlabel = 'Cloud size [m^2]'
+            xlabel = r'Cloud size [m$^2$]'
 
         ax.set_xlabel(xlabel)
         if inargs.size_hist_log:
@@ -494,8 +498,15 @@ def plot_cloud_size_hist(inargs):
             pass
             #ax.set_ylim(5e-5, 1e0)
 
-    ax.set_ylabel(inargs.size_hist_y_type)
-    ax.legend(loc=0, fontsize=7)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 10))
+    ax.spines['bottom'].set_position(('outward', 10))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylim([0.6e-6, 1])
+
+    #ax.set_ylabel(inargs.size_hist_y_type)
+    ax.legend(loc=0, fontsize=8)
     # fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
     plt.tight_layout()
 
