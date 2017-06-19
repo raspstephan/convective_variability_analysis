@@ -21,7 +21,7 @@ domain:
 colors:
     det: mediumseagreen
     obs: black
-    ens: cornflowerblue
+    ens: mediumblue
     ens_range: lightgreen
 
 plotting:
