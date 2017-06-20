@@ -25,6 +25,7 @@ from scipy.ndimage.filters import maximum_filter
 from skimage import morphology
 from scipy.optimize import leastsq
 
+
 # Define functions
 def create_log_str(inargs, step):
     """
@@ -49,11 +50,10 @@ def create_log_str(inargs, step):
 
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     conda_info = check_output(['conda', 'info'])
-    conda_list = check_output(['conda', 'list'])
-    # TODO: Get base dir automatically
-    git_dir = '~/repositories/convective_variability_analysis'
-    git_hash = Repo(git_dir).heads[0].commit
+    conda_env = check_output(['conda', 'env', 'export'])
     pwd = check_output(['pwd'])
+    git_dir = pwd.rsplit('/', 1)[0]
+    git_hash = Repo(git_dir).heads[0].commit
     exe_str = ' '.join(sys.argv)
     config_str = open('../config/' + inargs.config_file, 'r').read()
     param_str = ''
@@ -61,19 +61,37 @@ def create_log_str(inargs, step):
         param_str += '--' + key + ' ' + str(value) + '\n'
 
     log_str = ("""
-    %s log\n
-    -----------------\n
-    %s\n
-    %s\n
-    Full argparse parameters\n
-    %s
-    %s\n
-    %s\n
-    Git hash: %s\n
-    In directory: %s\n
-    %s\n
-    """ % (step, time_stamp, config_str, param_str, conda_info, conda_list,
-           str(git_hash)[0:7], pwd, exe_str))
+%s log\n
+#####################################################
+Time: %s\n
+Executed command\n
+----------------\n
+python %s\n
+\n
+in directory: %s\n
+\n
+Git hash: %s\n
+\n
+Full argparse parameters\n
+------------------------\n
+%s\n
+\n
+Config yml file\n
+---------------\n
+%s\n
+\n
+Anaconda install details\n
+------------------------\n
+%s\n
+\n
+Anaconda environment yml file\n
+-----------------------------
+%s\n
+\n
+    
+    """ % (step, time_stamp, exe_str, pwd, str(git_hash), param_str, config_str,
+           conda_info, conda_env))
+
     return log_str
 
 
@@ -599,7 +617,7 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         rootgroup.close()
     else:
         netcdf_log = ''
-    logf.write(netcdf_log + create_log_str(inargs, 'Plotting'))
+    logf.write(create_log_str(inargs, 'Plotting') + netcdf_log)
     logf.close()
 
 
