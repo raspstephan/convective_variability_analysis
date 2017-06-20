@@ -86,11 +86,8 @@ Anaconda install details\n
 \n
 Anaconda environment yml file\n
 -----------------------------
-%s\n
-\n
-    
-    """ % (step, time_stamp, exe_str, pwd, str(git_hash), param_str, config_str,
-           conda_info, conda_env))
+%s\n\n""" % (step, time_stamp, exe_str, pwd, str(git_hash), param_str,
+             config_str, conda_info, conda_env))
 
     return log_str
 
@@ -598,7 +595,7 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
     if inargs.plot_format == 'pdf':
         dpi = None
     else:
-        dpi = 300
+        dpi = 600
     print('Saving figure: ' + plotfn)
     if tight:
         fig.savefig(plotfn, bbox_inches='tight', dpi=dpi)

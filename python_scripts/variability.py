@@ -616,7 +616,7 @@ def main(inargs):
         # Call preprocessing routine with arguments
         compute_variance(inargs)
     else:
-        print('Found pre-processed file:' + get_pp_fn(inargs))
+        print('Found pre-processed file: ' + get_pp_fn(inargs))
 
     # Plotting
     if inargs.plot_type in ['r_v', 'alpha', 'beta', 'r_v_alpha', 'r_v_beta',

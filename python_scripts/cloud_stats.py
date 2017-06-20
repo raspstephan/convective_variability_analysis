@@ -682,7 +682,7 @@ def main(inargs):
         # Call preprocessing routine with arguments
         cloud_stats(inargs)
     else:
-        print('Found pre-processed file:' + get_pp_fn(inargs))
+        print('Found pre-processed file: ' + get_pp_fn(inargs))
 
     # Plotting
     if 'freq_hist' in inargs.plot_type:

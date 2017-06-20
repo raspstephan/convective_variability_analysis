@@ -425,7 +425,7 @@ def main(inargs):
         # Call preprocessing routine with arguments
         domain_mean_weather_ts(inargs)
     else:
-        print('Found pre-processed file:' + get_pp_fn(inargs))
+        print('Found pre-processed file: ' + get_pp_fn(inargs))
 
     # Call analyzing and plotting routine
     plot_domain_mean_timeseries_individual(inargs,
