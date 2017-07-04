@@ -17,4 +17,6 @@ The repository is structured as follows:
 
 - `aux_files` contains some auxiliary files, such as the radar masks.
 
+- `synop_plots` contains scripts to plot a synoptic overview from ECMWF data
+
 
