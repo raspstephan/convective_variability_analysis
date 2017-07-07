@@ -1,5 +1,5 @@
 ## Release Notes: poster_delft
-This is the version of the repository used to make the plots for the poster at the "Future of Cumulus Parameterization" workshop in Delft, Netherlands in July 2017. The figures and log-files for creating the figures on the poster can be found at ???
+This is the version of the repository used to make the plots for the poster at the "Future of Cumulus Parameterization" workshop in Delft, Netherlands in July 2017. The figures and log-files for creating the figures on the poster can be found at https://figshare.com/collections/convective_variability_poster_delft_jul_2017/3806629
 
 # Convective Variability in COSMO ensembles
 
