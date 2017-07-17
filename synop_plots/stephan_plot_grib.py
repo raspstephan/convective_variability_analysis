@@ -100,6 +100,6 @@ if plot_data: # projection globe, grid, sp, contourlines in grey
         plt.clabel(cs1, fontsize=9, inline=1, fmt='%d')
         plt.clabel(cs2, fontsize=9, inline=1, fmt='%d')
         plt.title('500 hPa Geopotential [gpdam], Surface pressure [hPa]\nrelative topography [gpdam], ' + str(tim)+'00', fontsize = 10)
-        fig.savefig(result_dir + str(tim) + '_srasp_test.png', dpi = 500, bbox_inches='tight')
+        fig.savefig(result_dir + str(tim) + '_synop.png', dpi = 300, bbox_inches='tight')
         fig.clf()
     print 'plt_diff_fc_abs_error'

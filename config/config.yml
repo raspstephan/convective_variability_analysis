@@ -22,7 +22,7 @@ colors:
     det: mediumseagreen
     obs: black
     ens: mediumblue
-    ens_range: lightgreen
+    ens_range: lightblue
 
 plotting:
     date_fmt: '%d %b'

@@ -193,7 +193,7 @@ def domain_mean_weather_ts(inargs):
 ################################################################################
 # PLOTTING FUNCTIONS
 ################################################################################
-def plot_domain_mean_timeseries_individual(inargs, plot_type):
+def plot_domain_mean_timeseries_individual(inargs, plot_var):
     """
     Function to plot time series of domain mean precipitation for each day
 
@@ -201,12 +201,12 @@ def plot_domain_mean_timeseries_individual(inargs, plot_type):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    plot_type : str
+    plot_var : str
       Type of plot. Must be 'precipitation' or 'cape_tauc'
 
     """
 
-    assert plot_type in ['precipitation', 'cape_tauc'], \
+    assert plot_var in ['precipitation', 'cape_tauc'], \
         'Type must be precipitation or cape_tauc'
 
     # Read pre-processed data
@@ -218,33 +218,47 @@ def plot_domain_mean_timeseries_individual(inargs, plot_type):
     n_rows = int(np.ceil(float(n_days) / n_cols))
 
     fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
-                              figsize=(10, 3 * n_rows))
+                              figsize=(get_config(inargs, 'plotting',
+                                                  'page_width'),
+                                       2.1 * n_rows))
     axflat = np.ravel(axmat)
 
     # Loop over axes / days
     for iday in range(n_days):
+        ax = axflat[iday]
         dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
                    datetime(1, 1, 1))
         datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
-        axflat[iday].set_title(datestr)
+        if not iday == 0:
+            ax.text(0.3, 0.9, datestr, fontsize=10, transform = ax.transAxes)
+        else:
+            ax.text(0.65, 0.9, datestr, fontsize=10, transform = ax.transAxes)
         if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
-            axflat[iday].set_xlabel('Time [UTC]')
+            ax.set_xlabel('Time [UTC]')
+            ax.set_xticks([0, 6, 12, 18, 24])
 
-        if plot_type == 'precipitation':
-            plot_precipitation_panel(inargs, axflat, iday, rootgroup)
-        if plot_type == 'cape_tauc':
-            plot_cape_tauc_panel(inargs, axflat, iday, rootgroup)
+        if plot_var == 'precipitation':
+            plot_precipitation_panel(inargs, ax, iday, rootgroup)
+        if plot_var == 'cape_tauc':
+            plot_cape_tauc_panel(inargs, ax, iday, rootgroup)
+
+        ax.set_ylim(0, inargs.ymax)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        # ax.spines['left'].set_position(('outward', 3))
+        ax.spines['bottom'].set_position(('outward', 3))
 
     # Finish figure
-    axflat[0].legend(loc=0)
-
+    axflat[0].legend(loc=2)
     plt.tight_layout()
+    plt.subplots_adjust(wspace=0.15, hspace=0.25)
+
 
     # Save figure
-    save_fig_and_log(fig, rootgroup, inargs, plot_type + '_ts_individual')
+    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_individual')
 
 
-def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
+def plot_precipitation_panel(inargs, ax, iday, rootgroup):
     """
     Plots precipitation timeseries in each panel.
 
@@ -252,8 +266,8 @@ def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    axflat : list
-      List of axis objects
+    ax : axis object
+      Axis objects
     iday : int
       Index for list object
     rootgroup : netCDF object
@@ -264,7 +278,9 @@ def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
     dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
                datetime(1, 1, 1))
     datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
-    axflat[iday].set_title(datestr)
+
+    if iday % 4 == 0:  # Only left column
+        ax.set_ylabel(r'Precip [mm h$^{-1}$]')
 
     for group in rootgroup.groups:
         # Get data do be plotted
@@ -281,18 +297,18 @@ def plot_precipitation_panel(inargs, axflat, iday, rootgroup):
                 [iday, :, 0]
 
         # Plot data
-        axflat[iday].plot(rootgroup.variables['time'][:], prec, label=group,
-                          c=get_config(inargs, 'colors', group))
+        ax.plot(rootgroup.variables['time'][:], prec, label=group,
+                c=get_config(inargs, 'colors', group), linewidth=2)
         if group == 'ens':
-            axflat[iday].fill_between(rootgroup.variables['time'][:],
-                                      prec_lower, prec_upper,
-                                      where=prec_upper >= prec_lower,
-                                      facecolor=get_config(inargs,
-                                                           'colors',
-                                                           'ens_range'))
+            ax.fill_between(rootgroup.variables['time'][:],
+                            prec_lower, prec_upper,
+                            where=prec_upper >= prec_lower,
+                            facecolor=get_config(inargs,
+                                                 'colors',
+                                                 'ens_range'))
 
 
-def plot_cape_tauc_panel(inargs, axflat, iday, rootgroup):
+def plot_cape_tauc_panel(inargs, ax, iday, rootgroup):
     """
     Plots cape and tau_c timeseries in each panel.
 
@@ -300,8 +316,8 @@ def plot_cape_tauc_panel(inargs, axflat, iday, rootgroup):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    axflat : list
-      List of axis objects
+    ax : axis object
+      Axis object
     iday : int
       Index for list object
     rootgroup : netCDF object
@@ -309,7 +325,7 @@ def plot_cape_tauc_panel(inargs, axflat, iday, rootgroup):
 
     """
 
-    ax1 = axflat[iday]
+    ax1 = ax
     ax2 = ax1.twinx()
     ax2.set_ylim(0, 20)
 
@@ -350,7 +366,7 @@ def plot_cape_tauc_panel(inargs, axflat, iday, rootgroup):
                                                      'ens_range'))
 
 
-def plot_domain_mean_timeseries_composite(inargs, plot_type):
+def plot_domain_mean_timeseries_composite(inargs, plot_var):
     """
     Function to plot time series of domain mean as a composite over 
     all days
@@ -359,12 +375,12 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
     ----------
     inargs : argparse object
       Argparse object with all input arguments
-    plot_type : str
+    plot_var : str
       Type of plot. Must be 'precipitation' or 'cape_tauc'
 
     """
 
-    assert plot_type in ['precipitation', 'cape_tauc'], \
+    assert plot_var in ['precipitation', 'cape_tauc'], \
         'Type must be precipitation or cape_tauc'
 
     # Read pre-processed data
@@ -373,7 +389,7 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
 
     fig, ax1 = plt.subplots(1, 1, figsize=(3, 3))
 
-    if plot_type == 'precipitation':
+    if plot_var == 'precipitation':
         ax1.set_ylabel('Accumulation [mm/h]')
         for group in rootgroup.groups:
             array = rootgroup.groups[group].variables['PREC_ACCUM'][:]
@@ -381,7 +397,7 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
             ax1.plot(x, mean, label=group,
                      c=get_config(inargs, 'colors', group))
 
-    if plot_type == 'cape_tauc':
+    if plot_var == 'cape_tauc':
         ax1.set_ylabel('CAPE [J/kg]')
         ax2 = ax1.twinx()
         ax2.set_ylabel('tau_c [h]')
@@ -403,7 +419,7 @@ def plot_domain_mean_timeseries_composite(inargs, plot_type):
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, plot_type + '_ts_composite')
+    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_composite')
 
 
 ################################################################################
@@ -428,14 +444,18 @@ def main(inargs):
         print('Found pre-processed file: ' + get_pp_fn(inargs))
 
     # Call analyzing and plotting routine
-    plot_domain_mean_timeseries_individual(inargs,
-                                           plot_type='precipitation')
-    plot_domain_mean_timeseries_composite(inargs,
-                                          plot_type='precipitation')
-    plot_domain_mean_timeseries_individual(inargs,
-                                           plot_type='cape_tauc')
-    plot_domain_mean_timeseries_composite(inargs,
-                                          plot_type='cape_tauc')
+    if 'prec_ind' in inargs.plot_type:
+        plot_domain_mean_timeseries_individual(inargs,
+                                               plot_var='precipitation')
+    if 'prec_comp' in inargs.plot_type:
+        plot_domain_mean_timeseries_composite(inargs,
+                                              plot_var='precipitation')
+    if 'cape_tauc_ind' in inargs.plot_type:
+        plot_domain_mean_timeseries_individual(inargs,
+                                               plot_var='cape_tauc')
+    if 'cape_tauc_comp' in inargs.plot_type:
+        plot_domain_mean_timeseries_composite(inargs,
+                                              plot_var='cape_tauc')
 
 
 if __name__ == '__main__':
@@ -471,11 +491,29 @@ if __name__ == '__main__':
                         type=str,
                         default='hour',
                         help='Radar mask for [hour, day, total]?')
+
+
+    # General plotting options
+    parser.add_argument('--plot_type',
+                        type=str,
+                        default='',
+                        help='Which plot to plot. [prec_ind, prec_comp, '
+                             'cape_tauc_ind, cape_tauc_comp]')
+    parser.add_argument('--plot_format',
+                        type=str,
+                        default='pdf',
+                        help='Which format for figure file.')
+    parser.add_argument('--ymax',
+                        type=float,
+                        default=0.9,
+                        help='Max for y axis')
+
+    # General settings
     parser.add_argument('--config_file',
                         type=str,
                         default='config.yml',
                         help='Config file in relative directory ../config. \
-                              Default = config.yml')
+                                  Default = config.yml')
     parser.add_argument('--sub_dir',
                         type=str,
                         default='weather_time_series',
