@@ -511,7 +511,9 @@ def get_datalist_model(inargs, date, ens_no, var, radar_mask=False, lvl=None):
                    '/OUTPUT/lfff')
     sufx_dict = {
         'PREC_ACCUM': '.nc_30m_surf',
-        'CAPE': '.nc_30m_surf',
+        'CAPE_ML': '.nc_30m_surf',
+        'TAU_C': '.nc_30m_surf',
+        'HPBL': '.nc_30m_surf',
         'W': '.nc_30m',
         'QC': '.nc_30m',
         'QI': '.nc_30m',

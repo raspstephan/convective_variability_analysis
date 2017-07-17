@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from helpers import make_datelist, get_radar_mask, get_pp_fn, \
     get_datalist_radar, create_log_str, get_datalist_model, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
-    get_composite_str
+    get_composite_str, load_raw_data
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -112,19 +112,21 @@ def compute_ts_mean(inargs, idate, date, group, ie, var, rootgroup,
             ens_no = 'det'
         else:
             ens_no = ie + 1
-        datalist = get_datalist_model(inargs, date, ens_no, var, radar_mask)
+        datalist = get_datalist_model(inargs, date, ens_no, var)
     elif group == 'obs':
         if not var == 'PREC_ACCUM':
             return
-        datalist = get_datalist_radar(inargs, date, radar_mask)
+        datalist = get_datalist_radar(inargs, date)
     else:
         raise Exception('Wrong group.')
+
+
 
     # Compute domain mean and save in NetCDF file
     # Note: Need to loop, because array operation ignores mask
     mean_ts = []
     for data in datalist:
-        mean_ts.append(np.mean(data))
+        mean_ts.append(np.mean(data[~radar_mask]))
     rootgroup.groups[group].variables[var][idate, :, ie] = np.array(mean_ts)
 
 
@@ -155,12 +157,18 @@ def domain_mean_weather_ts(inargs):
         'time': timearray,
         'date': datearray,
     }
-    variables = {
-        'PREC_ACCUM': ['date', 'time'],
-        'CAPE_ML': ['date', 'time'],
-        'TAU_C': ['date', 'time'],
-        'HPBL': ['date', 'time'],
-    }
+    if inargs.compute_tauc_hpbl:
+        variables = {
+            'PREC_ACCUM': ['date', 'time'],
+            'CAPE_ML': ['date', 'time'],
+            'TAU_C': ['date', 'time'],
+            'HPBL': ['date', 'time'],
+        }
+    else:
+        variables = {
+            'PREC_ACCUM': ['date', 'time'],
+            'CAPE_ML': ['date', 'time'],
+        }
     rootgroup = create_netcdf(inargs, groups, dimensions, variables,
                               ensemble_dim=True)
 
@@ -253,7 +261,6 @@ def plot_domain_mean_timeseries_individual(inargs, plot_var):
     plt.tight_layout()
     plt.subplots_adjust(wspace=0.15, hspace=0.25)
 
-
     # Save figure
     save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_individual')
 
@@ -277,7 +284,6 @@ def plot_precipitation_panel(inargs, ax, iday, rootgroup):
 
     dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
                datetime(1, 1, 1))
-    datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
 
     if iday % 4 == 0:  # Only left column
         ax.set_ylabel(r'Precip [mm h$^{-1}$]')
@@ -380,22 +386,31 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
 
     """
 
-    assert plot_var in ['precipitation', 'cape_tauc'], \
-        'Type must be precipitation or cape_tauc'
+    assert plot_var in ['precipitation', 'cape_tauc', 'prec_cape'], \
+        'Wrong type!'
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
     x = rootgroup.variables['time'][:]
 
-    fig, ax1 = plt.subplots(1, 1, figsize=(3, 3))
+    fig, ax1 = plt.subplots(1, 1, figsize=(get_config(inargs, 'plotting',
+                                                      'page_width') / 2., 2.8))
 
-    if plot_var == 'precipitation':
-        ax1.set_ylabel('Accumulation [mm/h]')
+    if plot_var in ['precipitation', 'prec_cape']:
+        ax1.set_ylabel(r'Precip [mm h$^{-1}$]')
         for group in rootgroup.groups:
             array = rootgroup.groups[group].variables['PREC_ACCUM'][:]
             mean = np.mean(array, axis=(0, 2))
             ax1.plot(x, mean, label=group,
-                     c=get_config(inargs, 'colors', group))
+                     c=get_config(inargs, 'colors', group),
+                     linewidth=2)
+        if plot_var == 'prec_cape':
+            ax2 = ax1.twinx()
+            ax2.set_ylabel(r'CAPE [J kg$^{-1}$]')
+
+            array = rootgroup.groups['ens'].variables['CAPE_ML'][:]
+            mean = np.mean(array, axis=(0, 2))
+            ax2.plot(x, mean, c='orangered', linestyle='--', linewidth=2)
 
     if plot_var == 'cape_tauc':
         ax1.set_ylabel('CAPE [J/kg]')
@@ -411,15 +426,22 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
                         c=get_config(inargs, 'colors', group), ls=ls)
 
     ax1.set_xlabel('Time [UTC]')
-    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+    ax1.set_xticks([0, 6, 12, 18, 24])
+    for ax in [ax1, ax2]:
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_position(('outward', 3))
+        ax.spines['left'].set_position(('outward', 3))
+        ax.spines['right'].set_position(('outward', 3))
 
+    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
     ax1.set_title(comp_str)
     ax1.legend(loc=0)
 
     plt.tight_layout()
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_composite')
+    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_composite',
+                     tight=True)
 
 
 ################################################################################
@@ -456,6 +478,9 @@ def main(inargs):
     if 'cape_tauc_comp' in inargs.plot_type:
         plot_domain_mean_timeseries_composite(inargs,
                                               plot_var='cape_tauc')
+    if 'prec_cape_comp' in inargs.plot_type:
+        plot_domain_mean_timeseries_composite(inargs,
+                                              plot_var='prec_cape')
 
 
 if __name__ == '__main__':
@@ -491,6 +516,12 @@ if __name__ == '__main__':
                         type=str,
                         default='hour',
                         help='Radar mask for [hour, day, total]?')
+    parser.add_argument('--compute_tauc_hpbl',
+                        dest='compute_tauc_hpbl',
+                        action='store_true',
+                        help='If given, compute mean tau_c and hpbl')
+    parser.set_defaults(compute_tauc_hpbl=False)
+
 
 
     # General plotting options
@@ -498,7 +529,7 @@ if __name__ == '__main__':
                         type=str,
                         default='',
                         help='Which plot to plot. [prec_ind, prec_comp, '
-                             'cape_tauc_ind, cape_tauc_comp]')
+                             'cape_tauc_ind, cape_tauc_comp, prec_cape_comp]')
     parser.add_argument('--plot_format',
                         type=str,
                         default='pdf',
