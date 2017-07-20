@@ -169,9 +169,6 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 
     """
 
-    # Load raw_data for ttens
-    tmp_ttens = raw_data.variables['TTENS_MPHY'][idate, it]
-
     # Create temporarty numpy arrays
     arr_shape = rootgroup.variables['var_M'][idate, it, :, :, :].shape
     tmp_var_M = np.zeros(arr_shape) * np.nan
@@ -182,6 +179,8 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     tmp_mean_m = np.zeros(arr_shape) * np.nan
 
     if inargs.var is 'm':
+        # Load raw_data for ttens
+        tmp_ttens = raw_data.variables['TTENS_MPHY'][idate, it]
         tmp_var_ttens = np.zeros(arr_shape) * np.nan
         tmp_mean_ttens = np.zeros(arr_shape) * np.nan
 
@@ -617,6 +616,7 @@ def plot_std_vs_mean(inargs):
 
     ax.set_xscale('log')
     ax.set_yscale('log')
+    ax.text(0.1, 0.8, str(sqrt_fit), transform=ax.transAxes)
     #ax.set_title('Scaling of standard deviation with mean')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})

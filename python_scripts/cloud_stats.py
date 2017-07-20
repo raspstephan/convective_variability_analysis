@@ -663,6 +663,37 @@ def plot_rdf_composite(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite', tight=True)
 
 
+def plot_m_evolution(inargs):
+    """
+    Plots the evolution of m.
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    TODO: extend to cloud size!
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, pw / 2.5))
+
+    mean_m = np.mean(rootgroup.groups['ens'].variables['cld_sum_mean'][:], axis=(0,2))
+    mean_m_sep = np.mean(rootgroup.groups['ens'].variables['cld_sum_sep_mean'][:], axis=(0,2))
+
+    ax.plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
+    ax.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated')
+
+    ax.set_xlabel('Time [UTC]')
+    ax.set_ylabel('mass flux')
+    ax.legend()
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'm_evolution', tight=True)
+
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -693,6 +724,8 @@ def main(inargs):
         plot_rdf_individual(inargs)
     if 'rdf_composite' in inargs.plot_type:
         plot_rdf_composite(inargs)
+    if 'm_evolution' in inargs.plot_type:
+        plot_m_evolution(inargs)
 
 
 if __name__ == '__main__':
@@ -803,7 +836,7 @@ if __name__ == '__main__':
                         type=str,
                         default='',
                         help='Which plot to plot. [freq_hist, size_hist, '
-                             'rdf_composite, rdf_individual]')
+                             'rdf_composite, rdf_individual, m_evolution]')
     parser.add_argument('--no_det',
                         dest='no_det',
                         action='store_true',
