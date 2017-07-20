@@ -26,10 +26,9 @@ def compute_variance(inargs):
     
     Parameters
     ----------
-    inargs
+    inargs : argparse object
+      Argparse object with all input arguments
 
-    Returns
-    -------
 
     """
 
@@ -97,10 +96,12 @@ def create_netcdf(inargs):
     
     Parameters
     ----------
-    inargs
+    inargs : argparse object
+      Argparse object with all input arguments
 
     Returns
     -------
+    rootgroup : NetCDF dataset object
 
     """
 
@@ -148,8 +149,24 @@ def create_netcdf(inargs):
 def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                   raw_data):
     """
-    At this point, the incoming fields and lists are all ensemble members 
-    for one date and one time.
+    Compute variances and means and save in rootgroup object
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    idate : int
+      Date index
+    it : int
+      Time index
+    rootgroup : NetCDF dataset object
+      To save data
+    com_ens_list : list
+      list with centers of mass
+    sum_ens_list : list
+      list with object sums
+    raw_data : NetCDF dataset object
+      To load raw data
+
     """
 
     # Load raw_data for ttens
@@ -263,13 +280,12 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
 
 def plot_diurnal(inargs):
     """
-    
+    Plots the diurnal plots for three different scales.
+
     Parameters
     ----------
-    inargs
-
-    Returns
-    -------
+    inargs : argparse object
+      Argparse object with all input arguments
 
     """
 
@@ -367,10 +383,32 @@ def plot_diurnal(inargs):
 def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
                           ylabel, data, labellist, clist):
     """
-    
-    Returns
-    -------
+    Plots the individual panels of the diurnal plots for each day.
 
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+    rootgroup : NetCDF dataset object
+      Contains the data to be plotted
+    i : int
+      Scale index
+    iday : int
+      Day index
+    axflat : list
+      Flat list containing axes
+    n_cols : int
+      Number of cols
+    n_rows : int
+      Number of rows
+    ylabel : str
+      ylabel
+    data : array
+      Data to be plotted
+    labellist : list
+      List with labels
+    clist : list
+      List with colors
     """
     if i == 0:  # Do once for each axis
         dateobj = (
@@ -406,13 +444,25 @@ def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
 
 def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     """
-    
+    Plots composite panel for diurnal plots.
+
     Parameters
     ----------
-    inargs
-
-    Returns
-    -------
+    inargs : argparse object
+      Argparse object with all input arguments
+    rootgroup : NetCDF dataset object
+      Contains the data to be plotted
+    i : int
+      Scale index
+    data : array
+      Data to be plotted
+    ax : axis object
+    labellist : list
+      List with labels
+    clist : list
+      List with colors
+    ylabel : str
+      ylabel
 
     """
 
@@ -456,13 +506,12 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
 
 def plot_std_vs_mean(inargs):
     """
-    
+    Plots standard deviation versus mean plots.
+
     Parameters
     ----------
-    inargs
-
-    Returns
-    -------
+    inargs : argparse object
+      Argparse object with all input arguments
 
     """
 
