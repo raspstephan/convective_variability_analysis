@@ -1,5 +1,5 @@
 # Description of INT2LM and COSMO runs
-**Disclaimer:** Because Deutscher Wetterdienst (DWD) does not provide their models and data as open source, we are not able to provide any actual data or model code. With this limitation in mind, we nonetheless will try to provide a complete description of how our final data was produced. The hope is that this makes it easy for ther researchers with access to DWD data to set up similar experiments. Furthermore, it should provide internal (LMU) users with detailed instructions on the data structure and model setup. for this reason, all the specific paths are provided.
+**Disclaimer:** Because Deutscher Wetterdienst (DWD) does not provide their models and data as open source, we are not able to provide any actual data or model code. With this limitation in mind, we nonetheless will try to provide a complete description of how our final data was produced. The hope is that this makes it easy for ther researchers with access to DWD data to set up similar experiments. Furthermore, it should provide internal (LMU) users with detailed instructions on the data structure and model setup. For this reason, all the specific paths are provided.
 
 
 ## Initial and Boundary data
@@ -7,11 +7,11 @@ The initial and boundary data for these experiments are COSMO-EU operational ana
 
 The COSMO-EU model runs with a horizontal grid spacing of 7 km and parameterized convection. It uses a nudging data assimulation system.
 
-The data are stored in the SKY database at DWD and are only accessible for registered users with a DWD account. For these experiments Dr. Christian Keil (LMU) provided the data using the following database command ( **but this is not really the one for my data, right???** ):
+The data are stored in the SKY database at DWD and are only accessible for registered users with a DWD account. For these experiments Dr. Christian Keil (LMU) provided the data using the following database command:
 
 `read db=roma d=2016052700 cat=c3e_main_fc_rout p=CAPE_ML,TOT_PREC enum=1/to/ s[h]=0/to/24/by/1 f=/e/gtmp/dlrkeil/2016052700.grib2`
 
-The data are stored as GRIB2 files here:
+On our local system, the data are stored as GRIB2 files here:
 
 `/project/meteo/w2w/Unwetter2016/icbc`
 
