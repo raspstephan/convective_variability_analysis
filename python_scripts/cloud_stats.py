@@ -681,8 +681,11 @@ def plot_m_evolution(inargs):
     pw = get_config(inargs, 'plotting', 'page_width')
     fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, pw / 2.5))
 
-    mean_m = np.mean(rootgroup.groups['ens'].variables['cld_sum_mean'][:], axis=(0,2))
-    mean_m_sep = np.mean(rootgroup.groups['ens'].variables['cld_sum_sep_mean'][:], axis=(0,2))
+    mean_m = np.mean(rootgroup.groups['ens'].variables['cld_sum_mean'][:],
+                     axis=(0,2))
+    mean_m_sep = np.mean(rootgroup.groups['ens'].
+                         variables['cld_sum_sep_mean'][:],
+                         axis=(0,2))
 
     ax.plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
     ax.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated')

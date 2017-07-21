@@ -653,6 +653,38 @@ def plot_std_vs_mean(inargs):
                      inargs.std_vs_mean_var, tight=True)
 
 
+def plot_correlation(inargs):
+    """
+    Plots correlation between N and m in a scatter plot
+
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, axarr = plt.subplots(1, 2, figsize=(pw, pw / 2.5))
+
+    mean_m = rootgroup.variables['mean_m'][:, :, 0, 0, 0]
+    mean_N = rootgroup.variables['mean_N'][:, :, 0, 0, 0]
+
+
+    # axarr[0].plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
+    # axarr[1].plot(rootgroup.variables['time'][:], mean_M, label='non-separated')
+    axarr[0].scatter(mean_m, mean_N)
+
+    axarr[0].set_xlabel('m')
+    axarr[0].set_ylabel('N')
+    axarr[0].legend()
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'correlation', tight=True)
+
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -680,6 +712,8 @@ def main(inargs):
         plot_diurnal(inargs)
     elif inargs.plot_type == 'std_vs_mean':
         plot_std_vs_mean(inargs)
+    elif inargs.plot_type == 'correlation':
+        plot_correlation(inargs)
     else:
         print('No or wrong plot_type. Nothing plotted.')
 
