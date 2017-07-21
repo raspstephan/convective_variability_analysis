@@ -536,7 +536,8 @@ def plot_std_vs_mean(inargs):
     # Start with n loop for CC06 fit
     fit_list = []
     for i_n, n in enumerate(rootgroup.variables['n'][:]):
-        if inargs.std_vs_mean_var == 'TTENS':  # Multiply with area
+        if inargs.std_vs_mean_var == 'TTENS':
+            # Multiply with area
             std[:, :, i_n, :, :] *= (n * dx) ** 2
             mean[:, :, i_n, :, :] *= (n * dx) ** 2
         tmp_std = np.ravel(std[:, :, i_n, :, :])
@@ -552,6 +553,7 @@ def plot_std_vs_mean(inargs):
     std = std[mask]
     mean = mean[mask]
 
+    print np.min(mean), np.max(mean)
     # Fit curves for entire dataset
     sqrt_fit = fit_curve(mean, std)
     lin_fit = fit_curve(mean, std, 'linear')
@@ -563,9 +565,11 @@ def plot_std_vs_mean(inargs):
 
     nbins = 10
     if inargs.std_vs_mean_var == 'M':
-        binedges = np.logspace(6, 11, nbins + 1)
-    else:
-        binedges = np.logspace(2, 7, nbins + 1)
+        binedges = np.logspace(5, 10, nbins + 1)
+    elif inargs.std_vs_mean_var == 'TTENS':
+        binedges = np.logspace(1, 7, nbins + 1)
+    if inargs.var == 'prec':
+        binedges = np.logspace(5, 10, nbins + 1)
     bininds = np.digitize(mean, binedges)
     binmeans = []
     bin5 = []
@@ -587,7 +591,10 @@ def plot_std_vs_mean(inargs):
             bin75.append(np.percentile(std[bininds == i], 75))
             bin5.append(np.percentile(std[bininds == i], 5))
             bin95.append(np.percentile(std[bininds == i], 95))
-        binnum.append(num / float((std[np.isfinite(std)]).shape[0]) * 50)
+        # I cannot remember what that rescaling of the number was for
+        # binnum.append(num / float((std[np.isfinite(std)]).shape[0]) * 50)
+        binnum.append(num)
+    print binnum
     # xmean = (binedges[:-1] + binedges[1:]) / 2.
     logmean = np.exp((np.log(binedges[:-1]) + np.log(binedges[1:])) / 2.)
     logleft = np.exp(np.log(binedges[:-1]) + 0.2)
@@ -604,19 +611,19 @@ def plot_std_vs_mean(inargs):
                 color='black', zorder=0.5)
 
     if inargs.std_vs_mean_var == 'M':
-        ax.set_xlim(1e6, 1e11)
-        ax.set_ylim(4e6, 2e9)
+        ax.set_xlim(1e5, 1e10)
+        ax.set_ylim(4e5, 2e9)
         ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
         ax.set_ylabel(r'$\mathrm{std}(M)$ [kg/s]')
     else:
-        ax.set_xlim(1e2, 1e7)
+        ax.set_xlim(1e1, 1e7)
         ax.set_ylim(1e2,5e6)
-        ax.set_xlabel(r'$\langle Q \rangle \times A$ [kg/s * m^2]')
-        ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [kg/s * m^2]')
+        ax.set_xlabel(r'$\langle Q \rangle \times A$ [K/s * m^2]')
+        ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [K/s * m^2]')
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.text(0.1, 0.8, str(sqrt_fit), transform=ax.transAxes)
+    print('Sqrt fit = %.2f' % (sqrt_fit))
     #ax.set_title('Scaling of standard deviation with mean')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})

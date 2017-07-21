@@ -1,7 +1,7 @@
 # YAML file with all configuration
 paths:   # Note: All paths should have a "/" at the end!
-    raw_data: /project/meteo/scratch-old/users/stephan.rasp/convective_variability_data/raw_data/
-    preproc_data: /project/meteo/scratch-old/users/stephan.rasp/convective_variability_data/preproc_data/
+    raw_data: /project/meteo/scratch/S.Rasp/convective_variability_data/raw_data/
+    preproc_data: /project/meteo/scratch/S.Rasp/convective_variability_data/preproc_data/
     radar_data: /project/meteo/w2w/A6/radolan/netcdf_cosmo_de/
     radar_prefx: raa01-rw_10000-
     radar_sufix: -dwd---bin.nc
