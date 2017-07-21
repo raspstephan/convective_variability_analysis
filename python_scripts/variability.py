@@ -120,7 +120,8 @@ def create_netcdf(inargs):
         'var_N': ['date', 'time', 'n', 'x', 'y'],
         'mean_m': ['date', 'time', 'n', 'x', 'y'],
         'mean_M': ['date', 'time', 'n', 'x', 'y'],
-        'mean_N': ['date', 'time', 'n', 'x', 'y']
+        'mean_N': ['date', 'time', 'n', 'x', 'y'],
+        'corr_m_N': ['date', 'time', 'n', 'x', 'y']
     }
     if inargs.var is 'm':
         variables.update({'var_TTENS': ['date', 'time', 'n', 'x', 'y'],
@@ -177,6 +178,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     tmp_mean_M = np.zeros(arr_shape) * np.nan
     tmp_mean_N = np.zeros(arr_shape) * np.nan
     tmp_mean_m = np.zeros(arr_shape) * np.nan
+    tmp_corr_m_N = np.zeros(arr_shape) * np.nan
 
     if inargs.var is 'm':
         # Load raw_data for ttens
@@ -207,6 +209,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                 ens_m_list = []
                 ens_M_list = []
                 ens_N_list = []
+                ens_m_box_list = []   # This actually saves the mean m for each mem
                 if inargs.var is 'm':   # Also compute heating rate sum and var
                     ens_ttens_list = []
                 for ie, com_list, sum_list in zip(range(inargs.nens),
@@ -228,8 +231,10 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                     # If the array is empty set M to zero
                     if len(box_cld_sum) > 0:
                         ens_M_list.append(np.sum(box_cld_sum))
+                        ens_m_box_list.append(np.mean(box_cld_sum))
                     else:
                         ens_M_list.append(0.)
+                        ens_m_box_list.append(0.)
 
                     # This is the number of clouds
                     ens_N_list.append(box_cld_sum.shape[0])
@@ -254,6 +259,8 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                     tmp_mean_M[i_n, ico, jco] = np.mean(ens_M_list)
                     tmp_mean_N[i_n, ico, jco] = np.mean(ens_N_list)
                     tmp_mean_m[i_n, ico, jco] = np.mean(ens_m_list)
+                    tmp_corr_m_N[i_n, ico, jco] = np.corrcoef(ens_m_box_list,
+                                                              ens_N_list)[0, 1]
 
                 if inargs.var is 'm':
                     tmp_var_ttens[i_n, ico, jco] = np.var(ens_ttens_list, ddof=1)
@@ -266,6 +273,7 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     rootgroup.variables['mean_M'][idate, it] = tmp_mean_M
     rootgroup.variables['mean_N'][idate, it] = tmp_mean_N
     rootgroup.variables['mean_m'][idate, it] = tmp_mean_m
+    rootgroup.variables['corr_m_N'][idate, it] = tmp_corr_m_N
 
     if inargs.var is 'm':
         rootgroup.variables['var_TTENS'][idate, it] = tmp_var_ttens
@@ -321,6 +329,7 @@ def plot_diurnal(inargs):
         var_M = rootgroup.variables['var_M'][:, :, i_n, :nx, :ny]
         var_m = rootgroup.variables['var_m'][:, :, i_n, :nx, :ny]
         var_N = rootgroup.variables['var_N'][:, :, i_n, :nx, :ny]
+        corr_m_N = rootgroup.variables['corr_m_N'][:, :, i_n, :nx, :ny]
 
         # Flatten x and y dimensions
         mean_M = mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
@@ -335,6 +344,8 @@ def plot_diurnal(inargs):
                               var_m.shape[2] * var_m.shape[3])
         var_N = var_N.reshape(var_N.shape[0], var_N.shape[1],
                               var_N.shape[2] * var_N.shape[3])
+        corr_m_N = corr_m_N.reshape(corr_m_N.shape[0], corr_m_N.shape[1],
+                                    corr_m_N.shape[2] * corr_m_N.shape[3])
         # Array now has dimensions [date, time, points]
 
         # Computations
@@ -357,6 +368,9 @@ def plot_diurnal(inargs):
             data = var_M / ((var_N / mean_N + var_m / (mean_m**2)) * mean_M *
                             mean_m)
             ylabel = r'$\alpha$ and $\beta$-adjusted $R_V$'
+        elif inargs.plot_type == 'corr_m_N':
+            data = corr_m_N
+            ylabel = r'corr m N'
 
         if inargs.diurnal_individual_days:
             for iday, date in enumerate(rootgroup.variables['date']):
@@ -466,6 +480,7 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     """
 
     composite_mean = np.nanmean(data, axis=(0,2))
+    print(composite_mean)
     per25 = np.nanpercentile(data, 25, axis=(0,2))
     per75 = np.nanpercentile(data, 75, axis=(0,2))
 
@@ -498,6 +513,8 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
         ax.yaxis.set_minor_formatter(NullFormatter())
         ax.set_yticks([0.5, 1, 2])
         ax.set_yticklabels([0.5, 1, 2])
+    elif inargs.plot_type == 'corr_m_N':
+        ax.set_ylim(-1, 1)
     else:
         ax.set_ylim(0.1, 2.5)
     ax.axhline(y=1, c='gray', zorder=0.1)
@@ -677,6 +694,7 @@ def plot_correlation(inargs):
     # axarr[0].plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
     # axarr[1].plot(rootgroup.variables['time'][:], mean_M, label='non-separated')
     axarr[0].scatter(mean_m, mean_N)
+    print np.corrcoef(mean_m, mean_N)[0, 1]
 
     axarr[0].set_xlabel('m')
     axarr[0].set_ylabel('N')
@@ -708,7 +726,7 @@ def main(inargs):
 
     # Plotting
     if inargs.plot_type in ['r_v', 'alpha', 'beta', 'r_v_alpha', 'r_v_beta',
-                            'r_v_alpha_beta']:
+                            'r_v_alpha_beta', 'corr_m_N']:
         plot_diurnal(inargs)
     elif inargs.plot_type == 'std_vs_mean':
         plot_std_vs_mean(inargs)
