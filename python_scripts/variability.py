@@ -37,6 +37,7 @@ def compute_variance(inargs):
 
     # Make the pp NetCDF file
     rootgroup = create_netcdf(inargs)
+    rootgroup.variables['cond_m_hist'][:] = 0
 
     # Load the raw_data
     if inargs.var == 'm':   # Load data for mass flux calculation
@@ -111,7 +112,9 @@ def create_netcdf(inargs):
                           inargs.time_inc),
         'n': np.array([256, 128, 64, 32, 16, 8, 4]),
         'x': np.arange(get_config(inargs, 'domain', 'ana_irange')),
-        'y': np.arange(get_config(inargs, 'domain', 'ana_jrange'))
+        'y': np.arange(get_config(inargs, 'domain', 'ana_jrange')),
+        'cond_bins_mean_m': np.linspace(0, 2e8, 10)[1:],   # TODO: Softcode this stuff
+        'cond_bins_m': np.linspace(0, 1e9, 50)[1:],
     }
 
     variables = {
@@ -121,7 +124,8 @@ def create_netcdf(inargs):
         'mean_m': ['date', 'time', 'n', 'x', 'y'],
         'mean_M': ['date', 'time', 'n', 'x', 'y'],
         'mean_N': ['date', 'time', 'n', 'x', 'y'],
-        'corr_m_N': ['date', 'time', 'n', 'x', 'y']
+        'corr_m_N': ['date', 'time', 'n', 'x', 'y'],
+        'cond_m_hist': ['n', 'cond_bins_mean_m', 'cond_bins_m'],
     }
     if inargs.var is 'm':
         variables.update({'var_TTENS': ['date', 'time', 'n', 'x', 'y'],
@@ -179,6 +183,8 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     tmp_mean_N = np.zeros(arr_shape) * np.nan
     tmp_mean_m = np.zeros(arr_shape) * np.nan
     tmp_corr_m_N = np.zeros(arr_shape) * np.nan
+
+    tmp_cond_hist = np.zeros(rootgroup.variables['cond_m_hist'].shape)
 
     if inargs.var is 'm':
         # Load raw_data for ttens
@@ -261,6 +267,10 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
                     tmp_mean_m[i_n, ico, jco] = np.mean(ens_m_list)
                     tmp_corr_m_N[i_n, ico, jco] = np.corrcoef(ens_m_box_list,
                                                               ens_N_list)[0, 1]
+                    m_bin = np.digitize([np.mean(ens_m_list)],
+                                        np.linspace(0, 2e8, 10)[1:-1],
+                                        right=True)[0]  #TODO: Softcode!
+                    tmp_cond_hist[i_n, m_bin] += np.histogram(ens_m_list, np.linspace(0, 1e9, 50))[0]
 
                 if inargs.var is 'm':
                     tmp_var_ttens[i_n, ico, jco] = np.var(ens_ttens_list, ddof=1)
@@ -274,6 +284,9 @@ def comp_var_mean(inargs, idate, it, rootgroup, com_ens_list, sum_ens_list,
     rootgroup.variables['mean_N'][idate, it] = tmp_mean_N
     rootgroup.variables['mean_m'][idate, it] = tmp_mean_m
     rootgroup.variables['corr_m_N'][idate, it] = tmp_corr_m_N
+
+    rootgroup.variables['cond_m_hist'][:] = (rootgroup.variables['cond_m_hist'][:] +
+                                             tmp_cond_hist)
 
     if inargs.var is 'm':
         rootgroup.variables['var_TTENS'][idate, it] = tmp_var_ttens
