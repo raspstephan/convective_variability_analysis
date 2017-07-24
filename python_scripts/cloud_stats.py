@@ -672,27 +672,49 @@ def plot_m_evolution(inargs):
     inargs : argparse object
       Argparse object with all input arguments
 
-    TODO: extend to cloud size!
     """
 
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
 
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, pw / 2.5))
+    fig, ax1 = plt.subplots(1, 1, figsize=(0.5 * pw, pw / 2.5))
+    ax2 = ax1.twinx()
 
-    mean_m = np.mean(rootgroup.groups['ens'].variables['cld_sum_mean'][:],
+    mean_m = np.nanmean(rootgroup.groups['ens'].variables['cld_sum_mean'][:],
                      axis=(0,2))
-    mean_m_sep = np.mean(rootgroup.groups['ens'].
+    mean_m_sep = np.nanmean(rootgroup.groups['ens'].
                          variables['cld_sum_sep_mean'][:],
                          axis=(0,2))
 
-    ax.plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
-    ax.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated')
+    mean_size = np.nanmean(rootgroup.groups['ens'].variables['cld_size_mean'][:],
+                        axis=(0, 2))
+    mean_size_sep = np.nanmean(rootgroup.groups['ens'].
+                            variables['cld_size_sep_mean'][:],
+                            axis=(0, 2))
 
-    ax.set_xlabel('Time [UTC]')
-    ax.set_ylabel('mass flux')
-    ax.legend()
+    ax1.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated',
+            linewidth=2, c='orangered')
+    ax1.plot(rootgroup.variables['time'][:], mean_m, label='non-separated',
+            linewidth=2, c='cornflowerblue')
+
+    ax2.plot(rootgroup.variables['time'][:], mean_size_sep, linewidth=2,
+             linestyle='--', c='orangered')
+    ax2.plot(rootgroup.variables['time'][:], mean_size, linewidth=2,
+             linestyle='--', c='cornflowerblue')
+
+    ax1.set_xlabel('Time [UTC]')
+    ax1.set_ylabel(r'$\langle m \rangle$ [kg s$^{-1}$] (solid)')
+    ax2.set_ylabel(r'$\langle \sigma \rangle$ [m$^{2}$] (dashed)')
+    ax1.legend(fontsize=8, loc=4)
+
+    for ax in [ax1, ax2]:
+        ax.set_xticks([6, 9, 12, 15, 18, 21, 24])
+        ax.set_xticklabels([6, 9, 12, 15, 18, 21, 24])
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_position(('outward', 3))
+        ax.spines['left'].set_position(('outward', 3))
+        ax.spines['right'].set_position(('outward', 3))
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'm_evolution', tight=True)
 
