@@ -384,6 +384,9 @@ def plot_diurnal(inargs):
         elif inargs.plot_type == 'corr_m_N':
             data = corr_m_N
             ylabel = r'corr m N'
+        elif inargs.plot_type == 'mean_m':
+            data = mean_m
+            ylabel = r'mean(m)'
 
         if inargs.diurnal_individual_days:
             for iday, date in enumerate(rootgroup.variables['date']):
@@ -528,6 +531,8 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
         ax.set_yticklabels([0.5, 1, 2])
     elif inargs.plot_type == 'corr_m_N':
         ax.set_ylim(-1, 1)
+    elif inargs.plot_type == 'mean_m':
+        pass
     else:
         ax.set_ylim(0.1, 2.5)
     ax.axhline(y=1, c='gray', zorder=0.1)
@@ -595,7 +600,7 @@ def plot_std_vs_mean(inargs):
 
     nbins = 10
     if inargs.std_vs_mean_var == 'M':
-        binedges = np.logspace(5, 10, nbins + 1)
+        binedges = np.logspace(6, 10, nbins + 1)
     elif inargs.std_vs_mean_var == 'TTENS':
         binedges = np.logspace(1, 7, nbins + 1)
     if inargs.var == 'prec':
@@ -641,8 +646,8 @@ def plot_std_vs_mean(inargs):
                 color='black', zorder=0.5)
 
     if inargs.std_vs_mean_var == 'M':
-        ax.set_xlim(1e5, 1e10)
-        ax.set_ylim(4e5, 2e9)
+        ax.set_xlim(1e6, 1e10)
+        ax.set_ylim(1e6, 2e9)
         ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
         ax.set_ylabel(r'$\mathrm{std}(M)$ [kg/s]')
     else:
@@ -739,7 +744,7 @@ def main(inargs):
 
     # Plotting
     if inargs.plot_type in ['r_v', 'alpha', 'beta', 'r_v_alpha', 'r_v_beta',
-                            'r_v_alpha_beta', 'corr_m_N']:
+                            'r_v_alpha_beta', 'corr_m_N', 'mean_m']:
         plot_diurnal(inargs)
     elif inargs.plot_type == 'std_vs_mean':
         plot_std_vs_mean(inargs)
