@@ -401,9 +401,16 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
         for group in rootgroup.groups:
             array = rootgroup.groups[group].variables['PREC_ACCUM'][:]
             mean = np.mean(array, axis=(0, 2))
+            std = np.mean(np.std(array, axis=2, ddof=1), axis=0)
             ax1.plot(x, mean, label=group,
                      c=get_config(inargs, 'colors', group),
                      linewidth=2)
+            if group == 'ens':
+                lower = mean - std
+                upper = mean + std
+                ax1.fill_between(x, lower, upper, where=upper >= lower,
+                                 facecolor=get_config(inargs, 'colors',
+                                                      'ens_range'))
         if plot_var == 'prec_cape':
             ax2 = ax1.twinx()
             ax2.set_ylabel(r'CAPE [J kg$^{-1}$]')
@@ -432,10 +439,11 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
         ax.spines['bottom'].set_position(('outward', 3))
         ax.spines['left'].set_position(('outward', 3))
         ax.spines['right'].set_position(('outward', 3))
+        ax.set_xlim((0, 24))
 
-    comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
-    ax1.set_title(comp_str)
-    ax1.legend(loc=0)
+    # comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
+    # ax1.set_title(comp_str)
+    ax1.legend(loc=0, fontsize=8, title='Precip')
 
     plt.tight_layout()
 

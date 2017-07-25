@@ -451,6 +451,7 @@ def plot_cloud_size_hist(inargs):
 
             # Convert to relative frequency
             mean_hr_no_cld = np.sum(mean_hist)  # Mean hourly cloud sum
+
             plot_data = mean_hist / mean_hr_no_cld
         elif inargs.size_hist_y_type == 'mean_number':
             plot_data = np.mean(hist_data, axis=(0, 1, 3))
@@ -462,14 +463,16 @@ def plot_cloud_size_hist(inargs):
 
         # Fit curves only for ens
         if group == 'ens':
+            print('Mean hourly cloud number = %.2e' % (mean_hr_no_cld))
+
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
-            print a, b
+            print('Exp fit params: a = %.2e; b = %.2e' % (a, b))
             ax.plot(x, np.exp(a - b * x), c='orange', label='Exponential',
                     zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
-            print a, b
+            print('Pow-law fit params: a = %.2e; b = %.2e' % (a, b))
             ax.plot(x, np.exp(a-b*np.log(x)), c='darkgreen', label='Power-law',
                     zorder=0.1)
 
