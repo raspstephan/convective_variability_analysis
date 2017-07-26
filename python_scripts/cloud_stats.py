@@ -602,7 +602,7 @@ def plot_rdf_composite(inargs):
         'det': ['darkgreen', 'lightgreen'],
     }
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, axarr = plt.subplots(1, 2, figsize=(0.5 * pw, pw / 2.5))
+    fig, axarr = plt.subplots(1, 2, figsize=(0.75 * pw, pw / 2.5))
 
     axarr[0].set_ylabel('RDF')
     for group in rootgroup.groups:
@@ -617,35 +617,38 @@ def plot_rdf_composite(inargs):
 
         # 1st: Plot max curve
         mx = np.nanmax(np.nanmean(array, axis=(0, 3)), axis=1)
-        axarr[0].plot(rootgroup.variables['time'][:], mx, label=group,
+        axarr[1].plot(rootgroup.variables['time'][:], mx, label=group,
                  c=get_config(inargs, 'colors', group), linewidth=2)
 
         # 2nd: Plot example curves
         for it, t in enumerate(inargs.rdf_curve_times):
             rdf_curve = np.nanmean(array[:, t, :, :], axis=(0, 2))
-            axarr[1].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
+            axarr[0].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
                           label=group + ' ' +
                                 str(rootgroup.variables['time'][t]),
                           c=curve_c_dict[group][it], linewidth=1.5)
+            axarr[1].plot([rootgroup.variables['time'][t], rootgroup.variables['time'][t]],
+                          [0, inargs.rdf_y_max], c='gray', zorder=0.1, alpha=2. / (it + 1),
+                          linewidth=0.5)
 
-    axarr[0].set_ylim(0, inargs.rdf_y_max)
     axarr[1].set_ylim(0, inargs.rdf_y_max)
-    axarr[0].set_xlim([6, 24])
-    axarr[1].set_xlim([0, rootgroup.variables['rdf_radius'][-1] * 2.8])
-    axarr[0].set_xlabel('Time [UTC]')
-    axarr[1].set_xlabel('Radius [km]')
+    axarr[0].set_ylim(0, inargs.rdf_y_max)
+    axarr[1].set_xlim([6, 24])
+    axarr[0].set_xlim([0, rootgroup.variables['rdf_radius'][-1] * 2.8])
+    axarr[1].set_xlabel('Time [UTC]')
+    axarr[0].set_xlabel('Radius [km]')
 
-    axarr[0].set_title('Max Evolution')
-    axarr[1].set_title('Curves')
+    axarr[1].set_title('RDF Maximum')
+    axarr[0].set_title('Full RDF')
 
-    axarr[0].legend(loc=0, fontsize=8)
     axarr[1].legend(loc=0, fontsize=8)
+    axarr[0].legend(loc=0, fontsize=8)
 
-    axarr[0].set_xticks([6, 9, 12, 15, 18, 21, 24])
-    axarr[0].set_xticklabels([6, 9, 12, 15, 18, 21, 24])
+    axarr[1].set_xticks([6, 9, 12, 15, 18, 21, 24])
+    axarr[1].set_xticklabels([6, 9, 12, 15, 18, 21, 24])
 
-    axarr[1].set_xticks(np.arange(0, 100, 20))
-    axarr[1].axhline(y=1, c='gray', zorder=0.1)
+    axarr[0].set_xticks(np.arange(0, 100, 20))
+    axarr[0].axhline(y=1, c='gray', zorder=0.1)
 
     axarr[0].spines['top'].set_visible(False)
     axarr[0].spines['right'].set_visible(False)
