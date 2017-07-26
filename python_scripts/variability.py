@@ -361,6 +361,9 @@ def plot_diurnal(inargs):
                                     corr_m_N.shape[2] * corr_m_N.shape[3])
         # Array now has dimensions [date, time, points]
 
+        if inargs.diurnal_ext_m is not None:
+            mean_m = inargs.diurnal_ext_m
+
         # Computations
         if inargs.plot_type == 'r_v':
             data = var_M / (2. * mean_M * mean_m)
@@ -851,6 +854,10 @@ if __name__ == '__main__':
                         nargs='+',
                         default=[0.4, 2.2],
                         help='Ylims for diurnal plots. Default [0.4, 2.2]')
+    parser.add_argument('--diurnal_ext_m',
+                        type=float,
+                        default=None,
+                        help='If given, uses constant external m for CC06 plots')
 
     # For std_vs_mean
     parser.add_argument('--std_vs_mean_var',
