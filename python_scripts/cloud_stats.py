@@ -697,10 +697,35 @@ def plot_m_evolution(inargs):
                             variables['cld_size_sep_mean'][:],
                             axis=(0, 2))
 
+    # Get mean total mass flux
+    hist_data = rootgroup.groups['ens'].variables['cld_sum'][:]
+    mean_hist = np.mean(hist_data, axis=(0, 3))
+    mean_hist = np.sum(mean_hist, axis=1)
+
+    hist_data_sep = rootgroup.groups['ens'].variables['cld_sum_sep'][:]
+    mean_hist_sep = np.mean(hist_data_sep, axis=(0, 3))
+    mean_hist_sep = np.sum(mean_hist_sep, axis=1)
+
+    # Convert to relative frequency
+    mean_M = mean_hist * mean_m
+
+    # Calculate weighted mean
+    weighted_mean_m = np.average(mean_m, weights=mean_hist)
+    weighted_mean_m_sep = np.average(mean_m_sep, weights=mean_hist_sep)
+
+    print('Mean m = %.2e \nMean sep m = %.2e' % (weighted_mean_m, weighted_mean_m_sep))
+
+
     ax1.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated',
             linewidth=2, c='orangered')
     ax1.plot(rootgroup.variables['time'][:], mean_m, label='non-separated',
             linewidth=2, c='cornflowerblue')
+
+    ax3 = ax1.twinx()
+    ax3.plot(rootgroup.variables['time'][:], mean_M,
+             linewidth=2, c='gray', zorder=0.1, alpha=0.5)
+    ax3.axis('off')
+
 
     ax2.plot(rootgroup.variables['time'][:], mean_size_sep, linewidth=2,
              linestyle='--', c='orangered')
@@ -719,6 +744,7 @@ def plot_m_evolution(inargs):
         ax.spines['bottom'].set_position(('outward', 3))
         ax.spines['left'].set_position(('outward', 3))
         ax.spines['right'].set_position(('outward', 3))
+        ax.set_xlim((6, 24))
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'm_evolution', tight=True)
 
