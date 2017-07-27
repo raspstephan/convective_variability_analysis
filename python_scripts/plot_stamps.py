@@ -7,12 +7,12 @@ Description:  Plot stamps of precipitation
 
 import argparse
 from helpers import get_config, save_fig_and_log, \
-    make_datelist, identify_clouds#, get_and_crop_radar_fobj
+    make_datelist, identify_clouds, get_domain_limits, plot_stamp
 from datetime import timedelta
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.pyncdf import getfobj_ncdf, getfobj_ncdf_ens, getfield_ncdf
 from cosmo_utils.helpers import ddhhmmss, yyyymmddhh_strtotime,\
-    make_timelist
+    make_timelist, yymmddhhmm
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.basemap import Basemap
@@ -55,7 +55,27 @@ def plot_prec_stamps(inargs):
             titlelist = []
 
             # 1st: Radar
-            fobjlist.append(get_and_crop_radar_fobj(inargs, date, t))
+            radarpref =(get_config(inargs, 'paths', 'radar_data') +
+                        get_config(inargs, 'paths', 'radar_prefx'))
+            radarsufx = get_config(inargs, 'paths', 'radar_sufix')
+            dtradar = timedelta(minutes=10)
+            radartime = yymmddhhmm(yyyymmddhh_strtotime(date) + t - dtradar)
+            radarfn = radarpref + radartime + radarsufx
+            radar_fobj = getfobj_ncdf(radarfn, fieldn='pr', dwdradar=True)
+            # Crop data
+            l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+                get_domain_limits(inargs)
+            l11_diff = l11_rad - l11
+            l12_diff = l12_rad - l12
+            l21_diff = l21_rad - l21
+            l22_diff = l22_rad - l22
+            radar_fobj.data = radar_fobj.data[l11_diff:l12_diff,
+                                              l21_diff:l22_diff]
+            radar_fobj.lats = radar_fobj.lats[l11_diff:l12_diff,
+                              l21_diff:l22_diff]
+            radar_fobj.lons = radar_fobj.lons[l11_diff:l12_diff,
+                              l21_diff:l22_diff]
+            fobjlist.append(radar_fobj)
             titlelist.append('Radar')
 
             # 2nd: det
@@ -86,27 +106,22 @@ def plot_prec_stamps(inargs):
 
             for i in range(len(fobjlist)):
                 plt.sca(axflat[i])
-                cf, tmp = ax_contourf(axflat[i], fobjlist[i], colors=cmPrec,
-                                      pllevels=levelsPrec,
-                                      ji0=(50 + inargs.zoom_lat1,
-                                           50 + inargs.zoom_lon1),
-                                      ji1=(357 - 51 + inargs.zoom_lat2,
-                                           357 - 51 + inargs.zoom_lon2),
-                                      sp_title=titlelist[i],
-                                      Basemap_drawrivers=False,
-                                      npars=0, nmers=0)
-            cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.1, 0.2, 0.02]),
+                cf = plot_stamp(inargs, fobjlist[i], cmPrec, levelsPrec,
+                                axflat[i], 'PREC_ACCUM')
+                axflat[i].set_title(titlelist[i])
+            cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.15, 0.2, 0.02]),
                               orientation='horizontal')
             cb.set_label('Accumulation [mm/h]')
             titlestr = (yyyymmddhh_strtotime(date).strftime(
                 get_config(inargs, 'plotting', 'date_fmt')) +
                         ' ' + str(t.seconds / 3600).zfill(2) + 'UTC')
             fig.suptitle(titlestr)
-            plt.tight_layout(rect=[0, 0.1, 1, 0.93])
+            plt.tight_layout(rect=[0, 0.1, 1, 0.95])
 
             # Save figure and log
             save_fig_and_log(fig, None, inargs, 'prec_stamps',
-                             date=date, time=str(t.seconds / 3600).zfill(2))
+                             date=date, time=str(t.seconds / 3600).zfill(2),
+                             tight=True)
 
 
 def plot_individual(inargs):

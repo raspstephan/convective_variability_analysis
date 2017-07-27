@@ -24,6 +24,7 @@ from scipy.ndimage.morphology import binary_erosion
 from scipy.ndimage.filters import maximum_filter
 from skimage import morphology
 from scipy.optimize import leastsq
+from mpl_toolkits.basemap import Basemap
 
 
 # Define functions
@@ -957,3 +958,74 @@ def fit_curve(x, y, fit_type='sqrt'):
     else:
         raise Exception('Wrong fit type!')
     return result[0]
+
+
+def plot_stamp(inargs, fobj, colors, levels, ax, var):
+    """"""
+    jpl0, jpl1, ipl0, ipl1 = (50 + inargs.zoom_lat1,
+                              357 - 51 + inargs.zoom_lat2,
+                              50 + inargs.zoom_lon1,
+                              357 - 51 + inargs.zoom_lon2)
+
+    data = fobj.data
+    lats = fobj.lats[jpl0:jpl1, ipl0:ipl1]
+    lons = fobj.lons[jpl0:jpl1, ipl0:ipl1]
+    polelat = fobj.polelat
+    polelon = fobj.polelon
+    lllat = lats[0, 0]
+    lllon = lons[0, 0]
+    urlat = lats[-1, -1]
+    urlon = lons[-1, -1]
+    Basemap_kwargs = { \
+        "projection": "lcc",
+        # the projection "lcc" lets the domain appear as rectangular on the 2D plot
+        "lon_0": polelon,
+        "lat_0": 90. + polelat,
+        "llcrnrlat": lllat,
+        "urcrnrlat": urlat,
+        "llcrnrlon": lllon,
+        "urcrnrlon": urlon,
+        "resolution": 'h',
+    }
+    m = Basemap(**Basemap_kwargs)
+    x, y = m(lons, lats)
+
+    if var == 'PREC_ACCUM':
+        cfplot = m.contourf(x, y, data[jpl0:jpl1, ipl0:ipl1], levels=levels,
+                            colors=colors, ax=ax)
+    else:
+        cm_prism = plt.cm.prism
+        cm_prism.set_under(color='white')
+        cfplot = m.imshow(data[jpl0:jpl1, ipl0:ipl1], cmap=cm_prism,
+                          origin='lower', vmin=1)
+
+    m.drawcoastlines()  # linewidth=0.1, antialiased=0)
+    m.drawcountries(linewidth=0.1, antialiased=0)
+    if inargs.ind_scale:
+        m.drawmapscale(inargs.ind_scale_pos[0], inargs.ind_scale_pos[1],
+                       inargs.ind_scale_pos[0], inargs.ind_scale_pos[1],
+                       inargs.ind_scale_len, barstyle='fancy', fontsize=7)
+
+    if inargs.ind_box:
+        jpl0_box, jpl1_box, ipl0_box, ipl1_box = (
+            50 + inargs.ind_box_lat1,
+            357 - 51 + inargs.ind_box_lat2,
+            50 + inargs.ind_box_lon1,
+            357 - 51 + inargs.ind_box_lon2)
+
+        lon_bl = fobj.lons[jpl0_box, ipl0_box]
+        lon_br = fobj.lons[jpl0_box, ipl1_box]
+        lon_tl = fobj.lons[jpl1_box, ipl0_box]
+        lon_tr = fobj.lons[jpl1_box, ipl1_box]
+
+        lat_bl = fobj.lats[jpl0_box, ipl0_box]
+        lat_br = fobj.lats[jpl0_box, ipl1_box]
+        lat_tl = fobj.lats[jpl1_box, ipl0_box]
+        lat_tr = fobj.lats[jpl1_box, ipl1_box]
+
+        m.plot((lon_bl, lon_br), (lat_bl, lat_br), latlon=True, color='k')
+        m.plot((lon_br, lon_tr), (lat_br, lat_tr), latlon=True, color='k')
+        m.plot((lon_tr, lon_tl), (lat_tr, lat_tl), latlon=True, color='k')
+        m.plot((lon_tl, lon_bl), (lat_tl, lat_bl), latlon=True, color='k')
+
+    return cfplot
