@@ -582,6 +582,8 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
       If given, date is attached to plot str
     time : str 
       If given, time is attached to plot str
+    tight : bool
+     If True, set bbox_inches=True in figsave
 
     """
     # Save figure

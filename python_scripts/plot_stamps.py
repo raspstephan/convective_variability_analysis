@@ -112,15 +112,15 @@ def plot_prec_stamps(inargs):
             cb = fig.colorbar(cf, cax=fig.add_axes([0.4, 0.15, 0.2, 0.02]),
                               orientation='horizontal')
             cb.set_label('Accumulation [mm/h]')
-            titlestr = (yyyymmddhh_strtotime(date).strftime(
-                get_config(inargs, 'plotting', 'date_fmt')) +
-                        ' ' + str(t.seconds / 3600).zfill(2) + 'UTC')
+            titlestr = ((yyyymmddhh_strtotime(date) + t).
+                        strftime('%d %b - %H UTC'))
             fig.suptitle(titlestr)
             plt.tight_layout(rect=[0, 0.1, 1, 0.95])
 
             # Save figure and log
             save_fig_and_log(fig, None, inargs, 'prec_stamps',
-                             date=date, time=str(t.seconds / 3600).zfill(2),
+                             date=date,
+                             time=str(t.total_seconds() / 3600).zfill(2),
                              tight=True)
 
 
