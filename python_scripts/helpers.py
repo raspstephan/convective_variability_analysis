@@ -564,8 +564,8 @@ def read_netcdf_dataset(inargs):
     return rootgroup
 
 
-def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
-                     time=None, tight=False):
+def save_fig_and_log(fig, rootgroup, inargs, plot_type='', datestr=None,
+                     tight=False):
     """
     Saves given figure and log file with same name.
     
@@ -578,10 +578,8 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
 
     plot_type : str
       str to be added in front of the figure file and log file name
-    date : str 
-      If given, date is attached to plot str
-    time : str 
-      If given, time is attached to plot str
+    datestr : str 
+      If given, datestr is attached to plot str
     tight : bool
      If True, set bbox_inches=True in figsave
 
@@ -594,8 +592,8 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         plotfn = plotdir + plot_type + get_pp_fn(inargs, sufx='', pure_fn=True)
     else:
         plotfn = plotdir + plot_type + '_' + inargs.plot_name
-    if date is not None and time is not None:
-        plotfn += '_' + str(date) + '_' + str(time)
+    if datestr is not None:
+        plotfn += '_' + datestr
     plotfn += '.' + inargs.plot_format
     if inargs.plot_format == 'pdf':
         dpi = None
@@ -606,6 +604,7 @@ def save_fig_and_log(fig, rootgroup, inargs, plot_type='', date=None,
         fig.savefig(plotfn, bbox_inches='tight', dpi=dpi)
     else:
         fig.savefig(plotfn, dpi=dpi)
+    plt.close('all')
 
     # Save log file
     if inargs.plot_name == '':

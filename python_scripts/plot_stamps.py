@@ -119,8 +119,8 @@ def plot_prec_stamps(inargs):
 
             # Save figure and log
             save_fig_and_log(fig, None, inargs, 'prec_stamps',
-                             date=date,
-                             time=str(t.total_seconds() / 3600).zfill(2),
+                             datestr=((yyyymmddhh_strtotime(date) + t).
+                                      strftime('%Y%m%d_%H')),
                              tight=True)
 
 
