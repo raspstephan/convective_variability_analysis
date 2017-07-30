@@ -59,6 +59,7 @@ def plot_prec_stamps(inargs):
                         get_config(inargs, 'paths', 'radar_prefx'))
             radarsufx = get_config(inargs, 'paths', 'radar_sufix')
             dtradar = timedelta(minutes=10)
+
             radartime = yymmddhhmm(yyyymmddhh_strtotime(date) + t - dtradar)
             radarfn = radarpref + radartime + radarsufx
             radar_fobj = getfobj_ncdf(radarfn, fieldn='pr', dwdradar=True)
