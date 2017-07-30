@@ -148,6 +148,29 @@ def plot_individual(inargs):
         cmap = None
         colors = cmPrec
         levels = levelsPrec
+    elif inargs.ind_var == 'radar':
+        radarpref = (get_config(inargs, 'paths', 'radar_data') +
+                     get_config(inargs, 'paths', 'radar_prefx'))
+        radarsufx = get_config(inargs, 'paths', 'radar_sufix')
+        dtradar = timedelta(minutes=10)
+        radartime = yymmddhhmm(yyyymmddhh_strtotime(inargs.date_start) + t -
+                               dtradar)
+        radarfn = radarpref + radartime + radarsufx
+        radar_fobj = getfobj_ncdf(radarfn, fieldn='pr', dwdradar=True)
+        # Crop data
+        l11, l12, l21, l22, l11_rad, l12_rad, l21_rad, l22_rad = \
+            get_domain_limits(inargs)
+        l11_diff = l11_rad - l11
+        l12_diff = l12_rad - l12
+        l21_diff = l21_rad - l21
+        l22_diff = l22_rad - l22
+        radar_fobj.data = radar_fobj.data[l11_diff:l12_diff,
+                          l21_diff:l22_diff]
+        radar_fobj.lats = radar_fobj.lats[l11_diff:l12_diff,
+                          l21_diff:l22_diff]
+        radar_fobj.lons = radar_fobj.lons[l11_diff:l12_diff,
+                          l21_diff:l22_diff]
+        fobj = radar_fobj
     elif inargs.ind_var in ['obj_m', 'obj_prec']:
         if inargs.ind_var == 'obj_m':
             lvl = 30
@@ -182,91 +205,20 @@ def plot_individual(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.))
+    width_fraction = 2./9.
+    ratio = 1.
+    fig, ax = plt.subplots(1, 1, figsize=(pw * width_fraction,
+                                          pw * width_fraction * ratio))
 
-    jpl0, jpl1, ipl0, ipl1 = (50 + inargs.zoom_lat1,
-                              357 - 51 + inargs.zoom_lat2,
-                              50 + inargs.zoom_lon1,
-                              357 - 51 + inargs.zoom_lon2)
+    cf = plot_stamp(inargs, fobj, cmPrec, levelsPrec, ax, 'PREC_ACCUM')
 
-    data = fobj.data
-    lats = fobj.lats[jpl0:jpl1, ipl0:ipl1]
-    lons = fobj.lons[jpl0:jpl1, ipl0:ipl1]
-    polelat = fobj.polelat
-    polelon = fobj.polelon
-    lllat = lats[0, 0]
-    lllon = lons[0, 0]
-    urlat = lats[-1, -1]
-    urlon = lons[-1, -1]
-    Basemap_kwargs = { \
-        "projection": "lcc",
-    # the projection "lcc" lets the domain appear as rectangular on the 2D plot
-        "lon_0": polelon,
-        "lat_0": 90. + polelat,
-        "llcrnrlat": lllat,
-        "urcrnrlat": urlat,
-        "llcrnrlon": lllon,
-        "urcrnrlon": urlon,
-        "resolution": 'h',
-    }
-    m = Basemap(**Basemap_kwargs)
-    x, y = m(lons, lats)
+    if inargs.ind_colorbar:
+        cb = fig.colorbar(cf, orientation='horizontal', shrink=0.6)
+        cb.set_label('Accumulation [mm/h]')
 
-    if inargs.ind_var == 'PREC_ACCUM':
-        cfplot = m.contourf(x, y, data[jpl0:jpl1, ipl0:ipl1], levels=levels,
-                            colors=colors, ax=ax, cmap=cmap)
-    else:
-        cm_prism = plt.cm.prism
-        cm_prism.set_under(color='white')
-        cfplot = m.imshow(data[jpl0:jpl1, ipl0:ipl1], cmap=cm_prism,
-                          origin='lower', vmin=1)
+    plt.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
 
-    m.drawcoastlines()  # linewidth=0.1, antialiased=0)
-    m.drawcountries(linewidth=0.1, antialiased=0)
-    if inargs.ind_scale:
-        m.drawmapscale(inargs.ind_scale_pos[0], inargs.ind_scale_pos[1],
-                       inargs.ind_scale_pos[0], inargs.ind_scale_pos[1],
-                       inargs.ind_scale_len, barstyle='fancy', fontsize=7)
-
-    if inargs.ind_box:
-        jpl0_box, jpl1_box, ipl0_box, ipl1_box = (
-            50 + inargs.ind_box_lat1,
-            357 - 51 + inargs.ind_box_lat2,
-            50 + inargs.ind_box_lon1,
-            357 - 51 + inargs.ind_box_lon2)
-
-        lon_bl = fobj.lons[jpl0_box, ipl0_box]
-        lon_br = fobj.lons[jpl0_box, ipl1_box]
-        lon_tl = fobj.lons[jpl1_box, ipl0_box]
-        lon_tr = fobj.lons[jpl1_box, ipl1_box]
-
-        lat_bl = fobj.lats[jpl0_box, ipl0_box]
-        lat_br = fobj.lats[jpl0_box, ipl1_box]
-        lat_tl = fobj.lats[jpl1_box, ipl0_box]
-        lat_tr = fobj.lats[jpl1_box, ipl1_box]
-
-        m.plot((lon_bl, lon_br), (lat_bl, lat_br), latlon=True, color='k')
-        m.plot((lon_br, lon_tr), (lat_br, lat_tr), latlon=True, color='k')
-        m.plot((lon_tr, lon_tl), (lat_tr, lat_tl), latlon=True, color='k')
-        m.plot((lon_tl, lon_bl), (lat_tl, lat_bl), latlon=True, color='k')
-
-
-# cf, tmp = ax_contourf(ax, fobj, colors=cmPrec,
-#                           pllevels=levelsPrec,
-#                           ji0=(50 + inargs.zoom_lat1,
-#                                50 + inargs.zoom_lon1),
-#                           ji1=(357 - 51 + inargs.zoom_lat2,
-#                                357 - 51 + inargs.zoom_lon2),
-#                           sp_title='',
-#                           Basemap_drawrivers=False,
-#                           npars=0, nmers=0)
-    cb = fig.colorbar(cfplot, orientation='horizontal', shrink=0.6)
-    cb.set_label('Accumulation [mm/h]')
-    plt.tight_layout()
-
-    save_fig_and_log(fig, None, inargs, 'prec_individual',
-                     date=inargs.date_start, time=str(t.seconds / 3600).zfill(2),
-                     tight=True)
+    save_fig_and_log(fig, None, inargs, 'prec_individual', tight=False)
 
 
 ################################################################################
@@ -350,6 +302,7 @@ if __name__ == '__main__':
                         default='pdf',
                         help='Which format for figure file.')
 
+
     # Individual plot arguments
     parser.add_argument('--ind_var',
                         type=str,
@@ -394,6 +347,11 @@ if __name__ == '__main__':
                         type=int,
                         default=0,
                         help='Zoom index for prec_stamps. Lat2')
+    parser.add_argument('--ind_colorbar',
+                        dest='ind_colorbar',
+                        action='store_true',
+                        help='If given, plots colorbar')
+    parser.set_defaults(ind_colorbar=False)
 
     # Other arguments
     parser.add_argument('--sub_dir',

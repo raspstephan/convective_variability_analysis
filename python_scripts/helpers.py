@@ -25,6 +25,7 @@ from scipy.ndimage.filters import maximum_filter
 from skimage import morphology
 from scipy.optimize import leastsq
 from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
 
 
 # Define functions
@@ -987,6 +988,7 @@ def plot_stamp(inargs, fobj, colors, levels, ax, var):
         "llcrnrlon": lllon,
         "urcrnrlon": urlon,
         "resolution": 'h',
+        "area_thresh": 10000.,
     }
     m = Basemap(**Basemap_kwargs)
     x, y = m(lons, lats)

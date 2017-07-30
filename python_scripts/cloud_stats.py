@@ -711,12 +711,14 @@ def plot_m_evolution(inargs):
 
     # Convert to relative frequency
     mean_M = mean_hist * mean_m
+    print(mean_M)
 
     # Calculate weighted mean
     weighted_mean_m = np.average(mean_m, weights=mean_hist)
     weighted_mean_m_sep = np.average(mean_m_sep, weights=mean_hist_sep)
 
-    print('Mean m = %.2e \nMean sep m = %.2e' % (weighted_mean_m, weighted_mean_m_sep))
+    print('Mean m = %.2e \nMean sep m = %.2e' % (weighted_mean_m,
+                                                 weighted_mean_m_sep))
 
 
     ax1.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated',
