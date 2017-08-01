@@ -82,7 +82,7 @@ def plot_spectra(inargs):
         ax.spines['left'].set_position(('outward', 3))
         plt.yticks(rotation=90)
 
-        plt.subplots_adjust(left=0.15, right=0.95, bottom=0.3, top=0.95)
+        plt.subplots_adjust(left=0.15, right=0.95, bottom=0.3, top=0.85)
 
         save_fig_and_log(fig, None, inargs, name[:4], tight=False)
 
