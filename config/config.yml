@@ -19,10 +19,11 @@ domain:
     dx: 2.8e3  # Grid spacing in x-y
 
 colors:
-    det: mediumseagreen
+    det: '#009500'
     obs: black
-    ens: mediumblue
-    ens_range: lightblue
+    ens: '#008FD4'
+    ens_range: "#4AF2FF"
+    third: '#E95E83'
 
 plotting:
     date_fmt: '%d %b'

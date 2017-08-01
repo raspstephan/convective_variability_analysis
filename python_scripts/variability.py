@@ -553,15 +553,16 @@ def plot_std_vs_mean(inargs):
     """
 
     dx = float(get_config(inargs, 'domain', 'dx'))
-
+    c_red = get_config(inargs, 'colors', 'third')
+    c_blue = get_config(inargs, 'colors', 'ens')
     # Load dataset
     rootgroup = read_netcdf_dataset(inargs)
     # The variables have dimensions [date, time, n, x[n], y[n]]
 
     # Set up figure
-    aspect = 1.
+    aspect = 0.8
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5 * aspect, pw / 2.5))
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
 
     # Data processing
     var = inargs.std_vs_mean_var
@@ -596,9 +597,9 @@ def plot_std_vs_mean(inargs):
     sqrt_fit = fit_curve(mean, std)
     lin_fit = fit_curve(mean, std, 'linear')
     tmp_x = np.logspace(1, 12, 1000)
-    ax.plot(tmp_x, np.sqrt(sqrt_fit * tmp_x), alpha=1, c='orangered',
+    ax.plot(tmp_x, np.sqrt(sqrt_fit * tmp_x), alpha=1, c=c_red,
             linestyle='-', zorder=0.2, label=r'CC06: $y=\sqrt{bx}$')
-    ax.plot(tmp_x, lin_fit * tmp_x, alpha=1, color='cornflowerblue',
+    ax.plot(tmp_x, lin_fit * tmp_x, alpha=1, color=c_blue,
             linestyle='--', zorder=0.2, label=r'SPPT: $y = bx$')
 
     nbins = 10
@@ -649,10 +650,10 @@ def plot_std_vs_mean(inargs):
                 color='black', zorder=0.5)
 
     if inargs.std_vs_mean_var == 'M':
-        ax.set_xlim(1e6, 1e10)
+        ax.set_xlim(inargs.std_vs_mean_xrange[0], inargs.std_vs_mean_xrange[1])
         ax.set_ylim(1e6, 2e9)
-        ax.set_xlabel(r'$\langle M \rangle$ [kg/s]')
-        ax.set_ylabel(r'$\mathrm{std}(M)$ [kg/s]')
+        ax.set_xlabel(r'$\langle M \rangle$ [kg s$^{-1}$]')
+        ax.set_ylabel(r'$\mathrm{std}(M)$ [kg s$^{-1}$]')
     else:
         ax.set_xlim(1e1, 1e7)
         ax.set_ylim(1e2,5e6)
@@ -662,18 +663,21 @@ def plot_std_vs_mean(inargs):
     ax.set_xscale('log')
     ax.set_yscale('log')
     print('Sqrt fit = %.2f' % (sqrt_fit))
-    #ax.set_title('Scaling of standard deviation with mean')
+    titlestr = 'a) Mass flux' if inargs.std_vs_mean_var == 'M' \
+        else 'b) Heating rate'
+    ax.set_title(titlestr + ' scaling')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})
 
     if inargs.std_vs_mean_plot_inlay:
         if inargs.std_vs_mean_var == 'TTENS':
             raise Exception('Does not work because of line fitting.')
-        ax2 = plt.axes([.67, .3, .2, .2], axisbg='lightgray')
+        ax2 = plt.axes([.72, .25, .2, .2], axisbg='lightgray')
         blist = np.array(fit_list) / 1.e8
         x = np.array(rootgroup.variables['n'][:]) * dx / 1000.
-        ax2.plot(x, blist, c='orangered')
-        ax2.scatter(x, blist, c='orangered', s=20)
+
+        ax2.plot(x, blist, c=c_red)
+        ax2.scatter(x, blist, c=c_red, s=20)
         ax2.set_title('Slope of CC06 fit', fontsize=7)
         ax2.set_ylabel(r'$b\times 10^8$', fontsize=6, labelpad=0.05)
         ax2.set_xlabel('n [km]', fontsize=6, labelpad=0.07)
@@ -684,11 +688,11 @@ def plot_std_vs_mean(inargs):
         ax2.set_yticks([0.5, 1.5])
         ax2.set_yticklabels([0.5, 1.5], fontsize=6)
 
-    plt.tight_layout()
+    plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top = 0.92)
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean_' +
-                     inargs.std_vs_mean_var, tight=True)
+                     inargs.std_vs_mean_var)
 
 
 def plot_correlation(inargs):
@@ -864,10 +868,16 @@ if __name__ == '__main__':
                         type=str,
                         default='M',
                         help='Which variable to use. [M, TTENS]')
+    parser.add_argument('--std_vs_mean_xrange',
+                        type=float,
+                        nargs='+',
+                        default=[1e6, 1e10],
+                        help='x range for std_vs_mean plots.')
     parser.add_argument('--std_vs_mean_plot_inlay',
                         dest='std_vs_mean_plot_inlay',
                         action='store_true',
-                        help='If given, plots fit inlay for std_vs_mean.')
+                        help='If given, plots fit inlay for std_vs_mean.'
+                             'Note: Not working right now!')
     parser.set_defaults(std_vs_mean_plot_inlay=False)
 
     # General options

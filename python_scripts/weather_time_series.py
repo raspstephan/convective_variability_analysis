@@ -393,8 +393,9 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
     rootgroup = read_netcdf_dataset(inargs)
     x = rootgroup.variables['time'][:]
 
-    fig, ax1 = plt.subplots(1, 1, figsize=(get_config(inargs, 'plotting',
-                                                      'page_width') / 2., 2.8))
+    pw = get_config(inargs, 'plotting', 'page_width')
+    ratio = 0.7
+    fig, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * ratio))
 
     if plot_var in ['precipitation', 'prec_cape']:
         ax1.set_ylabel(r'Precip [mm h$^{-1}$]')
@@ -417,7 +418,8 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
 
             array = rootgroup.groups['ens'].variables['CAPE_ML'][:]
             mean = np.mean(array, axis=(0, 2))
-            ax2.plot(x, mean, c='orangered', linestyle='--', linewidth=2)
+            ax2.plot(x, mean, c=get_config(inargs, 'colors', 'third'),
+                     linestyle='--', linewidth=2)
 
     if plot_var == 'cape_tauc':
         ax1.set_ylabel('CAPE [J/kg]')
@@ -434,6 +436,7 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
 
     ax1.set_xlabel('Time [UTC]')
     ax1.set_xticks([0, 6, 12, 18, 24])
+    ax1.axvline(6, c='lightgray', linewidth=0.5, zorder = 0.001)
     for ax in [ax1, ax2]:
         ax.spines['top'].set_visible(False)
         ax.spines['bottom'].set_position(('outward', 3))
@@ -442,14 +445,13 @@ def plot_domain_mean_timeseries_composite(inargs, plot_var):
         ax.set_xlim((0, 24))
 
     # comp_str = 'Composite ' + get_composite_str(inargs, rootgroup)
-    # ax1.set_title(comp_str)
+    ax1.set_title('Composite precipitation')
     ax1.legend(loc=0, fontsize=8, title='Precip')
 
-    plt.tight_layout()
+    plt.subplots_adjust(left=0.18, right=0.82, bottom=0.2, top=0.9)
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_composite',
-                     tight=True)
+    save_fig_and_log(fig, rootgroup, inargs, plot_var + '_ts_composite')
 
 
 ################################################################################
