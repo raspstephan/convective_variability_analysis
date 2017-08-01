@@ -346,7 +346,10 @@ def plot_diurnal(inargs):
         var_M = rootgroup.variables['var_M'][:, :, i_n, :nx, :ny]
         var_m = rootgroup.variables['var_m'][:, :, i_n, :nx, :ny]
         var_N = rootgroup.variables['var_N'][:, :, i_n, :nx, :ny]
-        corr_m_N = rootgroup.variables['corr_m_N'][:, :, i_n, :nx, :ny]
+        try:
+            corr_m_N = rootgroup.variables['corr_m_N'][:, :, i_n, :nx, :ny]
+        except:
+            print 'hi'
 
         # Flatten x and y dimensions
         mean_M = mean_M.reshape(mean_M.shape[0], mean_M.shape[1],
@@ -361,8 +364,11 @@ def plot_diurnal(inargs):
                               var_m.shape[2] * var_m.shape[3])
         var_N = var_N.reshape(var_N.shape[0], var_N.shape[1],
                               var_N.shape[2] * var_N.shape[3])
-        corr_m_N = corr_m_N.reshape(corr_m_N.shape[0], corr_m_N.shape[1],
-                                    corr_m_N.shape[2] * corr_m_N.shape[3])
+        try:
+            corr_m_N = corr_m_N.reshape(corr_m_N.shape[0], corr_m_N.shape[1],
+                                        corr_m_N.shape[2] * corr_m_N.shape[3])
+        except:
+            pass
         # Array now has dimensions [date, time, points]
 
         if inargs.diurnal_ext_m is not None:
@@ -505,6 +511,13 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
       ylabel
 
     """
+
+    # Check how many nans there are in dataset
+    num_nan = np.isnan(data).sum()
+    num_tot = data.size
+    print('Scale index: %i' % (i))
+    print('Number of NaNs: %.2e/%.2e' % (num_nan, num_tot))
+    print('Percentage of NaNs: %.2f' % (np.float(num_nan) / num_tot * 100.))
 
     composite_mean = np.nanmean(data, axis=(0,2))
     per25 = np.nanpercentile(data, 25, axis=(0,2))
