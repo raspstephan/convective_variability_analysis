@@ -315,6 +315,8 @@ def plot_diurnal(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
+    ratio = 1.
+
     if inargs.diurnal_individual_days:
         n_days = rootgroup.dimensions['date'].size
         n_cols = 4
@@ -325,9 +327,11 @@ def plot_diurnal(inargs):
         axflat = np.ravel(axmat)
 
     else:
-        fig, ax = plt.subplots(1, 1, figsize=(pw / 2.5, pw / 2.5))
+        fig, ax = plt.subplots(1, 1, figsize=(pw / 3., pw / 3. * ratio))
 
-    clist = ['navy', 'forestgreen', 'orangered']
+    clist = [get_config(inargs, 'colors', 'ens'),
+             get_config(inargs, 'colors', 'det'),
+             get_config(inargs, 'colors', 'third')]
     labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
 
     # Do some further calculations to get daily composite
@@ -368,6 +372,8 @@ def plot_diurnal(inargs):
         if inargs.plot_type == 'r_v':
             data = var_M / (2. * mean_M * mean_m)
             ylabel = r'$R_V$'
+            if inargs.diurnal_ext_m is not None:
+                ylabel += r' with fixed $\langle m \rangle$'
         elif inargs.plot_type == 'alpha':
             data = var_N / mean_N
             ylabel = r'$\alpha$'
@@ -386,7 +392,7 @@ def plot_diurnal(inargs):
             ylabel = r'$\alpha$ and $\beta$-adjusted $R_V$'
         elif inargs.plot_type == 'corr_m_N':
             data = corr_m_N
-            ylabel = r'corr m N'
+            ylabel = r'corr($m$, $N$)'
         elif inargs.plot_type == 'mean_m':
             data = mean_m
             ylabel = r'mean(m)'
@@ -404,12 +410,14 @@ def plot_diurnal(inargs):
     # Finish figure
     if inargs.diurnal_individual_days and inargs.diurnal_legend:
         axflat[0].legend(loc=2, fontsize=8)
+    elif inargs.diurnal_legend:
+        ax.legend(loc=2, fontsize=8)
 
-    plt.tight_layout()
+
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, inargs.plot_type + '_individual-' +
-                     str(inargs.diurnal_individual_days), tight=True)
+                     str(inargs.diurnal_individual_days))
 
 
 def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
@@ -499,7 +507,6 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     """
 
     composite_mean = np.nanmean(data, axis=(0,2))
-    print(composite_mean)
     per25 = np.nanpercentile(data, 25, axis=(0,2))
     per75 = np.nanpercentile(data, 75, axis=(0,2))
 
@@ -517,13 +524,13 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
         ax.set_title(comp_str)
     if inargs.diurnal_legend:
         ax.legend(loc=2, fontsize=8)
-    ax.set_ylabel(ylabel)
+    ax.set_ylabel(ylabel, labelpad=0)
     ax.set_xticks([6, 9, 12, 15, 18, 21, 24])
     ax.set_xticklabels([6, 9, 12, 15, 18, 21, 24])
     ax.set_xlabel('Time [h/UTC]')
     if inargs.diurnal_log:
         ax.set_yscale('log')
-
+        ax.axhline(y=1, c='gray', zorder=0.1)
         ax.set_yticks(np.arange(0.1, 3, 0.1), minor='True')
         ax.set_ylim(inargs.diurnal_ylim[0], inargs.diurnal_ylim[1])
         # Fix from https://github.com/matplotlib/matplotlib/issues/8386/
@@ -534,11 +541,20 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
         ax.set_yticklabels([0.5, 1, 2])
     elif inargs.plot_type == 'corr_m_N':
         ax.set_ylim(-1, 1)
+        ax.axhline(y=0, c='gray', zorder=0.1)
+        ax.yaxis.labelpad = -6
     elif inargs.plot_type == 'mean_m':
         pass
     else:
         ax.set_ylim(0.1, 2.5)
-    ax.axhline(y=1, c='gray', zorder=0.1)
+        ax.axhline(y=1, c='gray', zorder=0.1)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
+    ax.set_xlim((6, 24))
+    plt.subplots_adjust(left=0.2, right=0.95, bottom=0.2, top=0.95)
 
 
 def plot_std_vs_mean(inargs):
@@ -604,7 +620,7 @@ def plot_std_vs_mean(inargs):
 
     nbins = 10
     if inargs.std_vs_mean_var == 'M':
-        binedges = np.logspace(6, 10, nbins + 1)
+        binedges = np.logspace(6.7, 10, nbins + 1)
     elif inargs.std_vs_mean_var == 'TTENS':
         binedges = np.logspace(1, 7, nbins + 1)
     if inargs.var == 'prec':
@@ -636,8 +652,9 @@ def plot_std_vs_mean(inargs):
     print binnum
     # xmean = (binedges[:-1] + binedges[1:]) / 2.
     logmean = np.exp((np.log(binedges[:-1]) + np.log(binedges[1:])) / 2.)
-    logleft = np.exp(np.log(binedges[:-1]) + 0.2)
-    logright = np.exp(np.log(binedges[1:]) - 0.2)
+    logdiff = np.diff(np.log(binedges))[0]
+    logleft = np.exp(np.log(binedges[:-1]) + 0.2 * logdiff)
+    logright = np.exp(np.log(binedges[1:]) - 0.2 * logdiff)
     height = np.array(bin75) - np.array(bin25)
     width = logright - logleft
 
@@ -650,15 +667,15 @@ def plot_std_vs_mean(inargs):
                 color='black', zorder=0.5)
 
     if inargs.std_vs_mean_var == 'M':
-        ax.set_xlim(inargs.std_vs_mean_xrange[0], inargs.std_vs_mean_xrange[1])
-        ax.set_ylim(1e6, 2e9)
+        ax.set_xlim(10**6.7, 1e10)
+        ax.set_ylim(0.8e7, 2e9)
         ax.set_xlabel(r'$\langle M \rangle$ [kg s$^{-1}$]')
         ax.set_ylabel(r'$\mathrm{std}(M)$ [kg s$^{-1}$]')
     else:
         ax.set_xlim(1e1, 1e7)
         ax.set_ylim(1e2,5e6)
-        ax.set_xlabel(r'$\langle Q \rangle \times A$ [K/s * m^2]')
-        ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [K/s * m^2]')
+        ax.set_xlabel(r'$\langle Q \rangle \times A$ [K s$^{-1}$ m$^{2}$]')
+        ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [K s$^{-1}$ m$^{2}$]')
 
     ax.set_xscale('log')
     ax.set_yscale('log')
@@ -668,6 +685,11 @@ def plot_std_vs_mean(inargs):
     ax.set_title(titlestr + ' scaling')
 
     ax.legend(loc=2, ncol=1, prop={'size': 8})
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
 
     if inargs.std_vs_mean_plot_inlay:
         if inargs.std_vs_mean_var == 'TTENS':
@@ -688,7 +710,7 @@ def plot_std_vs_mean(inargs):
         ax2.set_yticks([0.5, 1.5])
         ax2.set_yticklabels([0.5, 1.5], fontsize=6)
 
-    plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top = 0.92)
+    plt.subplots_adjust(left=0.17, right=0.95, bottom=0.17, top = 0.92)
 
     # Save figure and log
     save_fig_and_log(fig, rootgroup, inargs, 'std_vs_mean_' +
