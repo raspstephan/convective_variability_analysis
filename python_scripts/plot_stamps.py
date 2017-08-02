@@ -95,14 +95,16 @@ def plot_prec_stamps(inargs):
             fobjlist.extend(getfobj_ncdf_ens(date_dir, 'sub', inargs.nens,
                                              ncdffn, dir_suffix='/OUTPUT/',
                                              fieldn='PREC_ACCUM', nfill=1))
-            titlelist.extend(['Mem ' + str(i + 1) for i in range(inargs.nens)])
+            titlelist.extend(['Member ' + str(i + 1) for i in range(inargs.nens)])
 
             # Now plot
             n_panels = len(fobjlist)
             n_cols = 4
             n_rows = int(np.ceil(float(n_panels) / n_cols))
+
+            pw = get_config(inargs, 'plotting', 'page_width')
             fig, axmat = plt.subplots(n_rows, n_cols,
-                                      figsize=(10, 3.5 * n_rows))
+                                      figsize=(pw, 3.0 * n_rows))
             axflat = np.ravel(axmat)
 
             for i in range(len(fobjlist)):
@@ -116,13 +118,12 @@ def plot_prec_stamps(inargs):
             titlestr = ((yyyymmddhh_strtotime(date) + t).
                         strftime('%d %b - %H UTC'))
             fig.suptitle(titlestr)
-            plt.tight_layout(rect=[0, 0.1, 1, 0.95])
+            plt.subplots_adjust(wspace=0.02, left=0.02, right=0.98)
 
             # Save figure and log
             save_fig_and_log(fig, None, inargs, 'prec_stamps',
                              datestr=((yyyymmddhh_strtotime(date) + t).
-                                      strftime('%Y%m%d_%H')),
-                             tight=True)
+                                      strftime('%Y%m%d_%H')))
 
 
 def plot_individual(inargs):
