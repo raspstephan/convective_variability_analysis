@@ -423,7 +423,9 @@ def plot_cloud_size_hist(inargs):
 
     # Set up figure
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2.5))
+    c_red = get_config(inargs, 'colors', 'third')
+    ratio = 0.7
+    fig, ax = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * ratio))
 
     # Convert data for plotting
     var = 'cld_'
@@ -468,12 +470,12 @@ def plot_cloud_size_hist(inargs):
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
             print('Exp fit params: a = %.2e; b = %.2e' % (a, b))
-            ax.plot(x, np.exp(a - b * x), c='orange', label='Exponential',
+            ax.plot(x, np.exp(a - b * x), c=c_red, label='Exponential',
                     zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
             print('Pow-law fit params: a = %.2e; b = %.2e' % (a, b))
-            ax.plot(x, np.exp(a-b*np.log(x)), c='darkgreen', label='Power-law',
+            ax.plot(x, np.exp(a-b*np.log(x)), c='darkorange', label='Power-law',
                     zorder=0.1)
 
 
@@ -490,7 +492,7 @@ def plot_cloud_size_hist(inargs):
         if inargs.size_hist_sum:
             xlabel = 'Cloud sum [???]'
             if inargs.var == 'm':
-                xlabel = r'Cloud mass flux [kg/s]'
+                xlabel = r'Cloud mass flux [kg s$^{-1}$]'
         else:
             xlabel = r'Cloud size [m$^2$]'
 
@@ -504,18 +506,22 @@ def plot_cloud_size_hist(inargs):
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_position(('outward', 10))
-    ax.spines['bottom'].set_position(('outward', 10))
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
     #ax.yaxis.set_ticklabels([])
     ax.set_ylim([0.6e-6, 1])
+    ax.set_xlim([0, x[-1]])
+    plt.yticks(rotation=90)
 
     ax.set_ylabel(ylabel)
     ax.legend(loc=0, fontsize=8)
-    # fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup))
-    plt.tight_layout()
+    title = r'a) Separated $\langle m \rangle$' if inargs.size_hist_sep \
+        else r'b) Non-separated $\langle m \rangle$'
+    ax.set_title(title)
+    plt.subplots_adjust(left=0.15, right=0.93, bottom=0.2, top=0.9)
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'size_hist', tight=True)
+    save_fig_and_log(fig, rootgroup, inargs, 'size_hist')
 
 
 def plot_rdf_individual(inargs):
