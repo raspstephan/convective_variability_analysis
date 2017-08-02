@@ -603,15 +603,18 @@ def plot_rdf_composite(inargs):
 
     # Set up figure
     curve_c_dict = {
-        'ens': ['darkblue', 'lightblue'],
+        'ens': [get_config(inargs, 'colors', 'ens'),
+                get_config(inargs, 'colors', 'ens_range')],
         'obs': ['darkgray', 'lightgray'],
-        'det': ['darkgreen', 'lightgreen'],
+        'det': [get_config(inargs, 'colors', 'det'),
+                'lime'],
     }
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, axarr = plt.subplots(1, 2, figsize=(0.75 * pw, pw / 2.5))
+    ratio = 0.35
+    fig, axarr = plt.subplots(1, 2, figsize=(pw, pw * ratio))
 
     axarr[0].set_ylabel('RDF')
-    for group in rootgroup.groups:
+    for ig, group in enumerate(rootgroup.groups):
         if inargs.no_det and group == 'det':
             continue
         if inargs.rdf_sep:
@@ -629,13 +632,16 @@ def plot_rdf_composite(inargs):
         # 2nd: Plot example curves
         for it, t in enumerate(inargs.rdf_curve_times):
             rdf_curve = np.nanmean(array[:, t, :, :], axis=(0, 2))
+            if ig == 2:
+                leg = str(int(rootgroup.variables['time'][t])) + ' UTC'
+            else:
+                leg = ' '
             axarr[0].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
-                          label=group + ' ' +
-                                str(rootgroup.variables['time'][t]),
-                          c=curve_c_dict[group][it], linewidth=1.5)
-            axarr[1].plot([rootgroup.variables['time'][t], rootgroup.variables['time'][t]],
-                          [0, inargs.rdf_y_max], c='gray', zorder=0.1, alpha=2. / (it + 1),
-                          linewidth=0.5)
+                          label=leg, c=curve_c_dict[group][it], linewidth=1.5)
+            axarr[1].plot([rootgroup.variables['time'][t],
+                           rootgroup.variables['time'][t]],
+                          [0, inargs.rdf_y_max], c='gray', zorder=0.1,
+                          alpha=2. / (it + 1), linewidth=0.5)
 
     axarr[1].set_ylim(0, inargs.rdf_y_max)
     axarr[0].set_ylim(0, inargs.rdf_y_max)
@@ -644,11 +650,11 @@ def plot_rdf_composite(inargs):
     axarr[1].set_xlabel('Time [UTC]')
     axarr[0].set_xlabel('Radius [km]')
 
-    axarr[1].set_title('RDF Maximum')
-    axarr[0].set_title('Full RDF')
+    axarr[1].set_title('b) Evolution of RDF maximum')
+    axarr[0].set_title('a) Full RDF for two times')
 
     axarr[1].legend(loc=0, fontsize=8)
-    axarr[0].legend(loc=0, fontsize=8)
+    axarr[0].legend(loc=0, fontsize=8, ncol=3)
 
     axarr[1].set_xticks([6, 9, 12, 15, 18, 21, 24])
     axarr[1].set_xticklabels([6, 9, 12, 15, 18, 21, 24])
@@ -661,19 +667,19 @@ def plot_rdf_composite(inargs):
     axarr[1].spines['right'].set_visible(False)
     axarr[1].spines['left'].set_visible(False)
     axarr[1].spines['top'].set_visible(False)
-    axarr[0].spines['left'].set_position(('outward', 10))
-    axarr[0].spines['bottom'].set_position(('outward', 10))
-    axarr[1].spines['bottom'].set_position(('outward', 10))
+    axarr[0].spines['left'].set_position(('outward', 3))
+    axarr[0].spines['bottom'].set_position(('outward', 3))
+    axarr[1].spines['bottom'].set_position(('outward', 3))
     axarr[1].yaxis.set_ticks([])
 
     # fig.suptitle('Composite ' + get_composite_str(inargs, rootgroup) +
     #              ' sep = ' + str(inargs.rdf_sep) +
     #              ' perimeter = ' + str(inargs.footprint), fontsize=6)
-    plt.tight_layout()
-    plt.subplots_adjust(wspace=0.1)
+    plt.subplots_adjust(wspace=0.06, left=0.1, right=0.95, bottom=0.2,
+                        top=0.9)
 
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite', tight=True)
+    save_fig_and_log(fig, rootgroup, inargs, 'rdf_composite')
 
 
 def plot_m_evolution(inargs):
