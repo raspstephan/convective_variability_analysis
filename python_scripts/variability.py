@@ -332,13 +332,14 @@ def plot_diurnal(inargs):
     clist = [get_config(inargs, 'colors', 'ens'),
              get_config(inargs, 'colors', 'det'),
              get_config(inargs, 'colors', 'third')]
-    labellist = ['Small: 11.2 km', 'Medium: 89.6 km', 'Large: 717 km']
+    labellist = ['Small: ', 'Medium: ', 'Large: ']
 
     # Do some further calculations to get daily composite
-    for i, i_n in enumerate([6, 3, 0]):
+    for i, i_n in enumerate(inargs.diurnal_scale_inds):
         n = rootgroup.variables['n'][i_n]
         nx = int(np.floor(get_config(inargs, 'domain', 'ana_irange') / n))
         ny = int(np.floor(get_config(inargs, 'domain', 'ana_jrange') / n))
+        label = labellist[i] + str(int(n * 2.8)) + 'km'
 
         mean_M = rootgroup.variables['mean_M'][:, :, i_n, :nx, :ny]
         mean_m = rootgroup.variables['mean_m'][:, :, i_n, :nx, :ny]
@@ -406,11 +407,11 @@ def plot_diurnal(inargs):
         if inargs.diurnal_individual_days:
             for iday, date in enumerate(rootgroup.variables['date']):
                 plot_individual_panel(inargs, rootgroup, i, iday, axflat,
-                                      n_cols, n_rows, ylabel, data, labellist,
+                                      n_cols, n_rows, ylabel, data, label,
                                       clist)
 
         else:
-            plot_composite(inargs, rootgroup, i, data, ax, labellist, clist,
+            plot_composite(inargs, rootgroup, i, data, ax, label, clist,
                            ylabel)
 
     # Finish figure
@@ -427,7 +428,7 @@ def plot_diurnal(inargs):
 
 
 def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
-                          ylabel, data, labellist, clist):
+                          ylabel, data, label, clist):
     """
     Plots the individual panels of the diurnal plots for each day.
 
@@ -451,8 +452,8 @@ def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
       ylabel
     data : array
       Data to be plotted
-    labellist : list
-      List with labels
+    label : str
+      Label string
     clist : list
       List with colors
     """
@@ -480,7 +481,7 @@ def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
     per75 = np.nanpercentile(data[iday], 75, axis=1)
 
     axflat[iday].plot(rootgroup.variables['time'][:], daily_mean,
-                      label=labellist[i], c=clist[i], zorder=1)
+                      label=label, c=clist[i], zorder=1)
     axflat[iday].fill_between(rootgroup.variables['time'][:],
                               per25, per75,
                               where=per25 < per75,
@@ -488,7 +489,7 @@ def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
                               alpha=0.3, zorder=0.5)
 
 
-def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
+def plot_composite(inargs, rootgroup, i, data, ax, label, clist, ylabel):
     """
     Plots composite panel for diurnal plots.
 
@@ -503,8 +504,8 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     data : array
       Data to be plotted
     ax : axis object
-    labellist : list
-      List with labels
+    label : str
+      Label string
     clist : list
       List with colors
     ylabel : str
@@ -524,7 +525,7 @@ def plot_composite(inargs, rootgroup, i, data, ax, labellist, clist, ylabel):
     per75 = np.nanpercentile(data, 75, axis=(0,2))
 
     ax.plot(rootgroup.variables['time'][:], composite_mean,
-            label=labellist[i], c=clist[i], zorder=1,
+            label=label, c=clist[i], zorder=1,
             linewidth=2)
     ax.fill_between(rootgroup.variables['time'][:],
                               per25, per75,
@@ -896,7 +897,13 @@ if __name__ == '__main__':
     parser.add_argument('--diurnal_ext_m',
                         type=float,
                         default=None,
-                        help='If given, uses constant external m for CC06 plots')
+                        help='If given, uses constant external m for CC06 '
+                             'plots')
+    parser.add_argument('--diurnal_scale_inds',
+                        type=float,
+                        nargs='+',
+                        default=[6, 3, 0],
+                        help='Scale indices for diurnal plots.')
 
     # For std_vs_mean
     parser.add_argument('--std_vs_mean_var',
