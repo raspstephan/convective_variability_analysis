@@ -684,8 +684,12 @@ def plot_m_evolution(inargs):
     # Read pre-processed data
     rootgroup = read_netcdf_dataset(inargs)
 
+    c_red = get_config(inargs, 'colors', 'third')
+    c_blue = get_config(inargs, 'colors', 'ens')
+
     pw = get_config(inargs, 'plotting', 'page_width')
-    fig, ax1 = plt.subplots(1, 1, figsize=(0.5 * pw, pw / 2.5))
+    ratio = 0.7
+    fig, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * ratio))
     ax2 = ax1.twinx()
 
     mean_m = np.nanmean(rootgroup.groups['ens'].variables['cld_sum_mean'][:],
@@ -720,26 +724,24 @@ def plot_m_evolution(inargs):
     print('Mean m = %.2e \nMean sep m = %.2e' % (weighted_mean_m,
                                                  weighted_mean_m_sep))
 
-
     ax1.plot(rootgroup.variables['time'][:], mean_m_sep, label='separated',
-            linewidth=2, c='orangered')
+            linewidth=2, c=c_red)
     ax1.plot(rootgroup.variables['time'][:], mean_m, label='non-separated',
-            linewidth=2, c='cornflowerblue')
+            linewidth=2, c=c_red, linestyle='--')
 
     ax3 = ax1.twinx()
     ax3.plot(rootgroup.variables['time'][:], mean_M,
              linewidth=2, c='gray', zorder=0.1, alpha=0.5)
     ax3.axis('off')
 
-
     ax2.plot(rootgroup.variables['time'][:], mean_size_sep, linewidth=2,
-             linestyle='--', c='orangered')
-    ax2.plot(rootgroup.variables['time'][:], mean_size, linewidth=2,
-             linestyle='--', c='cornflowerblue')
+             c=c_blue)
+    ax2.plot(rootgroup.variables['time'][:], mean_size, linewidth=2, c=c_blue,
+             linestyle='--')
 
     ax1.set_xlabel('Time [UTC]')
-    ax1.set_ylabel(r'$\langle m \rangle$ [kg s$^{-1}$] (solid)')
-    ax2.set_ylabel(r'$\langle \sigma \rangle$ [m$^{2}$] (dashed)')
+    ax1.set_ylabel(r'$\langle m \rangle$ [kg s$^{-1}$] (red)')
+    ax2.set_ylabel(r'$\langle \sigma \rangle$ [m$^{2}$] (blue)')
     ax1.legend(fontsize=8, loc=4)
 
     for ax in [ax1, ax2]:
@@ -750,8 +752,11 @@ def plot_m_evolution(inargs):
         ax.spines['left'].set_position(('outward', 3))
         ax.spines['right'].set_position(('outward', 3))
         ax.set_xlim((6, 24))
+
+    plt.subplots_adjust(left=0.18, right=0.82, bottom=0.2, top=0.9)
+
     # Save figure and log
-    save_fig_and_log(fig, rootgroup, inargs, 'm_evolution', tight=True)
+    save_fig_and_log(fig, rootgroup, inargs, 'm_evolution')
 
 
 ################################################################################

@@ -599,12 +599,13 @@ def plot_std_vs_mean(inargs):
     if var not in ['M', 'TTENS']:
         raise Exception('Wrong variable for std_vs_mean.')
 
-    std = np.sqrt(rootgroup.variables['var_' + var][:])
-    mean = rootgroup.variables['mean_' + var][:]
+    mx_ind = inargs.std_vs_mean_min_scale + 1
+    std = np.sqrt(rootgroup.variables['var_' + var][:, :, :mx_ind, :, :])
+    mean = rootgroup.variables['mean_' + var][:, :, :mx_ind, :, :]
 
     # Start with n loop for CC06 fit
     fit_list = []
-    for i_n, n in enumerate(rootgroup.variables['n'][:]):
+    for i_n, n in enumerate(rootgroup.variables['n'][:mx_ind]):
         if inargs.std_vs_mean_var == 'TTENS':
             # Multiply with area
             std[:, :, i_n, :, :] *= (n * dx) ** 2
@@ -710,7 +711,7 @@ def plot_std_vs_mean(inargs):
             raise Exception('Does not work because of line fitting.')
         ax2 = plt.axes([.72, .25, .2, .2], axisbg='lightgray')
         blist = np.array(fit_list) / 1.e8
-        x = np.array(rootgroup.variables['n'][:]) * dx / 1000.
+        x = np.array(rootgroup.variables['n'][:mx_ind]) * dx / 1000.
 
         ax2.plot(x, blist, c=c_red)
         ax2.scatter(x, blist, c=c_red, s=20)
@@ -900,7 +901,7 @@ if __name__ == '__main__':
                         help='If given, uses constant external m for CC06 '
                              'plots')
     parser.add_argument('--diurnal_scale_inds',
-                        type=float,
+                        type=int,
                         nargs='+',
                         default=[6, 3, 0],
                         help='Scale indices for diurnal plots.')
@@ -921,6 +922,10 @@ if __name__ == '__main__':
                         help='If given, plots fit inlay for std_vs_mean.'
                              'Note: Not working right now!')
     parser.set_defaults(std_vs_mean_plot_inlay=False)
+    parser.add_argument('--std_vs_mean_min_scale',
+                        type=int,
+                        default=6,
+                        help='Smallest scale to include in analysis.')
 
     # General options
     parser.add_argument('--config_file',
