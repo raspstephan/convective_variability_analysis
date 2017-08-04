@@ -437,7 +437,8 @@ def plot_cloud_size_hist(inargs):
         var += '_sep'
     right_edges = rootgroup.variables[var + '_bins'][:]
     x = right_edges - np.diff(right_edges)[0] / 2
-
+    bin_width = np.diff(right_edges)[0]
+    print('Bin width = %.2e' % (bin_width))
 
     # Loop over groups
     for ig, group in enumerate(rootgroup.groups):
@@ -447,6 +448,7 @@ def plot_cloud_size_hist(inargs):
             continue
         # Load data
         hist_data = rootgroup.groups[group].variables[var][:]
+        print(np.sum(hist_data))
 
         if inargs.size_hist_y_type == 'relative_frequency':
             mean_hist = np.mean(hist_data, axis=(0, 1, 3))
@@ -457,6 +459,7 @@ def plot_cloud_size_hist(inargs):
             plot_data = mean_hist / mean_hr_no_cld
         elif inargs.size_hist_y_type == 'mean_number':
             plot_data = np.mean(hist_data, axis=(0, 1, 3))
+            mean_hr_no_cld = np.sum(plot_data)
         elif inargs.size_hist_y_type == 'total_number':
             plot_data = np.mean(hist_data, axis=3)
             plot_data = np.sum(plot_data, axis=(0, 1))
@@ -465,16 +468,18 @@ def plot_cloud_size_hist(inargs):
 
         # Fit curves only for ens
         if group == 'ens':
-            print('Mean hourly cloud number = %.2e' % (mean_hr_no_cld))
+            print('Actual N = %.2e' % (mean_hr_no_cld))
 
             # Exponential
             a, b = fit_curve(x, plot_data, fit_type='exp')
             print('Exp fit params: a = %.2e; b = %.2e' % (a, b))
+            print('Exp fit m = %.2e' % (b ** -1))
+            print('Exp fit N = %.2e' % (1 / b / bin_width * np.exp(a)))
             ax.plot(x, np.exp(a - b * x), c=c_red, label='Exponential',
                     zorder=0.1)
             # Power law
             a, b = fit_curve(x, plot_data, fit_type='pow')
-            print('Pow-law fit params: a = %.2e; b = %.2e' % (a, b))
+            # print('Pow-law fit params: a = %.2e; b = %.2e' % (a, b))
             ax.plot(x, np.exp(a-b*np.log(x)), c='darkorange', label='Power-law',
                     zorder=0.1)
 
@@ -503,6 +508,8 @@ def plot_cloud_size_hist(inargs):
         if inargs.size_hist_y_type == 'relative_frequency':
             ylabel = 'Relative frequency'
             #ax.set_ylim(5e-5, 1e0)
+        else:
+            ylabel = inargs.size_hist_y_type
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
