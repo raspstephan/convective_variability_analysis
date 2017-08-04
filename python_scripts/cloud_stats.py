@@ -7,6 +7,8 @@ Description:  Compute and plot precipitation histograms of deterministic and
 """
 
 # Import modules
+import matplotlib
+matplotlib.use("TKAgg")
 import argparse
 from netCDF4 import Dataset
 from datetime import datetime, timedelta
@@ -14,6 +16,7 @@ from helpers import make_datelist, get_pp_fn, create_log_str, \
     read_netcdf_dataset, get_config, save_fig_and_log, pp_exists, \
     get_composite_str, calc_rdf, identify_clouds, load_raw_data, fit_curve
 import numpy as np
+
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 
@@ -91,7 +94,7 @@ def create_netcdf(inargs):
         'cld_size': ['date', 'time', 'cld_size_bins'],
         'cld_sum': ['date', 'time', 'cld_sum_bins'],
         'cld_size_sep': ['date', 'time', 'cld_size_sep_bins'],
-        'cld_sum_sep': ['date', 'time', 'cld_size_sep_bins'],
+        'cld_sum_sep': ['date', 'time', 'cld_sum_sep_bins'],
         'cld_size_mean': ['date', 'time'],
         'cld_sum_mean': ['date', 'time'],
         'cld_size_sep_mean': ['date', 'time'],
@@ -217,7 +220,7 @@ def compute_cloud_histograms(inargs, raw_data, rootgroup, group, idate, it, ie,
         [idate, it, ie] = np.mean(cld_sum_list)
 
     if inargs.footprint == 0:   # Use default cross
-        footprint = [[0,1,0],[1,1,1],[0,1,0]]
+        footprint = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
     else:
         footprint = inargs.footprint
     labels_sep, cld_size_sep_list, cld_sum_sep_list = \

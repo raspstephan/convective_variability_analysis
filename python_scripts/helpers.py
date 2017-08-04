@@ -739,7 +739,6 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
 
         # Get local maxima
         lmax = detect_peaks(field*binfield, neighborhood=neighborhood)
-
         # Do the watershed segmentation
         # Get individual labels for local maxima
         lmax_labels, ncld = measurements.label(lmax)
@@ -749,6 +748,7 @@ def identify_clouds(field, thresh, opt_field = None, opt_thresh = None,
         # Find objects
         structure = [[0,1,0],[1,1,1],[0,1,0]]
         labels, ncld = measurements.label(binfield, structure = structure)
+        print('Regular ncld = %i' % (ncld))
 
     # Get sizes and sums
     cld_size = measurements.sum(binfield, labels, range(1, ncld+1))
