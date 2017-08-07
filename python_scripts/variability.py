@@ -660,7 +660,7 @@ def plot_std_vs_mean(inargs):
     if inargs.std_vs_mean_var == 'M':
         binedges = np.logspace(6.7, 10, nbins + 1)
     elif inargs.std_vs_mean_var == 'TTENS':
-        binedges = np.logspace(1, 7, nbins + 1)
+        binedges = np.logspace(1, 8, nbins + 1)
     if inargs.var == 'prec':
         binedges = np.logspace(5, 10, nbins + 1)
     bininds = np.digitize(mean, binedges)
@@ -710,8 +710,8 @@ def plot_std_vs_mean(inargs):
         ax.set_xlabel(r'$\langle M \rangle$ [kg s$^{-1}$]')
         ax.set_ylabel(r'$\mathrm{std}(M)$ [kg s$^{-1}$]')
     else:
-        ax.set_xlim(1e1, 1e7)
-        ax.set_ylim(1e2,5e6)
+        ax.set_xlim(1e1, 1e8)
+        ax.set_ylim(1e2,7e6)
         ax.set_xlabel(r'$\langle Q \rangle \times A$ [K s$^{-1}$ m$^{2}$]')
         ax.set_ylabel(r'$\mathrm{std}(Q \times A)$ [K s$^{-1}$ m$^{2}$]')
 
@@ -742,9 +742,12 @@ def plot_std_vs_mean(inargs):
         ax2.set_ylabel(r'$b\times 10^8$', fontsize=6, labelpad=0.05)
         ax2.set_xlabel('n [km]', fontsize=6, labelpad=0.07)
         ax2.set_xscale('log')
-        ax2.set_xlim(5, 1200)
-        ax2.set_xticks([5, 50, 500])
-        ax2.set_xticklabels([5, 50, 500], fontsize=6)
+        ax2.set_xlim(10, 1200)
+        from matplotlib.ticker import StrMethodFormatter, NullFormatter
+        ax2.xaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
+        ax2.xaxis.set_minor_formatter(NullFormatter())
+        ax2.set_xticks([10, 100, 1000])
+        ax2.set_xticklabels([10, 100, 1000], fontsize=6)
         ax2.set_yticks([0.5, 1.5])
         ax2.set_yticklabels([0.5, 1.5], fontsize=6)
 
