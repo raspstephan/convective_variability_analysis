@@ -323,7 +323,7 @@ def plot_diurnal(inargs):
         n_rows = int(np.ceil(float(n_days) / n_cols))
 
         fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
-                                  figsize=(pw, 3 * n_rows))
+                                  figsize=(pw, 2.1 * n_rows))
         axflat = np.ravel(axmat)
 
     else:
@@ -416,7 +416,9 @@ def plot_diurnal(inargs):
 
     # Finish figure
     if inargs.diurnal_individual_days and inargs.diurnal_legend:
-        axflat[0].legend(loc=2, fontsize=8)
+        axflat[0].legend(loc=4, fontsize=8)
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=0.15, hspace=0.25)
     elif inargs.diurnal_legend:
         ax.legend(loc=2, fontsize=8)
 
@@ -457,32 +459,53 @@ def plot_individual_panel(inargs, rootgroup, i, iday, axflat, n_cols, n_rows,
     clist : list
       List with colors
     """
+    ax = axflat[iday]
     if i == 0:  # Do once for each axis
         dateobj = (
             timedelta(seconds=int(rootgroup.variables['date'][iday])) +
             datetime(1, 1, 1))
         datestr = dateobj.strftime(
             get_config(inargs, 'plotting', 'date_fmt'))
-        axflat[iday].set_title(datestr)
         # axflat[iday].set_yscale('log')
         # axflat[iday].set_yticks([0.5, 1, 2])
         # axflat[iday].set_yticklabels([0.5, 1, 2])
         # axflat[iday].set_yticks(np.arange(0.1, 3, 0.1), minor='True')
-        axflat[iday].set_ylim(0.1, 2.5)
-        axflat[iday].axhline(y=1, c='gray', zorder=0.1)
+        ax.set_ylim(0.1, 2.5)
+        ax.set_xlim(6, 24)
+        ax.axhline(y=1, c='gray', zorder=0.1)
         if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
-            axflat[iday].set_xlabel('Time [UTC]')
+            ax.set_xlabel('Time [UTC]')
         if iday % n_cols == 0:  # Only left column
-            axflat[iday].set_ylabel(ylabel)
+            ax.set_ylabel(ylabel)
+        if inargs.diurnal_log:
+            ax.set_yscale('log')
+            ax.axhline(y=1, c='gray', zorder=0.1)
+            ax.set_yticks(np.arange(0.1, 3, 0.1), minor='True')
+            ax.set_ylim(inargs.diurnal_ylim[0], inargs.diurnal_ylim[1])
+            # Fix from https://github.com/matplotlib/matplotlib/issues/8386/
+            from matplotlib.ticker import StrMethodFormatter, NullFormatter
+            ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
+            ax.yaxis.set_minor_formatter(NullFormatter())
+            ax.set_yticks([0.5, 1, 2])
+            ax.set_yticklabels([0.5, 1, 2])
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            # ax.spines['left'].set_position(('outward', 3))
+            ax.spines['bottom'].set_position(('outward', 3))
+            ax.text(0.3, 0.9, datestr, fontsize=10,
+                    transform=ax.transAxes)
+            if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
+                ax.set_xlabel('Time [UTC]')
+                ax.set_xticks([0, 6, 12, 18, 24])
 
     # Get the data to be plotted
     daily_mean = np.nanmean(data[iday], axis=1)
     per25 = np.nanpercentile(data[iday], 25, axis=1)
     per75 = np.nanpercentile(data[iday], 75, axis=1)
 
-    axflat[iday].plot(rootgroup.variables['time'][:], daily_mean,
+    ax.plot(rootgroup.variables['time'][:], daily_mean,
                       label=label, c=clist[i], zorder=1)
-    axflat[iday].fill_between(rootgroup.variables['time'][:],
+    ax.fill_between(rootgroup.variables['time'][:],
                               per25, per75,
                               where=per25 < per75,
                               linewidth=0, facecolor=clist[i],
