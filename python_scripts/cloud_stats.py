@@ -7,8 +7,6 @@ Description:  Compute and plot precipitation histograms of deterministic and
 """
 
 # Import modules
-import matplotlib
-matplotlib.use("TKAgg")
 import argparse
 from netCDF4 import Dataset
 from datetime import datetime, timedelta
@@ -555,17 +553,24 @@ def plot_rdf_individual(inargs):
     n_rows = int(np.ceil(float(n_days) / n_cols))
 
     fig, axmat = plt.subplots(n_rows, n_cols, sharex=True, sharey=True,
-                              figsize=(10, 3 * n_rows))
+                              figsize=(get_config(inargs, 'plotting',
+                                                  'page_width'),
+                                       2.1 * n_rows))
     axflat = np.ravel(axmat)
 
     # Loop over axes / days
     for iday in range(n_days):
+        ax = axflat[iday]
         dateobj = (timedelta(seconds=int(rootgroup.variables['date'][iday])) +
                    datetime(1, 1, 1))
         datestr = dateobj.strftime(get_config(inargs, 'plotting', 'date_fmt'))
-        axflat[iday].set_title(datestr)
+        ax.text(0.35, 0.9, datestr, fontsize=10,
+                transform = ax.transAxes)
         if iday >= ((n_cols * n_rows) - n_cols):  # Only bottom row
-            axflat[iday].set_xlabel('Time [UTC]')
+            ax.set_xlabel('Time [UTC]')
+            ax.set_xticks([0, 6, 12, 18, 24])
+        if iday % 4 == 0:  # Only left column
+            ax.set_ylabel(r'RDF')
 
         for ig, group in enumerate(rootgroup.groups):
 
@@ -581,14 +586,19 @@ def plot_rdf_individual(inargs):
             rdf = np.nanmax(np.nanmean(rdf_data, axis=2), axis=1)
 
             # Plot data
-            axflat[iday].plot(rootgroup.variables['time'][:], rdf, label=group,
-                              c=get_config(inargs, 'colors', group))
+            ax.plot(rootgroup.variables['time'][:], rdf, label=group,
+                    c=get_config(inargs, 'colors', group))
 
-            axflat[iday].set_ylim(0, 35)
+            ax.set_ylim(0, 35)
+            ax.set_xlim(6, 24)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            # ax.spines['left'].set_position(('outward', 3))
+            ax.spines['bottom'].set_position(('outward', 3))
 
     # Finish figure
-    axflat[0].legend(loc=0)
-
+    axflat[0].legend(loc=3)
+    plt.subplots_adjust(wspace=0.15, hspace=0.25)
     plt.tight_layout()
 
     # Save figure and log
