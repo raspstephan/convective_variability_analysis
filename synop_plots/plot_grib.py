@@ -135,7 +135,7 @@ if plot_data: # projection globe, grid, sp, contourlines in grey
     cb.set_label(r'500 hPa $\Phi$ [dam]', fontsize=8)
     cb.ax.tick_params(labelsize=8)
     plt.subplots_adjust(left=0.05, bottom=0.05, top=0.94, right=0.92)
-    fig.savefig(result_dir + 'synop.pdf')
+    fig.savefig(result_dir + 'synoptic_situation.pdf')
     fig.clf()
     print 'plt_diff_fc_abs_error'
 
@@ -169,7 +169,7 @@ Anaconda environment yml file\n
 -----------------------------
 %s\n\n""" % (time_stamp, exe_str, pwd, str(git_hash), conda_info, conda_env))
 
-logfn = result_dir + 'synop.log'
+logfn = result_dir + 'synoptic_situation.log'
 logf = open(logfn, 'w+')
 logf.write(log_str)
 logf.close()

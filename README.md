@@ -1,11 +1,12 @@
-## Release Notes: poster_delft
-This is the version of the repository used to make the plots for the poster at the "Future of Cumulus Parameterization" workshop in Delft, Netherlands in July 2017. The figures and log-files for creating the figures on the poster can be found at https://figshare.com/collections/convective_variability_poster_delft_jul_2017/3806629
+## Release Notes: submission
+This is the version of the code repository at the time the paper was submitted. The Jupyter notebooks mentioned in the paper can be downloaded or viewed here:
+- http://nbviewer.jupyter.org/github/raspstephan/convective_variability_analysis/blob/master/jupyter_notebooks/cloud_identification_and_rdf.ipynb
+- http://nbviewer.jupyter.org/github/raspstephan/convective_variability_analysis/blob/master/jupyter_notebooks/beta_sample_size_dependency.ipynb
 
-The Jupyter notebook illustrating cloud separation and the radial distribution function is in the `jupyter_notebooks` directory. If you want to play around with it, go there; if you simply want to look at it you can do that here: http://nbviewer.jupyter.org/github/raspstephan/convective_variability_analysis/blob/master/jupyter_notebooks/cloud_identification_and_rdf.ipynb
 
 # Convective Variability in COSMO ensembles
 
-This is my working repository for my convective organization and variability research which I am doing for my PhD. One main goal of this work is to make the data analysis **reproducible**. Here I am loosely following the footsteps of [Damien Irving](https://github.com/DamienIrving).
+This is the working repository for my convective variability research. One main goal of this work is to make the data analysis reproducible. I am loosely following the footsteps of [Damien Irving](https://github.com/DamienIrving).
 
 The repository is structured as follows:
 
@@ -17,8 +18,12 @@ The repository is structured as follows:
 
 - `cosmo_runscripts` contains the COSMO runscripts with which the raw data were produced. Again, the README inside the directory gives more information.
 
-- `aux_files` contains some auxiliary files, such as the radar masks.
+- `synop_plots` contains scripts to plot a synoptic overview from ECMWF data.
 
-- `synop_plots` contains scripts to plot a synoptic overview from ECMWF data
+- `aux_files` contains some auxiliary files, such as the radar masks. *Not used anymore*
+
+- `fortran_scripts` *Not used anymore*
+
+
 
 

@@ -34,7 +34,7 @@ but the data was later copied to
 
 `/project/meteo/scratch/users/stephan.rasp/convective_variability_data/raw_data/< Date in format yyyymmddhh >/dein_ceu/`
 
-An external file containing constant fields (e.g. land usage) is required for the interpolation. The file used is saved here ( **Where did I get that from?? ** ): 
+An external file containing constant fields (e.g. land usage) is required for the interpolation. The file used is saved here: 
 
 `/project/meteo/w2w/A6/S.Rasp/archive/convective_variability/external/lm_d0_02800_1605x1605.mol.g1`
 
