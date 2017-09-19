@@ -16,9 +16,12 @@ from netCDF4 import Dataset, date2num
 from datetime import datetime, timedelta
 from subprocess import check_output
 from git import Repo
-from cosmo_utils.helpers import yyyymmddhh_strtotime
+try:
+    from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
+    from cosmo_utils.helpers import yyyymmddhh_strtotime
+except:
+    print 'No cosmo_utils detected, some things might not work.'
 from numpy.ma import masked_array
-from cosmo_utils.pyncdf import getfobj_ncdf_timeseries
 from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_erosion
 from scipy.ndimage.filters import maximum_filter
