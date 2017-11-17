@@ -656,8 +656,11 @@ def plot_rdf_composite(inargs):
                 leg = str(int(rootgroup.variables['time'][t])) + ' UTC'
             else:
                 leg = ' '
+            # Fix linestyle
+            ls = '-' if it == 0 else '--'
             axarr[0].plot(rootgroup.variables['rdf_radius'][:] * 2.8, rdf_curve,
-                          label=leg, c=curve_c_dict[group][it], linewidth=1.5)
+                          label=leg, c=curve_c_dict[group][0], linewidth=1.5,
+                          linestyle=ls)
             axarr[1].plot([rootgroup.variables['time'][t],
                            rootgroup.variables['time'][t]],
                           [0, inargs.rdf_y_max], c='gray', zorder=0.1,
