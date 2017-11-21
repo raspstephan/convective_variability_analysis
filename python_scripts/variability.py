@@ -791,6 +791,45 @@ def plot_correlation(inargs):
     save_fig_and_log(fig, rootgroup, inargs, 'correlation', tight=True)
 
 
+def plot_CC06b_fig9(inargs):
+    """Plots square root of normalized variance against square root of 1/N
+    
+    Parameters
+    ----------
+    inargs : argparse object
+      Argparse object with all input arguments
+
+    """
+
+    # Read pre-processed data
+    rootgroup = read_netcdf_dataset(inargs)
+
+    pw = get_config(inargs, 'plotting', 'page_width')
+    fig, ax = plt.subplots(1, 1, figsize=(pw/ 2.5, pw / 2.5))
+
+    # [date, time, n, x, y]
+    var_M = rootgroup.variables['var_M'][:, :, :, :, :]
+    mean_M = rootgroup.variables['mean_M'][:, :, :, :, :]
+    mean_N = rootgroup.variables['mean_N'][:, :, :, :, :]
+
+    y_data = var_M / (mean_M ** 2)
+    y_data = np.sqrt(np.nanmean(y_data, axis=(0, 1, 3, 4)))
+    x_data = 2. / mean_N
+    x_data = np.sqrt(np.nanmean(x_data, axis=(0, 1, 3, 4)))
+
+    # axarr[0].plot(rootgroup.variables['time'][:], mean_m, label='non-separated')
+    # axarr[1].plot(rootgroup.variables['time'][:], mean_M, label='non-separated')
+    ax.scatter(x_data, y_data)
+    ax.plot([0, 2.5], [0, 2.5], c='gray', zorder=0.1)
+
+    ax.set_xlabel('Sqrt(2/N)')
+    ax.set_ylabel('Sqrt(Var(M)/M**2)')
+    ax.legend()
+    # Save figure and log
+    save_fig_and_log(fig, rootgroup, inargs, 'CC06b_fig9', tight=True)
+
+
+
 ################################################################################
 # MAIN FUNCTION
 ################################################################################
@@ -820,6 +859,8 @@ def main(inargs):
         plot_std_vs_mean(inargs)
     elif inargs.plot_type == 'correlation':
         plot_correlation(inargs)
+    elif inargs.plot_type == 'CC06b_fig9':
+        plot_CC06b_fig9(inargs)
     else:
         print('No or wrong plot_type. Nothing plotted.')
 
