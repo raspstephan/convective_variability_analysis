@@ -1,5 +1,5 @@
-## Release Notes: submission
-This is the version of the code repository at the time the paper was submitted. The Jupyter notebooks mentioned in the paper can be downloaded or viewed here:
+## Release Notes: revision
+This is the version of the code repository at the time the paper was resubmitted after revisions. The Jupyter notebooks mentioned in the paper can be downloaded or viewed here:
 - http://nbviewer.jupyter.org/github/raspstephan/convective_variability_analysis/blob/master/jupyter_notebooks/cloud_identification_and_rdf.ipynb
 - http://nbviewer.jupyter.org/github/raspstephan/convective_variability_analysis/blob/master/jupyter_notebooks/beta_sample_size_dependency.ipynb
 
